@@ -29,6 +29,9 @@ typedef enum {
   NPU_OP_SUB,
   NPU_OP_MAXIMUM,
   NPU_OP_MINIMUM,
+  NPU_OP_RELU,
+  NPU_OP_LOGISTIC,
+  NPU_OP_TANH,
   NPU_OP__COUNT
 } npu_op_t;
 

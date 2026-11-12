@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Turn one captured run (iolog2 log + buffer dump dir) into a submitter asset dir.
 
-    /usr/bin/python3 probe/mkasset.py <log> <bufdir> <a.bin> <b.bin> <outdir>
+    /usr/bin/python3 probe/mkasset.py <log> <bufdir> <a.bin> (<b.bin>|-) <outdir>
 
-Produces: cmd368.bin cmd32.bin cmd16.bin cmdin.bin subcmd.bin iova.txt
-iova.txt = "<oldA> <oldB> <oldC>" (hex), the IOVAs used by *this* capture — the
-command stream still contains them, so the submitter needs them to relocate.
+Produces: cmd0.bin cmd1.bin cmd2.bin cmdin.bin subcmd.bin iova.txt [cmdsizes.txt]
+  cmdN.bin   — the three command buffers, in the order the subcmd descriptor lists them
+               (that order is semantic, see E-106B-3). Sizes are NOT hardcoded: they are
+               taken from the mdw_subcmd_cmdbuf array printed by the shim, so unary ops
+               (which use a 336-byte command stream instead of 368) work unchanged.
+  iova.txt   — "<oldA> <oldB> <oldC>" (hex), 0 for the unused slot of a unary op.
 """
 import os
 import re
@@ -13,17 +16,16 @@ import shutil
 import struct
 import sys
 
-SIZES = {368: "cmd368.bin", 32: "cmd32.bin", 16: "cmd16.bin"}
-
 
 def u32(b, o): return struct.unpack_from("<I", b, o)[0]
 def u64(b, o): return struct.unpack_from("<Q", b, o)[0]
 
 
 def parse_log(path):
-    """Return (cmd_in_bytes, subcmd_bytes, [(handle,size,iova)...])."""
+    """Return cmd_in, subcmd, maps[(handle,size,iova)], cmdbufs[(handle,size,align,dir)]."""
     lines = open(path, "r", errors="replace").read().splitlines()
     cmd_in = subcmd = None
+    cmdbufs = []
     maps = []
     cur = None
     for ln in lines:
@@ -39,7 +41,7 @@ def parse_log(path):
             if cur["nr"] == 33 and len(cur["pre"]) >= 24 and len(post) >= 16:
                 op = u32(cur["pre"], 0)
                 if op == 0:
-                    maps.append([u64(post, 0), u32(cur["pre"], 20), 0])   # handle,size,iova
+                    maps.append([u64(post, 0), u32(cur["pre"], 20), 0])
                 elif op == 2:
                     h = u64(cur["pre"], 16)
                     for e in maps:
@@ -52,48 +54,64 @@ def parse_log(path):
         m = re.match(r"  subcmd\[(\d+)\]=(.*)$", ln)
         if m and subcmd is None:
             subcmd = bytes.fromhex(m.group(2).replace(" ", ""))
-    return cmd_in, subcmd, maps
+            continue
+        m = re.match(r"  cmdbufs\[(\d+)\]=(.*)$", ln)
+        if m:
+            raw = bytes.fromhex(m.group(2).replace(" ", ""))
+            for k in range(len(raw) // 24):
+                e = raw[k * 24:(k + 1) * 24]
+                cmdbufs.append((u64(e, 0), u32(e, 8), u32(e, 12), u32(e, 16)))
+    return cmd_in, subcmd, maps, cmdbufs
 
 
-def find_buffers(bufdir, a, b):
-    """Locate the three cmdbufs (by size) and A/B/C (by content) in the dump dir."""
-    by_size = {}
-    data_4096 = []
+def find_by_fd(bufdir, handle, size):
+    """Buffer dumps are named map<idx>_fd<fd>_len<size>.bin and fd == MEM handle."""
     for f in sorted(os.listdir(bufdir)):
-        if not f.endswith(".bin") or "_post" in f or "_final" in f:
+        if "_post" in f or "_final" in f:
+            continue
+        m = re.match(r"map\d+_fd(\d+)_len([0-9a-f]+)\.bin$", f)
+        if not m:
+            continue
+        if int(m.group(1)) == handle and int(m.group(2), 16) == size:
+            return os.path.join(bufdir, f)
+    return None
+
+
+def find_data(bufdir, a, b, unary):
+    A = B = C = None
+    other = []
+    for f in sorted(os.listdir(bufdir)):
+        if "_post" in f or "_final" in f:
             continue
         p = os.path.join(bufdir, f)
-        n = os.path.getsize(p)
-        if n in SIZES:
-            by_size[n] = p
-        elif n == 4096:
-            data_4096.append(p)
-    A = B = None
-    other = []
-    for p in data_4096:
+        if os.path.getsize(p) != 4096:
+            continue
         head = open(p, "rb").read(64)
         if head == a:
             A = p
-        elif head == b:
+        elif not unary and head == b:
             B = p
         else:
             other.append(p)
-    C = other[0] if other else None
-    return by_size, A, B, C
+    if other:
+        C = other[0]
+    return A, B, C
 
 
 def main(log, bufdir, abin, bbin, outdir):
+    unary = (bbin == "-")
     a = open(abin, "rb").read(64)
-    b = open(bbin, "rb").read(64)
-    cmd_in, subcmd, maps = parse_log(log)
+    b = b"" if unary else open(bbin, "rb").read(64)
+    cmd_in, subcmd, maps, cmdbufs = parse_log(log)
     if not cmd_in or not subcmd:
         sys.exit("log: cmdin/subcmd not found")
-    by_size, A, B, C = find_buffers(bufdir, a, b)
-    missing = [SIZES[s] for s in SIZES if s not in by_size]
-    if missing or not (A and B and C):
-        sys.exit(f"missing buffers: {missing} data={{A:{bool(A)} B:{bool(B)} C:{bool(C)}}}")
+    if len(cmdbufs) != 3:
+        sys.exit(f"expected 3 cmdbuf descriptors, got {len(cmdbufs)}")
 
-    # A/B/C 的文件名 -> fd -> IOVA
+    A, B, C = find_data(bufdir, a, b, unary)
+    if not (A and C) or (not unary and not B):
+        sys.exit(f"data buffers: A={bool(A)} B={bool(B)} C={bool(C)}")
+
     def iova_of(path):
         m = re.search(r"_fd(\d+)_", os.path.basename(path))
         fd = int(m.group(1))
@@ -102,19 +120,26 @@ def main(log, bufdir, abin, bbin, outdir):
                 return va
         return 0
 
-    iova = [iova_of(A), iova_of(B), iova_of(C)]
-    if 0 in iova:
+    iova = [iova_of(A), iova_of(B) if B else 0, iova_of(C)]
+    if iova[0] == 0 or iova[2] == 0 or (not unary and iova[1] == 0):
         sys.exit(f"iova not resolved: {[hex(x) for x in iova]}")
 
     os.makedirs(outdir, exist_ok=True)
-    for s, name in SIZES.items():
-        shutil.copy(by_size[s], os.path.join(outdir, name))
+    sizes = []
+    for k, (handle, size, align, direction) in enumerate(cmdbufs):
+        src = find_by_fd(bufdir, handle, size)
+        if src is None:
+            sys.exit(f"cmdbuf[{k}] handle={handle} size={size}: no dump file found")
+        shutil.copy(src, os.path.join(outdir, f"cmd{k}.bin"))
+        sizes.append(size)
     open(os.path.join(outdir, "cmdin.bin"), "wb").write(cmd_in)
     open(os.path.join(outdir, "subcmd.bin"), "wb").write(subcmd)
     with open(os.path.join(outdir, "iova.txt"), "w") as f:
         f.write("0x%x 0x%x 0x%x\n" % tuple(iova))
-    print(f"{outdir}: cmd368/cmd32/cmd16 + cmdin(152) + subcmd(80) + iova="
-          f"{[hex(x) for x in iova]}")
+    with open(os.path.join(outdir, "cmdsizes.txt"), "w") as f:
+        f.write(" ".join(str(s) for s in sizes) + "\n")
+    print(f"{outdir}: cmdbufs={sizes} dirs={[c[3] for c in cmdbufs]} "
+          f"iova={[hex(x) for x in iova]}")
 
 
 if __name__ == "__main__":

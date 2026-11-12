@@ -133,12 +133,51 @@ static npu_binop_plan_t g_plan_minimum = {
     .expect_patches = 3,
     .cmdbuf_file = { "cmd32.bin", "cmd16.bin", "cmd368.bin" },
 };
+static npu_binop_plan_t g_plan_relu = {
+    .name = "RELU",
+    .asset_dir = "/data/local/tmp/npuops/assets/relu",
+    .old_iova = { 0, 0, 0 },
+    .bytes = 64,
+    .alloc_size = NPU_BINOP_ALLOC,
+    .n_inputs = 1,
+    .cmdbuf_dir = { 1, 2, 1 },
+    .patch_idx = 2,
+    .expect_patches = 2,
+    .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
+};
+static npu_binop_plan_t g_plan_logistic = {
+    .name = "LOGISTIC",
+    .asset_dir = "/data/local/tmp/npuops/assets/logistic",
+    .old_iova = { 0, 0, 0 },
+    .bytes = 64,
+    .alloc_size = NPU_BINOP_ALLOC,
+    .n_inputs = 1,
+    .cmdbuf_dir = { 1, 2, 1 },
+    .patch_idx = 2,
+    .expect_patches = 2,
+    .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
+};
+static npu_binop_plan_t g_plan_tanh = {
+    .name = "TANH",
+    .asset_dir = "/data/local/tmp/npuops/assets/tanh",
+    .old_iova = { 0, 0, 0 },
+    .bytes = 64,
+    .alloc_size = NPU_BINOP_ALLOC,
+    .n_inputs = 1,
+    .cmdbuf_dir = { 1, 2, 1 },
+    .patch_idx = 2,
+    .expect_patches = 2,
+    .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
+};
 static const npu_binop_plan_t *const g_plans[NPU_OP__COUNT] = {
     [NPU_OP_ADD] = &g_plan_add,
     [NPU_OP_MUL] = &g_plan_mul,
     [NPU_OP_SUB] = &g_plan_sub,
     [NPU_OP_MAXIMUM] = &g_plan_maximum,
     [NPU_OP_MINIMUM] = &g_plan_minimum,
+    [NPU_OP_RELU] = &g_plan_relu,
+    [NPU_OP_LOGISTIC] = &g_plan_logistic,
+    [NPU_OP_TANH] = &g_plan_tanh,
 };
 
 static const char *const g_op_names[NPU_OP__COUNT] = {
@@ -245,6 +284,7 @@ static int patch_addrs(unsigned char *cmd, unsigned size,
     uint32_t w;
     memcpy(&w, cmd + o, 4);
     for (int k = 0; k < 3; k++) {
+      if (oldv[k] == 0) continue;   /* 一元算子的 B 槽没有地址；否则 0 会匹配满屏零字 */
       uint32_t olo = (uint32_t)((oldv[k] >> 4) & 0xffffffffu);
       if (w == olo) {
         uint32_t nlo = (uint32_t)((newv[k] >> 4) & 0xffffffffu);
@@ -278,7 +318,7 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
   /* old IOVA 与命令流是同一次抓取的配对数据：默认从资产目录 iova.txt 读，
      这样重新抓取资产不需要改代码；plan 里显式给了非零值则用 plan 的。 */
   uint64_t old_iova[3] = { plan->old_iova[0], plan->old_iova[1], plan->old_iova[2] };
-  if (old_iova[0] == 0 || old_iova[1] == 0 || old_iova[2] == 0) {
+  if (old_iova[0] == 0 || old_iova[2] == 0 || (plan->n_inputs == 2 && old_iova[1] == 0)) {
     snprintf(p, sizeof(p), "%s/iova.txt", plan->asset_dir);
     FILE *f = fopen(p, "r");
     if (!f) { fprintf(stderr, "%s: missing (needs 3 hex IOVAs)\n", p); return NPU_BINOP_EASSET; }
@@ -290,7 +330,10 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
 
   /* --- 资产大小先看清楚，再分配（这样 cmdbuf 大小不写死） --- */
   for (int k = 0; k < 3; k++) {
-    snprintf(p, sizeof(p), "%s/%s", plan->asset_dir, plan->cmdbuf_file[k]);
+    snprintf(p, sizeof(p), "%s/cmd%d.bin", plan->asset_dir, k);
+    if (file_size(p, &cb_size[k])) {
+      snprintf(p, sizeof(p), "%s/%s", plan->asset_dir, plan->cmdbuf_file[k]);
+    }
     if (file_size(p, &cb_size[k])) { fprintf(stderr, "%s: missing asset\n", p); return NPU_BINOP_EASSET; }
   }
   snprintf(p, sizeof(p), "%s/subcmd.bin", plan->asset_dir);
@@ -317,13 +360,15 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
   memset(einfo.host, 0, 76);
 
   memcpy(a1.host, a, plan->bytes);
-  memcpy(b1.host, b, plan->bytes);
+  if (plan->n_inputs == 2) memcpy(b1.host, b, plan->bytes);   /* 一元算子没有 B 缓冲 */
 
   /* 写回主机 -> 设备前同步 A/B（START|WRITE + END|WRITE） */
   dma_buf_sync(a1.handle, (1u << 30) | 2u);
   dma_buf_sync(a1.handle, (1u << 31) | 2u);
-  dma_buf_sync(b1.handle, (1u << 30) | 2u);
-  dma_buf_sync(b1.handle, (1u << 31) | 2u);
+  if (plan->n_inputs == 2) {
+    dma_buf_sync(b1.handle, (1u << 30) | 2u);
+    dma_buf_sync(b1.handle, (1u << 31) | 2u);
+  }
 
   /* --- 3. 地址重定位：把抓取时的 A/B/C IOVA 换成这次的 --- */
   {
@@ -432,3 +477,7 @@ int main(void) {
   return (rc == NPU_BINOP_OK && bad == 0) ? 0 : 1;
 }
 #endif
+
+int npu_bin_unop(const npu_binop_plan_t *plan, const int8_t *a, int8_t *out) {
+  return npu_bin_binop(plan, a, a, out);   /* b 不会被使用：plan->n_inputs == 1 */
+}

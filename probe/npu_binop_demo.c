@@ -29,6 +29,18 @@ static int run_one(npu_op_t op, const char *name, const int8_t *a, const int8_t 
   return bad ? 1 : 0;
 }
 
+static int run_unary(npu_op_t op, const char *name, const int8_t *a) {
+  int8_t c[64], exp[64];
+  for (int i = 0; i < 64; i++) { int v = a[i] < 0 ? 0 : a[i]; exp[i] = (int8_t)v; }
+  memset(c, 0x5A, sizeof(c));
+  int rc = npu_binop(op, a, a, c);
+  int bad = 0;
+  for (int i = 0; i < 64; i++) if (c[i] != exp[i]) bad++;
+  printf("%-8s rc=%-4d mismatched=%d/64  C[0..7]=%d %d %d %d %d %d %d %d\n",
+         name, rc, bad, c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]);
+  return bad ? 1 : 0;
+}
+
 int main(void) {
   int8_t a[64], b[64];
   for (int i = 0; i < 64; i++) { a[i] = (int8_t)((i % 8) + 1); b[i] = (int8_t)(10 * ((i % 8) + 1)); }
@@ -38,6 +50,9 @@ int main(void) {
   bad += run_one(NPU_OP_SUB, "SUB", a, b);
   bad += run_one(NPU_OP_MAXIMUM, "MAXIMUM", a, b);
   bad += run_one(NPU_OP_MINIMUM, "MINIMUM", a, b);
+  /* 一元：RELU，输入含负值以验证截断 */
+  { int8_t u[64]; for (int i = 0; i < 64; i++) u[i] = (int8_t)((i % 8) - 4);
+    bad += run_unary(NPU_OP_RELU, "RELU", u); }
   printf(bad ? "RESULT: FAIL\n" : "RESULT: ALL PASS\n");
   return bad ? 1 : 0;
 }

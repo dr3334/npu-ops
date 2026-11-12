@@ -46,7 +46,7 @@ wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && \
   /usr/bin/python3 probe/mkasset.py '$LOCAL/cap.log' '$LOCAL/buf' '$LOCAL/a.bin' '$LOCAL/b.bin' '$LOCAL'" || exit 4
 
 "$ADB" shell "mkdir -p $DEV/assets/$OP" >/dev/null
-for f in cmd368.bin cmd32.bin cmd16.bin cmdin.bin subcmd.bin iova.txt; do
+for f in cmd0.bin cmd1.bin cmd2.bin cmdin.bin subcmd.bin iova.txt cmdsizes.txt; do
   "$ADB" push "$LOCAL/$f" "$DEV/assets/$OP/$f" >/dev/null 2>&1 || { echo "push $f failed"; exit 5; }
 done
 echo "[capture] asset -> $DEV/assets/$OP  ($(cat "$LOCAL/iova.txt"))"
