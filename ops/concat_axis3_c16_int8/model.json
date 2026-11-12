@@ -1,0 +1,66 @@
+{
+  "op": "CONCATENATION",
+  "shape": {
+    "a": [
+      1,
+      4,
+      8,
+      16
+    ],
+    "b": [
+      1,
+      4,
+      8,
+      16
+    ],
+    "axis": 3,
+    "out": [
+      1,
+      4,
+      8,
+      32
+    ]
+  },
+  "dtype": "int8",
+  "inputs": [
+    {
+      "name": "a",
+      "shape": [
+        1,
+        4,
+        8,
+        16
+      ],
+      "type": "int8"
+    },
+    {
+      "name": "b",
+      "shape": [
+        1,
+        4,
+        8,
+        16
+      ],
+      "type": "int8"
+    }
+  ],
+  "output": {
+    "name": "out",
+    "shape": [
+      1,
+      4,
+      8,
+      32
+    ],
+    "type": "int8"
+  },
+  "quant": {
+    "input": 0.007874015748031496,
+    "output": 0.007874015748031496
+  },
+  "int8_tol": 0,
+  "reference": "numpy_exact",
+  "tflite": "model.tflite",
+  "tflite_bytes": 608,
+  "seed": 20261112
+}

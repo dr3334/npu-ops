@@ -1,0 +1,53 @@
+{
+  "op": "TRANSPOSE",
+  "shape": {
+    "in": [
+      1,
+      4,
+      8,
+      16
+    ],
+    "perm": [
+      0,
+      3,
+      1,
+      2
+    ],
+    "out": [
+      1,
+      16,
+      4,
+      8
+    ]
+  },
+  "dtype": "int8",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      4,
+      8,
+      16
+    ],
+    "type": "int8"
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      16,
+      4,
+      8
+    ],
+    "type": "int8"
+  },
+  "quant": {
+    "input": 0.007874015748031496,
+    "output": 0.007874015748031496
+  },
+  "int8_tol": 0,
+  "reference": "numpy_exact",
+  "tflite": "model.tflite",
+  "tflite_bytes": 664,
+  "seed": 20261112
+}

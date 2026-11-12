@@ -1,0 +1,5 @@
+op        : PAD {'in': [1, 4, 8, 16], 'paddings': [[0, 0], [1, 1], [1, 1], [0, 0]], 'out': [1, 6, 10, 16]}  dtype=int8
+expected  : 960 vals   device: 960 vals   logical shape=(1, 6, 10, 16)
+exact     : YES   mismatched=0/960
+contract  : int8_tol=0  max_abs_diff=0  fraction_off=0.0000%
+PASS
