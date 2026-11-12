@@ -1,0 +1,5 @@
+op        : FULLY_CONNECTED (basis-vector layout probe, E-101) {'M': 8, 'K': 128, 'N': 64}  dtype=int8
+expected  : 512 vals   device: 512 vals   logical shape=(8, 64)
+exact     : YES   mismatched=0/512
+contract  : int8_tol=0  max_abs_diff=0  fraction_off=0.0000%
+PASS
