@@ -96,3 +96,13 @@ OUT_GAP = "Bridging is disallowed but gap is detected between MDLA_5_0 and Outpu
 大小相同但 sha256 三次都不同。因此：
 - `.dla` 的 sha256 只能标识"这是一个产物"，**不能**当作构建一致性/回归比对的依据；
 - 回归要比对的是**数值**（`compare.txt`），不是 `.dla` 哈希。
+
+## 9. 由 W6b 修正/收紧的规则
+
+1. **16 字节规则只约束 DRAM 边界张量**（rms-agent 的对照实验）：`[T,1]` 这类中间张量行宽 2 B 也能编译运行；
+   失败的只有"图的输入/输出"这一侧。原文的"输入侧最严"要读作"**边界**最严"。
+2. **int8 路径会把小于 1 个 code 的 `+eps` 常量折叠掉**（RMSNorm int8 的 `ElementWiseAdd` 层消失，
+   层号从 <1> 跳到 <3>）。⇒ int8 RMSNorm 实际上**没有 eps**；`mean=0` 的行为未测，标 UNKNOWN。
+3. **RSQRT 是原生 MDLA_5_0 层**（fp16 与 int8 都落 MDLA，int8 甚至逐位），
+   所以 RMSNorm 不需要 CPU 侧求倒数：6 个算子组成的链在**同一个执行步**里跑完。
+4. fp16 存 eps 只有约 0.6% 精度（`1e-5 → 1.0014e-05`，次正规数）——写 golden 时要按 fp16 舍入，不能按 float32。

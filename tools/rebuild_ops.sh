@@ -10,7 +10,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 _win="$(cd "$ROOT" && pwd -W 2>/dev/null || echo /d/x)"
 _drv="$(printf %s "${_win:0:1}" | tr A-Z a-z)"
 WSLROOT="${WSLROOT:-/mnt/$_drv${_win:2}}"
-WL() { wsl.exe -e bash -lc "cd  && $*"; }
+WL() { wsl.exe -e bash -lc "cd '$WSLROOT' && $*"; }
 LIST_ONLY=0; [ "${1:-}" = "--list-only" ] && LIST_ONLY=1
 
 FILE_BUILDERS="build_ops build_add build_dynb build_actreduce build_convpool build_rmsnorm"
