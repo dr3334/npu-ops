@@ -1,0 +1,32 @@
+M	K	N	tflite	compile
+1	8	64	OK	FAIL:Bridging is disallowed but gap is detected between Input and MDLA_5_0
+1	16	64	OK	OK
+1	24	64	OK	FAIL:Bridging is disallowed but gap is detected between Input and MDLA_5_0
+1	32	64	OK	OK
+1	48	64	OK	OK
+1	64	64	OK	OK
+1	96	64	OK	OK
+1	128	64	OK	OK
+1	192	64	OK	OK
+1	256	64	OK	OK
+1	384	64	OK	OK
+1	512	64	OK	OK
+1	64	8	OK	OK
+1	64	16	OK	OK
+1	64	24	OK	OK
+1	64	32	OK	OK
+1	64	48	OK	OK
+1	64	64	OK	OK
+1	64	96	OK	OK
+1	64	128	OK	OK
+1	64	192	OK	OK
+1	64	256	OK	OK
+1	64	384	OK	OK
+1	64	512	OK	OK
+2	128	128	OK	OK
+7	128	128	OK	OK
+8	128	128	OK	OK
+31	128	128	OK	OK
+32	128	128	OK	OK
+127	128	128	OK	OK
+128	128	128	OK	OK

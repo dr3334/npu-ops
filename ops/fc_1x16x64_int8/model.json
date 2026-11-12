@@ -1,0 +1,43 @@
+{
+  "op": "FULLY_CONNECTED",
+  "shape": {
+    "M": 1,
+    "K": 16,
+    "N": 64
+  },
+  "dtype": "int8",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      16
+    ],
+    "type": "int8",
+    "bytes": 16
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      64
+    ],
+    "type": "int8",
+    "bytes": 64
+  },
+  "quant": {
+    "input": 0.007874015748031496,
+    "weights": 0.007874015748031496,
+    "bias": 6.200012400024799e-05,
+    "output": 0.0019840039680079358
+  },
+  "weights_shape": [
+    64,
+    16
+  ],
+  "reference": "int64_exact_requant",
+  "codes": "full",
+  "int8_tol": 1,
+  "seed": 20261112,
+  "tflite": "model.tflite",
+  "tflite_bytes": 2016
+}
