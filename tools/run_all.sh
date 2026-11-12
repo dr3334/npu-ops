@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
 # Run every op under ops/ through e2e.sh and print a one-line verdict each.
 #   MSYS_NO_PATHCONV=1 ./tools/run_all.sh
+#   HEALTHCHECK=0 ./tools/run_all.sh      # skip the pre/post device gates
+#
+# E-104: the suite is bracketed by the known-good program (healthcheck), so a run that
+# pollutes the board (or starts from a polluted board) cannot be reported as green.
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 2
 export MSYS_NO_PATHCONV=1
+HC="${HEALTHCHECK:-1}"
+if [ "$HC" = "1" ]; then
+  printf '%-28s ' "[pre] healthcheck"
+  if ./tools/healthcheck.sh --quick >/tmp/hc_pre.log 2>&1; then echo "PASS"; else
+    echo "FAIL"; tail -5 /tmp/hc_pre.log; exit 20; fi
+fi
 pass=0; fail=0; skip=0
 printf "%-28s %-8s %-10s %s\n" "op" "result" "contract" "detail"
 for d in ops/*/; do
@@ -18,4 +28,9 @@ for d in ops/*/; do
   printf "%-28s %-8s %-10s %s\n" "$n" "$res" "$contract" "$detail"
 done
 echo "---- PASS=$pass FAIL=$fail SKIP=$skip"
+if [ "$HC" = "1" ]; then
+  printf '%-28s ' "[post] healthcheck"
+  if ./tools/healthcheck.sh --quick >/tmp/hc_post.log 2>&1; then echo "PASS"; else
+    echo "FAIL (the suite may have polluted the board)"; tail -5 /tmp/hc_post.log; exit 21; fi
+fi
 [ $fail -eq 0 ]

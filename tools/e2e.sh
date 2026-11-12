@@ -46,6 +46,11 @@ if [ "$DYN" = "1" ]; then
   "$ADB" push "$(winpath "$OPDIR/golden/weights.bin")" "$DEV/dla/$NAME.w.bin" >/dev/null || exit 5
   INS="$INS -i dla/$NAME.w.bin"
 fi
+# generic second runtime input (e.g. elementwise ADD: a + b)
+if [ "$DYN" = "0" ] && [ -f "$OPDIR/golden/input1.bin" ]; then
+  "$ADB" push "$(winpath "$OPDIR/golden/input1.bin")" "$DEV/dla/$NAME.in1.bin" >/dev/null || exit 5
+  INS="$INS -i dla/$NAME.in1.bin"
+fi
 
 # 4) run on NPU hardware
 RUNLOG="$("$ADB" shell "cd $DEV && LD_LIBRARY_PATH=\$PWD/lib ./bin/neuronrt -m hw -a dla/$NAME.dla $INS -o dla/$NAME.out.bin -c $REPEAT 2>&1" | tr -d '\r')"

@@ -255,3 +255,29 @@
 - **产物**：`docs/CAPABILITY.md`、`docs/CAPABILITY.tsv`、`tools/scan_shapes.sh`、`ops/fc_1x16x64_int8/`、`ops/fc_1x64x8_int8/`、`ops/fc_128x128x128_int8/`
 - **适用范围**：int8、FULLY_CONNECTED、单轴扫描（未扫组合）。
 - **剩余疑问**：M 与 K 的组合是否引入新边界；K>512 未测。
+
+---
+
+## E-104 把"设备健康"变成回归门禁（而不是口头纪律）
+
+- **假设**：只要套件前后都跑一次"已知正常程序"，就能把"自己算对但污染后续"的用例挡在门外。
+- **预测**：正常套件下 pre/post 都 PASS；若某实验污染设备，post 会 FAIL 并使整轮退出码非 0。
+- **做法**：`tools/run_all.sh` 增加 `[pre]`/`[post] healthcheck` 两处门禁（`HEALTHCHECK=0` 可跳过），
+  门禁内部复用 `healthcheck.sh --quick`（设备存在性 + `/dev/apusys` + neuronrt + 一次已知正常算子）。
+- **结果**：18 个算子全 PASS 且 `[post] healthcheck PASS`；两者任一失败会以 exit 20/21 终止整轮。
+- **适用范围**：所有板端批量回归。
+- **剩余疑问**：healthcheck 只做"能跑通且一致"，没有做 dmesg 严格断言（避免把历史告警当污染）。
+
+---
+
+## E-107 W5 的第一个"第二类算子"：ADD（同一条流水线复用）
+
+- **假设**：ADD 可以完全复用 FC 的工具链（同一个 build/compile/e2e/compare），不需要新脚手架；
+  只要 e2e 支持"两个常规运行时输入"即可。
+- **预测**：`add_1x64_int8` 编译落到 `MDLA_5_0`、板端输出等于 `clip(a+b)` 逐位相等。
+- **做法**：`tools/build_add.py` 用同一套 flatbuffers 助手生成 ADD（2 输入、int8、零 zp、同 scale）；
+  `tools/e2e.sh` 扩展为"若 `golden/input1.bin` 存在则作为第二个 `-i`"。
+- **产物**：`ops/add_1x64_int8/`（`.dla` 3071 B）、`tools/build_add.py`
+- **结果**：成立 —— 板端 **64/64 逐位相等**，1.70 ms/inf（含进程开销）。
+- **适用范围**：M=1,K=64,int8；未测 broadcast、未测 M>1。
+- **剩余疑问**：broadcast（N≠M 形状）是否支持；int8 溢出语义（clip 还是 wrap）只在 clip 这一档验证过。

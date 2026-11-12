@@ -152,3 +152,25 @@ R6 原生/回退分开 · R7 五个结论分开 · R8 持久交接 · R9 不删�
   （b）`probe/npu_hold` 已能独立 HANDSHAKE + MEM ALLOC → 直接推进 **E-106（apusctl 自主提交）**，
       字段命名（E-105）可以并行、不再是前置条件；
   （c）新增待办：解释 e102 命令区 368 B 与 fc 系列 400 B 的 32 B 差异。
+## 9. 计划完成度（2026-11-12 收口）
+
+| 流 | 状态 | 证据 |
+|---|---|---|
+| **W1 护栏** | ✅ 完成 | `AGENTS.md`、`tools/healthcheck.sh`、`tools/devlock.sh`、`docs/EXPERIMENTS.md`、E-104 把门禁接进 `run_all.sh`（pre/post） |
+| **W2 语义** | 3/5 | 布局 ✅ E-101；绑定+重定位 ✅ E-102；形状字段 ⚠️ E-008（25/100 字随 K/N 变，未命名）；**未做**：常权重 vs 动态权重布局一致性、N 方向写回布局 |
+| **W3 边界** | ✅ 完成 | `docs/CAPABILITY.md` + `.tsv`：K 必须 16 的倍数（8/24/40/56/72 编译失败）；N 8–512、M 2–128 可编；板端抽样 `1,16,64`、`1,64,8` 逐位相等 |
+| **W4 自主提交** | ⚠️ 部分 | 内存流水线 ✅ E-106A（我们自己的 HANDSHAKE/ALLOC/MAP/UNMAP/FREE）；字段语义 ✅ E-105B/C（num_subcmds/hardlimit 被校验，subcmd_infos/adj_matrix 必须有效指针）；**未完成**：`CMD RUN` —— 需要自己构造 `mdw_subcmd_info` 数组 + `adj_matrix` + 有效 `0x68`，以及 cmdbuf 内容生成器 |
+| **W5 泛化** | 起步 | ADD 复用同一流水线，板端逐位相等（E-107）；MUL/SOFTMAX/RESHAPE 未做 |
+
+### W4 的明确卡点（不宣称完成）
+
+要发一次自己的 `CMD RUN`，还缺三样东西，都已定位到具体证据：
+
+1. `mdw_subcmd_info`（160 B）的字段语义：已知 `num_cmdbufs@+0x40`、`cmdbufs@+0x48`（E-102 的指针解引用里读到 3 与指针），
+   其余字段未逐个变异确认；
+2. `adj_matrix`（0x58）的内容格式：驱动会解引用它，但布局未知；
+3. **cmdbuf 内容生成**：命令区（368/400 B）由编译器生成、由 runtime 在提交前重定位（E-102 证明只有 3 处地址字变化）；
+   要自己生成，需要 MDLA5.0 的 regcmd/ISA 语义 —— 这属于 L4，超出本轮范围。
+
+结论：**当前等级 L3（动态权重、同 shape 任意 A/B、新进程）**；L3.5（自有提交器 + 模板命令）需要先做 subcmd_info 的逐字段变异；
+L4（自主生成命令）需要 ISA 表。这些都写进了 §5 的 backlog，不再作为"已完成"表述。
