@@ -1,0 +1,38 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/rope_1x1x64_tabledyn_fp16/model.tflite -d ops/rope_1x1x64_tabledyn_fp16/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-12T23:46:09+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ SliceLayer<0>{SPLIT}
+   ├ SliceLayer<0>{SPLIT}
+   ├ SliceLayer<1>{SPLIT}
+   ├ ElementWiseMulLayer<4>{MUL}
+   ├ ElementWiseMulLayer<2>{MUL}
+   ├ SliceLayer<1>{SPLIT}
+   ├ ElementWiseMulLayer<5>{MUL}
+   ├ ElementWiseAddLayer<7>{ADD}
+   ├ ElementWiseMulLayer<3>{MUL}
+   ├ ElementWiseSubLayer<6>{SUB}
+   ├ ConcatLayer<8>{CONCATENATION}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     256    128     0     0       2.3K  2.7K
+
+Total Memory:
+  DRAM: 2.7K
+  L1:   4.0K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=7019
+SHA256=13132440e28d040418e2f48ffc4af69af318d6d1456b9c8bf1fa85c8048513ad
