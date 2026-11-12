@@ -102,3 +102,17 @@ CMD 的 `RUN`/`DEL` 与 6.1 头布局一致，`priority=10` 与内核 trace 交�
 ./tools/healthcheck.sh                        # 已知正常程序 + 设备状态自检（实验前后都要跑）
 ./tools/healthcheck.sh --quick                # 只跑设备存在性 + 一次已知正常算子
 ```
+
+## 里程碑：自建函数库跑通 ADD（L3.5）
+
+```c
+#include "npuadd.h"
+int npu_add64(const int8_t *a, const int8_t *b, int8_t *out);   /* 64 元素，返回 0=成功 */
+```
+
+- 实现在 `probe/npuadd.c`：自己握手（BASIC×2 + DEV×5 + MEM×4）→ 自己 ALLOC/mmap/MAP →
+  复制 ncc 生成的命令流并把 3 处地址按 `iova>>4` 重定位 → 组装 `cmdbuf[3]`/`subcmd_info`/`cmd_in`
+  → `CMD RUN` → 等待 + `DMA_BUF_SYNC` → 读回。**全程没有 libneuron/neuronrt。**
+- 关键坑（都在内核日志里露过面）：`exec_infos`(cmd@0x68) 是 **76 B 缓冲的 MEM handle**，不是用户指针；
+  命令流地址是 `iova>>4`；cmdbuf 顺序为 `[32B dir1][16B dir2][368B dir1]`；完成后要等并同步缓存。
+- 验证：`A=[10..80]×8 + B=[1..8]×8 → [11,22,…,88]×8`，逐字节等于参考；两次运行一致；healthcheck PASS。

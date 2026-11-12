@@ -360,3 +360,16 @@ A=[10,20,30,40,50,60,70,80]×8   B=[1..8]×8   →   C=[11,22,33,44,55,66,77,88]
 
 **等级变化**：行为与独立性同时达成 → **L3.5（自有提交器 + 模板命令）**。仍不是 L4：
 命令流仍是 ncc 编译产物，我们只做重定位，没有自己生成 MDLA 命令字。
+
+**封装成函数库**：`probe/npuadd.h` + `probe/npuadd.c` 提供
+`int npu_add64(const int8_t *a, const int8_t *b, int8_t *out);`
+（固定 64 元素，内部完成握手/分配/重定位/提交/等待/同步，不依赖厂商 runtime）。
+`probe/npuadd_demo.c` 实测：
+
+```
+$ ./probe/npuadd_demo
+handshake sequence: 2 basic + 5 dev + 4 mem done
+patch off=0x054 ... / 0x074 ... / 0x118 ...
+npu_add64 rc=0
+C[0..7] = 11 22 33 44 55 66 77 88        ← A=[10..80]×8 + B=[1..8]×8
+```
