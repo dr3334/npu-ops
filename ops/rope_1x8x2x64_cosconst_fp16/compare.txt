@@ -1,0 +1,9 @@
+op        : ROPE_SPLIT_HALF {'in': [1, 8, 2, 64]}  dtype=fp16
+expected  : 1024 vals   device: 1024 vals   logical shape=(1, 8, 2, 64)
+max_abs   : 9.766e-04
+rmse      : 1.359e-04
+rel_l2    : 2.338e-04
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-1.197,1.262]  dev [-1.197,1.262]
+tol       : atol=0.002 rtol=0.001
+PASS
