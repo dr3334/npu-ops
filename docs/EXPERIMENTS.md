@@ -299,3 +299,28 @@
   3. **完成等待**：`CMD RUN` 之后如何判断执行结束（fence 是 -1，可能要 poll 输出 buffer 或走 MEM SYNC）。
 - **产物**：`probe/ioAdd*.log`、`probe/buf/add_map*.bin`（三块 cmdbuf + A/B/C）、`probe/iolog2.c`（`dump_subcmds` + 8 字节阈值）。
 - **下一步（按成本排序）**：① 同一次抓取里把 `handle→IOVA` 表与命令流一起落盘 → 建地址翻译表；② `adj_matrix` 用全零 buffer 试提交（干净失败也被接受）；③ 若 ② 通过，先跑"数据不变、只换地址"的复现，再换输入值。
+
+---
+
+## E-106B 结果（三小步：-1 完成、-2 完成、-3 卡在 EINVAL）
+
+### B-1 ✅ 完整抓取（含 handle→IOVA 表）
+一次 ADD 运行里同时拿到：`cmd_in`(152 B)、`subcmd_info`(80 B)、`cmdbuf[3]` 描述符、
+三块 cmdbuf 内容（368 B 真有内容 / 32 B / 16 B 全零）、以及 `handle→IOVA`：
+`4→0x25969000(A)`、`10→0x25968000(B)`、`11→0x2596c000(C)`。
+
+**关键发现**：命令流里的地址是 **`iova >> 4`**（0x25969000 → 字面 `0x02596900`），
+这就是第一次打补丁"0 命中"的原因；按 `>>4` 后三处地址字全部命中（0x054=B、0x074=A、0x118=C）。
+
+### B-2 ✅ `adj_matrix` 可以是全零（用原始 runtime 做替换验证）
+在**合法提交**上把 `cmd_in@0x58` 换成我们自己的 256 B 全零缓冲（shim `adjzero` 模式）：
+`rc=0`，输出 `md5=6360b7b3d32c94a46585a3f6a54f50ff`，**与 golden 完全一致**。
+⇒ 该字段对 `num_subcmds=1` 不要求特定内容，全零可用。这是自建提交少掉的一个未知。
+
+### B-3 ❌ 我们自己的提交仍被拒：`CMD RUN -> EINVAL(22)`
+`probe/apusctl_run.c` 已经能：自己握手、自己 ALLOC/mmap/MAP、写内容、按 `>>4` 打三处地址补丁、
+组装 `cmdbuf[3]`/`subcmd_info`/`cmd_in` 并调用 `ioctl(fd, 'A',34, &cmd)`。
+已排除：`uid`（0 / 1 / 0x1000 / 0x10000 / 指针值 全 EINVAL）、地址补丁（命中 3 处）、
+`adj_matrix`（全零已证明可用）。
+**尚未试**（下一步）：① 复制 runtime 的完整握手序列（BASIC×2 + DEV×5 + MEM×4，我们只做了 1 次 BASIC）；
+② cmdbuf 是否需要 MEM MAP 后才可作为命令源；③ `subcmd_info` 其余字段（boost/affinity 等）是否需要与 device type 匹配。

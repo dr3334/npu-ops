@@ -45,10 +45,15 @@ static void dump_maps(void);
 static int g_patch_off = -1;
 static uint32_t g_patch_val = 0;
 
+static unsigned char g_zero[256];/* E-106B: target for the adj_matrix experiment */
+static int g_use_zero_adj = 0;
 static void load_patch(void) {
   FILE *f = fopen("/data/local/tmp/npuops/probe/patch.txt", "r");
   if (!f) return;
   unsigned off = 0, val = 0;
+  char tag[32] = {0};
+  if (fscanf(f, "%31s", tag) == 1 && !strcmp(tag, "adjzero")) { g_use_zero_adj = 1; fclose(f); return; }
+  rewind(f);
   if (fscanf(f, "%x %x", &off, &val) == 2) {
     g_patch_off = (int)off;
     g_patch_val = (uint32_t)val;
@@ -261,6 +266,13 @@ int ioctl(int fd, int req_, ...) {
         memcpy((char *)arg + g_patch_off, &g_patch_val, 4);
         dprintf(logfd, "PATCH off=0x%x old=0x%08x new=0x%08x\n", g_patch_off, old,
                 g_patch_val);
+      }
+      if (g_use_zero_adj && size >= 0x60) {
+        uint64_t old = 0; memcpy(&old, (char *)arg + 0x58, 8);
+        uint64_t nv = (uint64_t)(uintptr_t)g_zero;
+        memcpy((char *)arg + 0x58, &nv, 8);
+        dprintf(logfd, "PATCH_ADJ old=0x%llx new=0x%llx\n",
+                (unsigned long long)old, (unsigned long long)nv);
       }
       dump_pointers((const unsigned char *)arg, size, "cmd_run");
       dump_subcmds((const unsigned char *)arg, size);
