@@ -1,0 +1,49 @@
+{
+  "op": "SOFTMAX",
+  "shape": {
+    "d0": 1,
+    "d1": 4,
+    "d2": 64
+  },
+  "op_shape": [
+    1,
+    4,
+    64
+  ],
+  "dtype": "int8",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      4,
+      64
+    ],
+    "type": "int8",
+    "bytes": 256
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      4,
+      64
+    ],
+    "type": "int8",
+    "bytes": 256
+  },
+  "quant": {
+    "input": 0.0625,
+    "output": 0.00390625,
+    "input_zp": 0,
+    "output_zp": -128
+  },
+  "reference": "int64_exact",
+  "seed": 20261112,
+  "prediction": "int8 attention-sized softmax; expect exact codes like the 16-wide case",
+  "generator": "tools/build_actreduce.py",
+  "beta": 1.0,
+  "int8_tol": 2,
+  "tolerance_rationale": "fixed-point LUT vs exact transcendental: <=2 codes of 256",
+  "tflite": "model.tflite",
+  "tflite_bytes": 520
+}
