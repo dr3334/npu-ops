@@ -91,3 +91,28 @@ ERROR: Fail to process the given model     EXIT=1
 先把**只含 RMSNorm + 一个 FC** 的两算子图跑通，再逐步加回 attention/MLP。
 
 **当前可用的整块**：v1（无 Norm、无 RoPE）已通过，`ops/block_qwen25_1l_fp16`。
+
+### 7.1 bisect 结果（RMSNorm + 1 个 FC，两算子图）
+
+把整块缩到最小复现：`MUL(x,x) → MEAN(axis=1,keep) → RSQRT → MUL(x,r)` 再 `FC`，**仍然失败**：
+
+```
+层次=1  ERROR: Invalid RSqrtLayer<2>{RSQRT}: output shape is incompatible with inputs
+```
+
+两种张量声明都试过：
+
+| mean/rsqrt 声明 | keep_dims | 结果 |
+|---|---|---|
+| `[T,1]` | true | RSQRT output shape incompatible（层次=1 就停） |
+| `[T]` | false | RSQRT 不兼容 + `ElementWiseMulLayer<3>: input shapes are incompatible` |
+
+而**完全相同的链**在 `tools/build_rmsnorm.py` 的独立模型里（`ops/rmsnorm_8x64_fp16`）能编译并跑出 2 ULP。
+两者张量声明（mean `[T,1]`、eps `[T,1]`、rsqrt `[T,1]`、axis `[1] int32`）**看起来一致**。
+
+⇒ 结论：不是形状声明本身，**是构造顺序/索引细节**（很可能是 flatbuffer 里 tensor 与 operator 的登记顺序，
+或 MEAN 的 axis 张量在 buffer 表中的位置）。下一步应当做的是 **把两份 .tflite 的 tensor 表逐字段 diff**
+（`flatc -t --raw-binary schema` 或直接解析），而不是继续在手写图里试错。
+
+> 记录这条的意义：它说明"独立算子能跑"与"同一算子拼进整图能跑"是**两个不同的验证**，
+> 后者才是 block 级别真正需要的。

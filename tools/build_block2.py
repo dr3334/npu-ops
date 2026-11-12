@@ -27,7 +27,7 @@ def f16(a):
     return np.asarray(a, dtype=np.float16)
 
 
-def main(out_dir):
+def main(out_dir, bisect=False):
     rng = np.random.default_rng(SEED)
     Wq = f16(rng.normal(0, 0.05, (HD, H)))
     Wk = f16(rng.normal(0, 0.05, (HD, H)))
@@ -103,9 +103,9 @@ def main(out_dir):
     def rmsnorm(inp, out, gamma, t_name):
         # square -> mean(axis=1, keep) -> +eps -> rsqrt -> *x -> *gamma
         binary(inp, inp, f"{out}_sq", (T, H), OC_MUL)
-        t_m = act(f"{out}_mean", (T,))
+        t_m = act(f"{out}_mean", (T, 1))
         S.ReducerOptionsStart(b)
-        S.ReducerOptionsAddKeepDims(b, False)
+        S.ReducerOptionsAddKeepDims(b, True)
         ro = S.ReducerOptionsEnd(b)
         buffers.append(bo.buf_data(b, np.asarray([1], np.int32)))
         ax = bo.tensor(b, f"{out}_ax", [1], bo.I32, len(buffers) - 1)
@@ -115,7 +115,7 @@ def main(out_dir):
         idx[f"{out}_mean"] = len(tensors) - 1
         # NOTE: `mean + eps`（ElementWiseAdd，两输入均 fp16 [T,1]）在整图里被 ncc 判为
         # "input types are incompatible"；本实验先令 eps=0，并把该失败记进 docs/OP-block.md。
-        t_r = act(f"{out}_rsqrt", (T,))
+        t_r = act(f"{out}_rsqrt", (T, 1))
         operators.append(bo.operator(b, OC_RSQRT, [idx[f"{out}_mean"]], [t_r]))
         idx[f"{out}_rsqrt"] = len(tensors) - 1
         binary(inp, f"{out}_rsqrt", out, (T, H), OC_MUL)   # gamma 折进后续 FC 权重
@@ -125,6 +125,19 @@ def main(out_dir):
     fc("n1", "q", f16(np.asarray(Wq, np.float32) * np.asarray(g1, np.float32)), T, H, HD)
     fc("n1", "k", f16(np.asarray(Wk, np.float32) * np.asarray(g1, np.float32)), T, H, HD)
     fc("n1", "v", f16(np.asarray(Wv, np.float32) * np.asarray(g1, np.float32)), T, H, HD)
+    if bisect:
+        blob = bo.finish(b, buffers, opcodes, tensors, operators, [idx["x"]], [idx["q"]],
+                         "bisect: rmsnorm + one FC")
+        os.makedirs(out_dir, exist_ok=True)
+        open(os.path.join(out_dir, "model.tflite"), "wb").write(blob)
+        meta = {"op": "BISECT_RMSNORM_FC", "shape": {"T": T, "H": H, "HD": HD},
+                "dtype": "float16",
+                "inputs": [{"name": "x", "shape": [T, H], "type": "float16"}],
+                "output": {"name": "q", "shape": [T, HD], "type": "float16"},
+                "note": "bisect graph: MUL->MEAN->RSQRT->MUL then one FULLY_CONNECTED"}
+        json.dump(meta, open(os.path.join(out_dir, "model.json"), "w"), indent=2)
+        print(f"{out_dir}: bisect tflite={len(blob)}B (rmsnorm + FC only)")
+        return
     fc("q", "s", None, T, HD, T, dyn_w="k")          # scores = q · kᵀ (dynamic B)
     S.SoftmaxOptionsStart(b); S.SoftmaxOptionsAddBeta(b, 1.0); smo = S.SoftmaxOptionsEnd(b)
     act("p", (T, T))
@@ -200,4 +213,5 @@ def main(out_dir):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="ops/block_qwen25_1l_norm_fp16")
-    main(ap.parse_args().out)
+    ap.add_argument("--bisect", action="store_true")
+    a = ap.parse_args(); main(a.out, a.bisect)
