@@ -1,0 +1,39 @@
+{
+  "op": "RSQRT",
+  "shape": {
+    "d0": 1,
+    "d1": 64
+  },
+  "dtype": "fp32",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      64
+    ],
+    "type": "float32",
+    "bytes": 256
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      64
+    ],
+    "type": "float32",
+    "bytes": 256
+  },
+  "quant": {},
+  "seed": 20261112,
+  "prediction": "DISCRIMINATOR for the fp32 question (one variable: keep the op, change the dtype of the composed graph's most exotic layer). Prediction: also rejected at import ('Fail to process the given model'), i.e. fp32 is not importable for MDLA_5_0 elementwise ops at all; if instead this one compiles, then the fp32 blocker lives in another op of the chain (MEAN/broadcast MUL) and the dossier says so instead of blaming 'fp32' in general.",
+  "generator": "tools/build_rmsnorm.py",
+  "spec": "rsqrt_1x64_fp32",
+  "expect_compile_fail": true,
+  "golden_dtype": "float64_then_float32",
+  "atol": 1e-05,
+  "rtol": 0.0001,
+  "reference": "float64_then_float32",
+  "tolerance_rationale": "fp32 registered at 1e-5/1e-4; only meaningful if an fp32 graph compiles without a CPU bridge, which is the open question for this dtype.",
+  "tflite": "model.tflite",
+  "tflite_bytes": 384
+}

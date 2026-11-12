@@ -1,0 +1,44 @@
+{
+  "op": "RSQRT",
+  "shape": {
+    "d0": 1,
+    "d1": 64
+  },
+  "dtype": "int8",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      64
+    ],
+    "type": "int8",
+    "bytes": 64
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      64
+    ],
+    "type": "int8",
+    "bytes": 64
+  },
+  "quant": {
+    "input": 0.0625,
+    "output": 0.015625,
+    "input_zp": 0,
+    "output_zp": 0
+  },
+  "seed": 20261112,
+  "prediction": "Weaker prior than fp16: the int8 path needs a table/approximation (the XFL_RSQRT_QUANT string suggests a quantised variant exists). Prediction: EXIT=0 with <= 2 codes of 1/64 error; if it needs a requant the compiler may instead report IN_GAP. Recorded either way.",
+  "generator": "tools/build_rmsnorm.py",
+  "spec": "rsqrt_1x64_int8",
+  "expect_compile_fail": false,
+  "golden_dtype": "float64_exact_quantised",
+  "quant_rule": "y = clip(round(rsqrt(q*s_in)/s_out))",
+  "int8_tol": 2,
+  "reference": "int64_exact_quantised",
+  "tolerance_rationale": "chained int8 graph, registered before running: 4 rounding/requant stages (x*x /32, MEAN /64, RSQRT table, x*r /16, y*gamma /64), each <=0.5 code of the stage scale, plus the +-1 code of the rsqrt table amplified by the MUL-by-x (<=2 codes for |code(x)|<=32).  Budget: 1+1+1+2 = 4 codes of s_y=1/32 (0.125 absolute on a signal with |y|<=2).  NOTE the ideal-float output is also stored in golden/ for a quantisation-vs-device split, but the PASS criterion is the quantised golden above.",
+  "tflite": "model.tflite",
+  "tflite_bytes": 480
+}
