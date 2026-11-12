@@ -1,0 +1,8 @@
+fc_1x128x128_int8            Total inference time = 12.312 ms (0.6156 ms/inf)
+fc_1x128x21704_int8          Total inference time = 13.61 ms (0.6805 ms/inf)
+fc_1x64x64_fp16              Total inference time = 12.118 ms (0.6059 ms/inf)
+fc_1x64x64_int8              Total inference time = 8.357 ms (0.41785 ms/inf)
+fc_1x64x64_int8_exact        Total inference time = 13.452 ms (0.6726 ms/inf)
+fc_8x128x128_fp16            Total inference time = 10.14 ms (0.507 ms/inf)
+fc_8x128x128_int8            Total inference time = 14.066 ms (0.7033 ms/inf)
+fc_8x128x696_int8            Total inference time = 12.121 ms (0.60605 ms/inf)

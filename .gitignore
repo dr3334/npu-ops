@@ -1,0 +1,23 @@
+# generated / binary artifacts (regenerable via tools/)
+*.tflite
+*.dla
+*.bin
+*.so
+*.ko
+*.o
+*.TMP
+*~RF*TMP
+
+# device dumps
+out_device.bin
+out_w1.bin
+out_w2.bin
+out_w1b.bin
+
+# python
+__pycache__/
+*.pyc
+
+# keep these (they are small evidence):
+#   ops/*/model.json  ops/*/model.compile.log  ops/*/compare.txt  ops/*/e2e.json
+#   probe/io.log  probe/trace_*.txt  probe/mem_ioctl.dis

@@ -1,0 +1,43 @@
+{
+  "op": "FULLY_CONNECTED",
+  "shape": {
+    "M": 1,
+    "K": 64,
+    "N": 64
+  },
+  "dtype": "fp16",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      64
+    ],
+    "type": "float16",
+    "bytes": 128
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      64
+    ],
+    "type": "float16",
+    "bytes": 128
+  },
+  "quant": {
+    "input": null,
+    "weights": null,
+    "bias": null,
+    "output": null
+  },
+  "weights_shape": [
+    64,
+    64
+  ],
+  "reference": "float32",
+  "codes": "full",
+  "int8_tol": 0,
+  "seed": 20261112,
+  "tflite": "model.tflite",
+  "tflite_bytes": 8896
+}

@@ -1,0 +1,483 @@
+
+apusys.ko:	file format elf64-littleaarch64
+
+Disassembly of section .text:
+
+00000000000042e8 <mdw_mem_ioctl>:
+    42e8:      	paciasp
+    42ec:      	sub	sp, sp, #0xd0
+    42f0:      	stp	x29, x30, [sp, #0x70]
+    42f4:      	stp	x28, x27, [sp, #0x80]
+    42f8:      	stp	x26, x25, [sp, #0x90]
+    42fc:      	stp	x24, x23, [sp, #0xa0]
+    4300:      	stp	x22, x21, [sp, #0xb0]
+    4304:      	stp	x20, x19, [sp, #0xc0]
+    4308:      	add	x29, sp, #0x70
+    430c:      	adrp	x25, 0x4000 <mdw_mem_invalidate+0x180>
+    4310:      	mov	x21, x1
+    4314:      	mov	x19, x0
+    4318:      	ldrb	w8, [x25]
+    431c:      	tbnz	w8, #0x1, 0x4620 <mdw_mem_ioctl+0x338>
+    4320:      	ldr	w3, [x21]
+    4324:      	cmp	w3, #0x3
+    4328:      	b.eq	0x4398 <mdw_mem_ioctl+0xb0>
+    432c:      	cmp	w3, #0x2
+    4330:      	b.eq	0x43f8 <mdw_mem_ioctl+0x110>
+    4334:      	cbnz	w3, 0x4654 <mdw_mem_ioctl+0x36c>
+    4338:      	ldr	w8, [x21, #0x14]
+    433c:      	cbz	w8, 0x466c <mdw_mem_ioctl+0x384>
+    4340:      	add	x20, x19, #0x28
+    4344:      	mov	x0, x20
+    4348:      	bl	0x4348 <mdw_mem_ioctl+0x60>
+    434c:      	ldp	w1, w2, [x21, #0x10]
+    4350:      	ldr	w3, [x21, #0x18]
+    4354:      	mov	x0, x19
+    4358:      	ldr	x4, [x21, #0x20]
+    435c:      	mov	w5, #0x1
+    4360:      	bl	0x4360 <mdw_mem_ioctl+0x78>
+    4364:      	stp	xzr, xzr, [x21]
+    4368:      	stp	xzr, xzr, [x21, #0x10]
+    436c:      	stp	xzr, xzr, [x21, #0x20]
+    4370:      	cbz	x0, 0x46e8 <mdw_mem_ioctl+0x400>
+    4374:      	ldrsw	x8, [x0, #0x78]
+    4378:      	mov	x5, x0
+    437c:      	str	x8, [x21]
+    4380:      	ldrb	w8, [x25]
+    4384:      	tbnz	w8, #0x3, 0x4744 <mdw_mem_ioctl+0x45c>
+    4388:      	mov	w24, wzr
+    438c:      	mov	x0, x20
+    4390:      	bl	0x4390 <mdw_mem_ioctl+0xa8>
+    4394:      	b	0x45f8 <mdw_mem_ioctl+0x310>
+    4398:      	add	x22, x19, #0x28
+    439c:      	ldr	w20, [x21, #0x10]
+    43a0:      	mov	x0, x22
+    43a4:      	stp	xzr, xzr, [x21]
+    43a8:      	stp	xzr, xzr, [x21, #0x20]
+    43ac:      	stp	xzr, xzr, [x21, #0x10]
+    43b0:      	bl	0x43b0 <mdw_mem_ioctl+0xc8>
+    43b4:      	ldr	x8, [x19]
+    43b8:      	add	x0, x8, #0xab8
+    43bc:      	bl	0x43bc <mdw_mem_ioctl+0xd4>
+    43c0:      	mov	x0, x19
+    43c4:      	mov	w1, w20
+    43c8:      	bl	0x43c8 <mdw_mem_ioctl+0xe0>
+    43cc:      	cbz	x0, 0x45dc <mdw_mem_ioctl+0x2f4>
+    43d0:      	mov	x21, x0
+    43d4:      	ldr	x0, [x0, #0x38]
+    43d8:      	bl	0x43d8 <mdw_mem_ioctl+0xf0>
+    43dc:      	ldrb	w8, [x25]
+    43e0:      	tbnz	w8, #0x3, 0x4894 <mdw_mem_ioctl+0x5ac>
+    43e4:      	mov	x0, x19
+    43e8:      	mov	x1, x21
+    43ec:      	bl	0x43ec <mdw_mem_ioctl+0x104>
+    43f0:      	mov	w24, w0
+    43f4:      	b	0x45e0 <mdw_mem_ioctl+0x2f8>
+    43f8:      	ldr	w0, [x21, #0x10]
+    43fc:      	stp	xzr, xzr, [x21]
+    4400:      	ldr	w27, [x21, #0x18]
+    4404:      	stp	xzr, xzr, [x21, #0x10]
+    4408:      	ldr	x24, [x21, #0x20]
+    440c:      	stp	xzr, xzr, [x21, #0x20]
+    4410:      	stur	w0, [x29, #-0xc]
+    4414:      	bl	0x4414 <mdw_mem_ioctl+0x12c>
+    4418:      	cbz	x0, 0x46b8 <mdw_mem_ioctl+0x3d0>
+    441c:      	mov	x23, x0
+    4420:      	cmn	x0, #0xfff
+    4424:      	b.hs	0x46b8 <mdw_mem_ioctl+0x3d0>
+    4428:      	add	x22, x19, #0x28
+    442c:      	mov	x0, x22
+    4430:      	bl	0x4430 <mdw_mem_ioctl+0x148>
+    4434:      	ldr	x8, [x19]
+    4438:      	add	x0, x8, #0xab8
+    443c:      	bl	0x443c <mdw_mem_ioctl+0x154>
+    4440:      	ldr	x20, [x19]
+    4444:      	add	x26, x20, #0xa88
+    4448:      	mov	x0, x26
+    444c:      	bl	0x444c <mdw_mem_ioctl+0x164>
+    4450:      	add	x8, x20, #0xa78
+    4454:      	stur	x22, [x29, #-0x8]
+    4458:      	mov	x28, x8
+    445c:      	ldr	x28, [x28]
+    4460:      	cmp	x28, x8
+    4464:      	b.eq	0x44ac <mdw_mem_ioctl+0x1c4>
+    4468:      	ldur	x9, [x28, #-0x78]
+    446c:      	cmp	x9, x23
+    4470:      	b.ne	0x445c <mdw_mem_ioctl+0x174>
+    4474:      	mov	x22, x25
+    4478:      	sub	x25, x28, #0xb0
+    447c:      	ldr	x8, [x23, #0x8]
+    4480:      	b	0x4990 <mdw_mem_ioctl+0x6a8>
+
+0000000000004484 <$x.34>:
+    4484:      	add	x8, x8, #0x38
+    4488:      	mov	w9, #0x1
+    448c:      	stadd	x9, [x8]
+    4490:      	mov	x0, x26
+    4494:      	bl	0x4494 <mdw_mem_ioctl+0x1ac>
+    4498:      	cbz	x25, 0x44c0 <mdw_mem_ioctl+0x1d8>
+    449c:      	ldur	x0, [x28, #-0x78]
+    44a0:      	bl	0x44a0 <mdw_mem_ioctl+0x1b8>
+    44a4:      	ldur	x4, [x28, #-0xa0]
+    44a8:      	b	0x44e8 <mdw_mem_ioctl+0x200>
+    44ac:      	mov	x0, x26
+    44b0:      	bl	0x44b0 <mdw_mem_ioctl+0x1c8>
+    44b4:      	mov	x22, x25
+    44b8:      	ldrb	w8, [x25]
+    44bc:      	tbnz	w8, #0x3, 0x4964 <mdw_mem_ioctl+0x67c>
+    44c0:      	mov	x0, x19
+    44c4:      	bl	0x2904 <mdw_mem_create>
+    44c8:      	mov	x25, x0
+    44cc:      	cbz	x0, 0x4860 <mdw_mem_ioctl+0x578>
+    44d0:      	ldur	w8, [x29, #-0xc]
+    44d4:      	str	x23, [x25, #0x38]
+    44d8:      	stp	wzr, w27, [x25]
+    44dc:      	mov	x4, x24
+    44e0:      	str	x24, [x25, #0x10]
+    44e4:      	str	w8, [x25, #0x78]
+    44e8:      	eor	w8, w4, w24
+    44ec:      	tbnz	w8, #0x2, 0x4714 <mdw_mem_ioctl+0x42c>
+    44f0:      	mov	x0, x19
+    44f4:      	mov	x1, x25
+    44f8:      	bl	0x44f8 <mdw_mem_ioctl+0x210>
+    44fc:      	mov	w24, w0
+    4500:      	cbz	w0, 0x450c <mdw_mem_ioctl+0x224>
+    4504:      	ldrb	w8, [x25, #0x7c]
+    4508:      	cbz	w8, 0x4924 <mdw_mem_ioctl+0x63c>
+    450c:      	ldr	x8, [x19]
+    4510:      	add	x0, x8, #0xa88
+    4514:      	bl	0x4514 <mdw_mem_ioctl+0x22c>
+    4518:      	ldrb	w8, [x25, #0x7d]
+    451c:      	cbnz	w8, 0x4558 <mdw_mem_ioctl+0x270>
+    4520:      	ldr	x20, [x19]
+    4524:      	add	x26, x25, #0xb0
+    4528:      	mov	x0, x26
+    452c:      	ldr	x27, [x20, #0xa80]
+    4530:      	add	x28, x20, #0xa78
+    4534:      	mov	x2, x28
+    4538:      	mov	x1, x27
+    453c:      	bl	0x453c <mdw_mem_ioctl+0x254>
+    4540:      	tbz	w0, #0x0, 0x4550 <mdw_mem_ioctl+0x268>
+    4544:      	str	x26, [x20, #0xa80]
+    4548:      	stp	x28, x27, [x25, #0xb0]
+    454c:      	str	x26, [x27]
+    4550:      	mov	w8, #0x1
+    4554:      	strb	w8, [x25, #0x7d]
+    4558:      	ldr	x8, [x19]
+    455c:      	add	x0, x8, #0xa88
+    4560:      	bl	0x4560 <mdw_mem_ioctl+0x278>
+    4564:      	ldrb	w8, [x22]
+    4568:      	tbnz	w8, #0x3, 0x47d0 <mdw_mem_ioctl+0x4e8>
+    456c:      	ldr	x8, [x25, #0x58]
+    4570:      	mov	w26, #0x1
+    4574:      	ldur	x20, [x29, #-0x8]
+    4578:      	str	x8, [x21, #0x8]
+    457c:      	ldr	w8, [x25]
+    4580:      	str	w8, [x21]
+    4584:      	mov	x0, x23
+    4588:      	bl	0x4588 <mdw_mem_ioctl+0x2a0>
+    458c:      	ldr	x8, [x19]
+    4590:      	add	x0, x8, #0xab8
+    4594:      	bl	0x4594 <mdw_mem_ioctl+0x2ac>
+    4598:      	mov	x0, x20
+    459c:      	bl	0x459c <mdw_mem_ioctl+0x2b4>
+    45a0:      	cbz	w26, 0x45a8 <mdw_mem_ioctl+0x2c0>
+    45a4:      	cbz	w24, 0x45f8 <mdw_mem_ioctl+0x310>
+    45a8:      	adrp	x8, 0x4000 <mdw_mem_invalidate+0x180>
+    45ac:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    45b0:      	add	x1, x1, #0x0
+    45b4:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    45b8:      	add	x2, x2, #0x0
+    45bc:      	ldur	w3, [x29, #-0xc]
+    45c0:      	ldr	x8, [x8]
+    45c4:      	mov	x4, x25
+    45c8:      	mov	w5, w24
+    45cc:      	ldr	x8, [x8, #0x18]
+    45d0:      	ldr	x0, [x8, #0x30]
+    45d4:      	bl	0x45d4 <mdw_mem_ioctl+0x2ec>
+    45d8:      	b	0x45f8 <mdw_mem_ioctl+0x310>
+    45dc:      	mov	w24, #-0xc
+    45e0:      	ldr	x8, [x19]
+    45e4:      	add	x0, x8, #0xab8
+    45e8:      	bl	0x45e8 <mdw_mem_ioctl+0x300>
+    45ec:      	mov	x0, x22
+    45f0:      	bl	0x45f0 <mdw_mem_ioctl+0x308>
+    45f4:      	cbnz	w24, 0x4688 <mdw_mem_ioctl+0x3a0>
+    45f8:      	mov	w0, w24
+    45fc:      	ldp	x20, x19, [sp, #0xc0]
+    4600:      	ldp	x22, x21, [sp, #0xb0]
+    4604:      	ldp	x24, x23, [sp, #0xa0]
+    4608:      	ldp	x26, x25, [sp, #0x90]
+    460c:      	ldp	x28, x27, [sp, #0x80]
+    4610:      	ldp	x29, x30, [sp, #0x70]
+    4614:      	add	sp, sp, #0xd0
+    4618:      	autiasp
+    461c:      	ret
+    4620:      	adrp	x8, 0x4000 <mdw_mem_invalidate+0x180>
+    4624:      	ldr	w5, [x21]
+    4628:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    462c:      	add	x1, x1, #0x0
+    4630:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    4634:      	add	x2, x2, #0x0
+    4638:      	ldr	x8, [x8]
+    463c:      	mov	w3, #0x35e
+    4640:      	mov	x4, x19
+    4644:      	ldr	x8, [x8, #0x18]
+    4648:      	ldr	x0, [x8, #0x30]
+    464c:      	bl	0x464c <mdw_mem_ioctl+0x364>
+    4650:      	b	0x4320 <mdw_mem_ioctl+0x38>
+    4654:      	adrp	x8, 0x4000 <mdw_mem_invalidate+0x180>
+    4658:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    465c:      	add	x1, x1, #0x0
+    4660:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    4664:      	add	x2, x2, #0x0
+    4668:      	b	0x46d0 <mdw_mem_ioctl+0x3e8>
+    466c:      	adrp	x8, 0x4000 <mdw_mem_invalidate+0x180>
+    4670:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    4674:      	add	x1, x1, #0x0
+    4678:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    467c:      	add	x2, x2, #0x0
+    4680:      	mov	w3, wzr
+    4684:      	b	0x46d0 <mdw_mem_ioctl+0x3e8>
+    4688:      	adrp	x8, 0x4000 <mdw_mem_invalidate+0x180>
+    468c:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    4690:      	add	x1, x1, #0x0
+    4694:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    4698:      	add	x2, x2, #0x0
+    469c:      	mov	w3, w20
+    46a0:      	ldr	x8, [x8]
+    46a4:      	mov	w4, w24
+    46a8:      	ldr	x8, [x8, #0x18]
+    46ac:      	ldr	x0, [x8, #0x30]
+    46b0:      	bl	0x46b0 <mdw_mem_ioctl+0x3c8>
+    46b4:      	b	0x45f8 <mdw_mem_ioctl+0x310>
+    46b8:      	adrp	x8, 0x4000 <mdw_mem_invalidate+0x180>
+    46bc:      	ldur	w3, [x29, #-0xc]
+    46c0:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    46c4:      	add	x1, x1, #0x0
+    46c8:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    46cc:      	add	x2, x2, #0x0
+    46d0:      	ldr	x8, [x8]
+    46d4:      	ldr	x8, [x8, #0x18]
+    46d8:      	ldr	x0, [x8, #0x30]
+    46dc:      	bl	0x46dc <mdw_mem_ioctl+0x3f4>
+    46e0:      	mov	w24, #-0x16
+    46e4:      	b	0x45f8 <mdw_mem_ioctl+0x310>
+    46e8:      	adrp	x8, 0x4000 <mdw_mem_invalidate+0x180>
+    46ec:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    46f0:      	add	x1, x1, #0x0
+    46f4:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    46f8:      	add	x2, x2, #0x0
+    46fc:      	ldr	x8, [x8]
+    4700:      	ldr	x8, [x8, #0x18]
+    4704:      	ldr	x0, [x8, #0x30]
+    4708:      	bl	0x4708 <mdw_mem_ioctl+0x420>
+    470c:      	mov	w24, #-0xc
+    4710:      	b	0x438c <mdw_mem_ioctl+0xa4>
+    4714:      	adrp	x8, 0x4000 <mdw_mem_invalidate+0x180>
+    4718:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    471c:      	add	x1, x1, #0x0
+    4720:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    4724:      	add	x2, x2, #0x0
+    4728:      	mov	x3, x24
+    472c:      	ldr	x8, [x8]
+    4730:      	ldr	x8, [x8, #0x18]
+    4734:      	ldr	x0, [x8, #0x30]
+    4738:      	bl	0x4738 <mdw_mem_ioctl+0x450>
+    473c:      	mov	w24, #-0x16
+    4740:      	b	0x456c <mdw_mem_ioctl+0x284>
+    4744:      	adrp	x8, 0x4000 <mdw_mem_invalidate+0x180>
+    4748:      	mrs	x1, SP_EL0
+    474c:      	ldr	w1, [x1, #0x630]
+    4750:      	mov	w3, #0x2e0
+    4754:      	ldr	w2, [x5, #0x18]
+    4758:      	ldr	x8, [x8]
+    475c:      	ldp	x12, x13, [x5, #0x58]
+    4760:      	ldr	x8, [x8, #0x18]
+    4764:      	ldp	x7, x17, [x5, #0x38]
+    4768:      	ldp	w10, w11, [x5]
+    476c:      	ldr	x4, [x5, #0x90]
+    4770:      	ldr	w6, [x5, #0x78]
+    4774:      	ldr	x9, [x5, #0x20]
+    4778:      	ldr	x0, [x8, #0x30]
+    477c:      	ldr	w8, [x5, #0x68]
+    4780:      	ldr	w14, [x5, #0x8]
+    4784:      	ldr	x15, [x5, #0x10]
+    4788:      	ldrb	w16, [x5, #0x7e]
+    478c:      	str	w2, [sp, #0x58]
+    4790:      	str	w1, [sp, #0x50]
+    4794:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    4798:      	add	x1, x1, #0x0
+    479c:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    47a0:      	add	x2, x2, #0x0
+    47a4:      	str	x17, [sp, #0x48]
+    47a8:      	str	w16, [sp, #0x40]
+    47ac:      	str	x15, [sp, #0x38]
+    47b0:      	str	w14, [sp, #0x30]
+    47b4:      	str	w8, [sp, #0x28]
+    47b8:      	stp	x12, x13, [sp, #0x18]
+    47bc:      	str	w11, [sp, #0x10]
+    47c0:      	str	x9, [sp, #0x8]
+    47c4:      	str	w10, [sp]
+    47c8:      	bl	0x47c8 <mdw_mem_ioctl+0x4e0>
+    47cc:      	b	0x4388 <mdw_mem_ioctl+0xa0>
+    47d0:      	adrp	x8, 0x4000 <mdw_mem_invalidate+0x180>
+    47d4:      	mrs	x1, SP_EL0
+    47d8:      	ldr	w1, [x1, #0x630]
+    47dc:      	mov	w3, #0x328
+    47e0:      	ldr	w2, [x25, #0x18]
+    47e4:      	mov	x5, x25
+    47e8:      	ldr	x8, [x8]
+    47ec:      	ldp	x12, x13, [x25, #0x58]
+    47f0:      	ldr	x8, [x8, #0x18]
+    47f4:      	ldp	x7, x17, [x25, #0x38]
+    47f8:      	ldp	w10, w11, [x25]
+    47fc:      	ldr	x4, [x25, #0x90]
+    4800:      	ldr	w6, [x25, #0x78]
+    4804:      	ldr	x9, [x25, #0x20]
+    4808:      	ldr	x0, [x8, #0x30]
+    480c:      	ldr	w8, [x25, #0x68]
+    4810:      	ldr	w14, [x25, #0x8]
+    4814:      	ldr	x15, [x25, #0x10]
+    4818:      	ldrb	w16, [x25, #0x7e]
+    481c:      	str	w2, [sp, #0x58]
+    4820:      	str	w1, [sp, #0x50]
+    4824:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    4828:      	add	x1, x1, #0x0
+    482c:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    4830:      	add	x2, x2, #0x0
+    4834:      	str	x17, [sp, #0x48]
+    4838:      	str	w16, [sp, #0x40]
+    483c:      	str	x15, [sp, #0x38]
+    4840:      	str	w14, [sp, #0x30]
+    4844:      	str	w8, [sp, #0x28]
+    4848:      	stp	x12, x13, [sp, #0x18]
+    484c:      	str	w11, [sp, #0x10]
+    4850:      	str	x9, [sp, #0x8]
+    4854:      	str	w10, [sp]
+    4858:      	bl	0x4858 <mdw_mem_ioctl+0x570>
+    485c:      	b	0x456c <mdw_mem_ioctl+0x284>
+    4860:      	adrp	x8, 0x4000 <mdw_mem_invalidate+0x180>
+    4864:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    4868:      	add	x1, x1, #0x0
+    486c:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    4870:      	add	x2, x2, #0x0
+    4874:      	ldr	x8, [x8]
+    4878:      	ldr	x8, [x8, #0x18]
+    487c:      	ldr	x0, [x8, #0x30]
+    4880:      	bl	0x4880 <mdw_mem_ioctl+0x598>
+    4884:      	ldur	x20, [x29, #-0x8]
+    4888:      	mov	w26, wzr
+    488c:      	mov	w24, #-0xc
+    4890:      	b	0x4584 <mdw_mem_ioctl+0x29c>
+    4894:      	adrp	x8, 0x4000 <mdw_mem_invalidate+0x180>
+    4898:      	mrs	x1, SP_EL0
+    489c:      	ldr	w1, [x1, #0x630]
+    48a0:      	mov	w3, #0x34d
+    48a4:      	ldr	w2, [x21, #0x18]
+    48a8:      	mov	x5, x21
+    48ac:      	ldr	x8, [x8]
+    48b0:      	ldp	x12, x13, [x21, #0x58]
+    48b4:      	ldr	x8, [x8, #0x18]
+    48b8:      	ldp	x7, x17, [x21, #0x38]
+    48bc:      	ldp	w10, w11, [x21]
+    48c0:      	ldr	x4, [x21, #0x90]
+    48c4:      	ldr	w6, [x21, #0x78]
+    48c8:      	ldr	x9, [x21, #0x20]
+    48cc:      	ldr	x0, [x8, #0x30]
+    48d0:      	ldr	w8, [x21, #0x68]
+    48d4:      	ldr	w14, [x21, #0x8]
+    48d8:      	ldr	x15, [x21, #0x10]
+    48dc:      	ldrb	w16, [x21, #0x7e]
+    48e0:      	str	w2, [sp, #0x58]
+    48e4:      	str	w1, [sp, #0x50]
+    48e8:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    48ec:      	add	x1, x1, #0x0
+    48f0:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    48f4:      	add	x2, x2, #0x0
+    48f8:      	str	x17, [sp, #0x48]
+    48fc:      	str	w16, [sp, #0x40]
+    4900:      	str	x15, [sp, #0x38]
+    4904:      	str	w14, [sp, #0x30]
+    4908:      	str	w8, [sp, #0x28]
+    490c:      	stp	x12, x13, [sp, #0x18]
+    4910:      	str	w11, [sp, #0x10]
+    4914:      	str	x9, [sp, #0x8]
+    4918:      	str	w10, [sp]
+    491c:      	bl	0x491c <mdw_mem_ioctl+0x634>
+    4920:      	b	0x43e4 <mdw_mem_ioctl+0xfc>
+    4924:      	adrp	x8, 0x4000 <mdw_mem_invalidate+0x180>
+    4928:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    492c:      	add	x1, x1, #0x0
+    4930:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    4934:      	add	x2, x2, #0x0
+    4938:      	ldur	w3, [x29, #-0xc]
+    493c:      	ldr	x8, [x8]
+    4940:      	ldr	x8, [x8, #0x18]
+    4944:      	ldr	x0, [x8, #0x30]
+    4948:      	bl	0x4948 <mdw_mem_ioctl+0x660>
+    494c:      	mov	x0, x25
+    4950:      	bl	0x4950 <mdw_mem_ioctl+0x668>
+    4954:      	ldur	x20, [x29, #-0x8]
+    4958:      	mov	w26, wzr
+    495c:      	mov	x25, xzr
+    4960:      	b	0x4584 <mdw_mem_ioctl+0x29c>
+    4964:      	adrp	x8, 0x4000 <mdw_mem_invalidate+0x180>
+    4968:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    496c:      	add	x1, x1, #0x0
+    4970:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    4974:      	add	x2, x2, #0x0
+    4978:      	mov	w3, #0x4d
+    497c:      	ldr	x8, [x8]
+    4980:      	ldr	x8, [x8, #0x18]
+    4984:      	ldr	x0, [x8, #0x30]
+    4988:      	bl	0x4988 <mdw_mem_ioctl+0x6a0>
+    498c:      	b	0x44c0 <mdw_mem_ioctl+0x1d8>
+    4990:      	add	x8, x8, #0x38
+    4994:      	prfm	pstl1strm, [x8]
+    4998:      	ldxr	x9, [x8]
+    499c:      	add	x9, x9, #0x1
+    49a0:      	stxr	w10, x9, [x8]
+    49a4:      	cbnz	w10, 0x4998 <mdw_mem_ioctl+0x6b0>
+    49a8:      	b	0x4490 <mdw_mem_ioctl+0x1a8>
+
+00000000000049ac <$d.35>:
+    49ac: bf aa 9f e7  	.word	0xe79faabf
+
+00000000000049b0 <mdw_mem_init>:
+    49b0:      	paciasp
+    49b4:      	stp	x29, x30, [sp, #-0x20]!
+    49b8:      	str	x19, [sp, #0x10]
+    49bc:      	mov	x29, sp
+    49c0:      	mov	x19, x0
+    49c4:      	add	x0, x0, #0xa88
+    49c8:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    49cc:      	add	x1, x1, #0x0
+    49d0:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    49d4:      	add	x2, x2, #0x0
+    49d8:      	bl	0x49d8 <mdw_mem_init+0x28>
+    49dc:      	add	x0, x19, #0xab8
+    49e0:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    49e4:      	add	x1, x1, #0x0
+    49e8:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    49ec:      	add	x2, x2, #0x0
+    49f0:      	bl	0x49f0 <mdw_mem_init+0x40>
+    49f4:      	add	x8, x19, #0xa78
+    49f8:      	adrp	x9, 0x4000 <mdw_mem_invalidate+0x180>
+    49fc:      	adrp	x1, 0x4000 <mdw_mem_invalidate+0x180>
+    4a00:      	add	x1, x1, #0x0
+    4a04:      	adrp	x2, 0x4000 <mdw_mem_invalidate+0x180>
+    4a08:      	add	x2, x2, #0x0
+    4a0c:      	str	x8, [x19, #0xa78]
+    4a10:      	str	x8, [x19, #0xa80]
+    4a14:      	ldr	x8, [x9]
+    4a18:      	ldr	x8, [x8, #0x18]
+    4a1c:      	ldr	x0, [x8, #0x30]
+    4a20:      	bl	0x4a20 <mdw_mem_init+0x70>
+    4a24:      	mov	w0, wzr
+    4a28:      	ldr	x19, [sp, #0x10]
+    4a2c:      	ldp	x29, x30, [sp], #0x20
+    4a30:      	autiasp
+    4a34:      	ret
+
+0000000000004a38 <$d.37>:
+    4a38: 12 65 a3 9e  	.word	0x9ea36512

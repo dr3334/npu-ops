@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Run every op under ops/ through e2e.sh and print a one-line verdict each.
+#   MSYS_NO_PATHCONV=1 ./tools/run_all.sh
+set -uo pipefail
+cd "$(dirname "$0")/.." || exit 2
+export MSYS_NO_PATHCONV=1
+pass=0; fail=0; skip=0
+printf "%-28s %-8s %-10s %s\n" "op" "result" "contract" "detail"
+for d in ops/*/; do
+  n=$(basename "$d")
+  if [ ! -f "$d/model.json" ]; then printf "%-28s %-8s\n" "$n" "SKIP"; skip=$((skip+1)); continue; fi
+  out=$(./tools/e2e.sh "$d" 2>&1)
+  rc=$?
+  contract=$(echo "$out" | grep -oE "int8_tol=[0-9]+" | head -1)
+  [ -z "$contract" ] && contract=$(echo "$out" | grep -oE "atol=[0-9.e-]+" | head -1)
+  detail=$(echo "$out" | grep -E "^(exact|max_abs)" | head -1 | tr -s ' ')
+  if [ $rc -eq 0 ]; then pass=$((pass+1)); res=PASS; else fail=$((fail+1)); res=FAIL; fi
+  printf "%-28s %-8s %-10s %s\n" "$n" "$res" "$contract" "$detail"
+done
+echo "---- PASS=$pass FAIL=$fail SKIP=$skip"
+[ $fail -eq 0 ]
