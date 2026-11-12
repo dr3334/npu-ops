@@ -49,6 +49,7 @@ typedef struct {
   uint32_t bytes;             /* 每次提交处理的元素数（int8 => 字节数） */
   uint32_t alloc_size;        /* A/B/C 的分配大小（抓取时 runtime 用 4 KiB，这里保持一致） */
   int cmdbuf_dir[3];          /* 三个 cmdbuf 的方向标志，顺序有语义（E-106B-3） */
+  int n_inputs;               /* 1 = 一元算子(A→C)，2 = 二元算子(A,B→C) */
   int patch_idx;              /* 哪一个是含地址字的 cmdbuf（E-106B-3 实测是 368 B 那个） */
   int expect_patches;         /* 期望在命令流里找到的地址字个数（A/B/C 共 3 处） */
   const char *cmdbuf_file[3]; /* 资产文件名（按上面的语义顺序） */
@@ -57,6 +58,7 @@ typedef struct {
 /* 提交一次 a OP b -> out（同形状 int8，无广播）。返回 NPU_BINOP_* 。
    npu_binop() 只是按算子选 plan；没有资产的算子返回 NPU_BINOP_ENOASSET 并在 stderr 说明。 */
 int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b, int8_t *out);
+int npu_bin_unop(const npu_binop_plan_t *plan, const int8_t *a, int8_t *out);
 int npu_binop(npu_op_t op, const int8_t *a, const int8_t *b, int8_t *out);
 
 /* 返回某个算子的 plan（NULL = 还没抓取命令流资产）。 */

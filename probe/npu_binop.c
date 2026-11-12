@@ -76,6 +76,7 @@ static const npu_binop_plan_t g_plan_add = {
     .old_iova = { 0x25969000ULL, 0x25968000ULL, 0x2596c000ULL }, /* A, B, C */
     .bytes = 64,
     .alloc_size = NPU_BINOP_ALLOC,
+    .n_inputs = 2,
     .cmdbuf_dir = { 1, 2, 1 },   /* 32 B(dir1) / 16 B(dir2) / 368 B(dir1)，顺序有语义 */
     .patch_idx = 2,              /* 地址字在 368 B 那个 cmdbuf 里 */
     .expect_patches = 3,
@@ -90,7 +91,8 @@ static npu_binop_plan_t g_plan_mul = {
     .old_iova = { 0, 0, 0 },   /* 从资产目录 iova.txt 读（与命令流同一次抓取） */
     .bytes = 64,
     .alloc_size = NPU_BINOP_ALLOC,
-    .cmdbuf_dir = { 1, 2, 1 },
+    .n_inputs = 2,
+    .cmdbuf_dir = { 1, 2, 1 },   /* 32 B(dir1) / 16 B(dir2) / 368 B(dir1)，顺序有语义 */
     .patch_idx = 2,
     .expect_patches = 3,
     .cmdbuf_file = { "cmd32.bin", "cmd16.bin", "cmd368.bin" },
@@ -101,7 +103,8 @@ static npu_binop_plan_t g_plan_sub = {
     .old_iova = { 0, 0, 0 },   /* 从资产目录 iova.txt 读（与命令流同一次抓取） */
     .bytes = 64,
     .alloc_size = NPU_BINOP_ALLOC,
-    .cmdbuf_dir = { 1, 2, 1 },
+    .n_inputs = 2,
+    .cmdbuf_dir = { 1, 2, 1 },   /* 32 B(dir1) / 16 B(dir2) / 368 B(dir1)，顺序有语义 */
     .patch_idx = 2,
     .expect_patches = 3,
     .cmdbuf_file = { "cmd32.bin", "cmd16.bin", "cmd368.bin" },
@@ -112,7 +115,8 @@ static npu_binop_plan_t g_plan_maximum = {
     .old_iova = { 0, 0, 0 },   /* 从资产目录 iova.txt 读（与命令流同一次抓取） */
     .bytes = 64,
     .alloc_size = NPU_BINOP_ALLOC,
-    .cmdbuf_dir = { 1, 2, 1 },
+    .n_inputs = 2,
+    .cmdbuf_dir = { 1, 2, 1 },   /* 32 B(dir1) / 16 B(dir2) / 368 B(dir1)，顺序有语义 */
     .patch_idx = 2,
     .expect_patches = 3,
     .cmdbuf_file = { "cmd32.bin", "cmd16.bin", "cmd368.bin" },
@@ -123,7 +127,8 @@ static npu_binop_plan_t g_plan_minimum = {
     .old_iova = { 0, 0, 0 },   /* 从资产目录 iova.txt 读（与命令流同一次抓取） */
     .bytes = 64,
     .alloc_size = NPU_BINOP_ALLOC,
-    .cmdbuf_dir = { 1, 2, 1 },
+    .n_inputs = 2,
+    .cmdbuf_dir = { 1, 2, 1 },   /* 32 B(dir1) / 16 B(dir2) / 368 B(dir1)，顺序有语义 */
     .patch_idx = 2,
     .expect_patches = 3,
     .cmdbuf_file = { "cmd32.bin", "cmd16.bin", "cmd368.bin" },
@@ -304,7 +309,9 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
 
   /* --- 2. 数据 buffer：A/B/C（+ exec_infos，必须给 MEM handle，见 E-106B 卡点 1） --- */
   if (apu_alloc_map(&a1, plan->alloc_size, NPU_BINOP_CMDBUF_ALIGN, 1)) { rc = NPU_BINOP_EIO; goto done; }
-  if (apu_alloc_map(&b1, plan->alloc_size, NPU_BINOP_CMDBUF_ALIGN, 1)) { rc = NPU_BINOP_EIO; goto done; }
+  if (plan->n_inputs != 2 && plan->n_inputs != 1) return NPU_BINOP_EINVAL;
+  if (plan->n_inputs == 2 &&
+      apu_alloc_map(&b1, plan->alloc_size, NPU_BINOP_CMDBUF_ALIGN, 1)) { rc = NPU_BINOP_EIO; goto done; }
   if (apu_alloc_map(&c,  plan->alloc_size, NPU_BINOP_CMDBUF_ALIGN, 1)) { rc = NPU_BINOP_EIO; goto done; }
   if (apu_alloc_map(&einfo, 76, 0, 1)) { rc = NPU_BINOP_EIO; goto done; }
   memset(einfo.host, 0, 76);
@@ -320,7 +327,7 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
 
   /* --- 3. 地址重定位：把抓取时的 A/B/C IOVA 换成这次的 --- */
   {
-    uint64_t newv[3] = { a1.iova, b1.iova, c.iova };
+    uint64_t newv[3] = { a1.iova, plan->n_inputs == 2 ? b1.iova : 0, c.iova };
     int k = plan->patch_idx;
     if (k < 0 || k > 2) { rc = NPU_BINOP_EINVAL; goto done; }
     patch_addrs((unsigned char *)cb[k].host, cb_size[k], old_iova, newv, &hits);

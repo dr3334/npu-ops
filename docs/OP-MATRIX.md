@@ -59,3 +59,21 @@ convpool 的 9 个（C=4/8 的 pool 与 conv、dilation/stride 特定组合）�
 2. CONV/pool 的 C=8 失败机制（UNKNOWN）与 eDPA relayout 政策（是否允许"非 MDLA 步但仍是 NPU"的桥）；
 3. 逐通道 scale、fp16 卷积、per-channel 量化；
 4. 把自建提交器从 ADD 泛化到其它算子（elem 已给出 `npu_binop` 框架，MUL/SUB/MAX/MIN 还缺各自的命令流抓取）。
+
+---
+
+## 9. 自建提交器覆盖（不经过厂商 runtime）
+
+> 判定标准：**我们自己的进程**完成 分配 → 重定位 → 组装 `mdw_cmd_in` → `CMD RUN` → 读回，
+> 且与独立 golden 逐字节一致。厂商 runtime 只在"抓一次合法提交"时出现，之后不再参与。
+
+| 算子 | 入口 | 结果 |
+|---|---|---|
+| ADD | `npu_add64()` / `npu_binop(NPU_OP_ADD)` | 逐位 0/64 |
+| MUL | `npu_binop(NPU_OP_MUL)` | 逐位 0/64 |
+| SUB | `npu_binop(NPU_OP_SUB)` | 逐位 0/64 |
+| MAXIMUM | `npu_binop(NPU_OP_MAXIMUM)` | 逐位 0/64 |
+| MINIMUM | `npu_binop(NPU_OP_MINIMUM)` | 逐位 0/64 |
+
+流程与资产格式、新增算子的三步法见 `docs/OWN-SUBMITTER.md`；抓取工具 `probe/mkasset.sh`。
+**未覆盖**：一元算子（RELU/SOFTMAX，代码已支持 `n_inputs=1`，待实测）、FULLY_CONNECTED（需要动态权重与更多重定位处）、非 64 元素形状。
