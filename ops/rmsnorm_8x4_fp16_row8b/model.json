@@ -1,0 +1,60 @@
+{
+  "op": "RMSNORM",
+  "shape": {
+    "d0": 8,
+    "d1": 4
+  },
+  "op_shape": [
+    8,
+    4
+  ],
+  "dtype": "fp16",
+  "input": {
+    "name": "input",
+    "shape": [
+      8,
+      4
+    ],
+    "type": "float16",
+    "bytes": 64
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      8,
+      4
+    ],
+    "type": "float16",
+    "bytes": 64
+  },
+  "quant": {},
+  "seed": 20261112,
+  "prediction": "NEGATIVE CONTROL for the 16-byte rule: row = 4 elements * 2 B = 8 B < 16 -> predict EXIT=1 with 'Bridging is disallowed but gap is detected between Input and MDLA_5_0' *after* the layer list has already been printed (docs/CAPABILITY.md \u00a76: the exec plan is printed before the bridge check, so the layer name alone must not be read as success).",
+  "generator": "tools/build_rmsnorm.py",
+  "spec": "rmsnorm_8x4_fp16_row8b",
+  "expect_compile_fail": true,
+  "eps": 1e-05,
+  "eps_stored": 1.0013580322265625e-05,
+  "gamma": [
+    1.0224609375,
+    0.99853515625,
+    1.0,
+    0.99755859375
+  ],
+  "golden_dtype": "float32",
+  "golden_f32_vs_f64_max_abs": 0.0,
+  "graph": [
+    "MUL(x,x)",
+    "MEAN(axis=-1,keep_dims)",
+    "ADD(eps)",
+    "RSQRT",
+    "MUL(x)",
+    "MUL(gamma)"
+  ],
+  "atol": 0.01,
+  "rtol": 0.01,
+  "reference": "float32",
+  "tolerance_rationale": "registered before the run, per the branch brief: fp16 atol 1e-2 with rtol 1e-2 on a signal with |y| <= ~3 (>= 8 fp16 ULP at 1.0 = 4.9e-4; the budget covers a chained 6-op graph with a division-like rsqrt whose input is an accumulated mean).  The actual max_abs is reported alongside so the contract can be seen to be coarse rather than retro-fitted.",
+  "tflite": "model.tflite",
+  "tflite_bytes": 1208
+}

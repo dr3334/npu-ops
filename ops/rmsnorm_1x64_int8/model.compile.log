@@ -1,0 +1,32 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/rmsnorm_1x64_int8/model.tflite -d ops/rmsnorm_1x64_int8/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-12T23:41:14+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ ElementWiseMulLayer<0>{MUL}
+   ├ MeanLayer<1>{MEAN}
+   ├ RSqrtLayer<3>{RSQRT}
+   ├ ElementWiseMulLayer<4>{MUL}
+   ├ ElementWiseMulLayer<5>{MUL}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     64     64      0     1.1K    1.4K  2.6K
+
+Total Memory:
+  DRAM: 2.6K
+  L1:   4.0K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=6178
+SHA256=daeb6c82d13c83290e03fc6e0efb237e57ca6ab6710806af6a4a61fddbd7face

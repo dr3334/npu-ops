@@ -1,0 +1,9 @@
+op        : RMSNORM {'d0': 8, 'd1': 64}  dtype=fp16
+expected  : 512 vals   device: 512 vals   logical shape=(8, 64)
+max_abs   : 1.953e-03
+rmse      : 5.002e-04
+rel_l2    : 4.935e-04
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-2.211,2.145]  dev [-2.213,2.146]
+tol       : atol=0.01 rtol=0.01
+PASS
