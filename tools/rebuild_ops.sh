@@ -34,3 +34,15 @@ for b in $DIR_BUILDERS; do
   for s in $(WL "/usr/bin/python3 tools/$b.py --list 2>/dev/null"); do run_one "$b" "$s" dir; done
 done
 [ "$LIST_ONLY" = "1" ] || echo "---- built=$total regenerated=$made already=$exists failed=$failed"
+
+# --- build_binop.py: no spec list; regenerate from each op's model.json (op + shape) ---
+for d in ops/*/; do
+  n=$(basename "$d"); [ -f "$d/model.json" ] || continue; [ -f "$d/model.tflite" ] && continue
+  op=$(grep -m1 '"op"' "$d/model.json" | sed 's/.*: *"//;s/".*//')
+  case "$op" in MUL|SUB|MAXIMUM|MINIMUM) : ;; *) continue ;; esac
+  m=$(grep -m1 '"M"' "$d/model.json" | tr -dc '0-9'); k=$(grep -m1 '"K"' "$d/model.json" | tr -dc '0-9')
+  [ -n "$m" ] && [ -n "$k" ] || continue
+  if WL "/usr/bin/python3 tools/build_binop.py --op $op --m $m --k $k --out ops/$n/model.tflite" >/dev/null 2>&1; then
+    echo "  rebuilt(binop) $n"
+  else echo "  BUILD FAIL binop -> $n"; fi
+done
