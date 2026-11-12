@@ -156,3 +156,24 @@
   1. 命令区里 `0x025b8f00/0x025b9000/0x025b8e00` 与 MAP 返回的 VA（`0x25b94000/0x25b93000/0x25b91000`）**并不同值**，说明它们指向运行时的其它子区（参数区/命令区自身），尚未与 buffer 角色对上；
   2. 本模型命令区 **368 B**，而 fc 系列是 400 B —— 哪个字段/配置造成 32 B 差异未知；
   3. 只测了"有/无 96 MiB 占用"，没有系统性扫描地址偏移量与对齐。
+
+---
+
+## E-106A 我们自己的 apusys 客户端：内存流水线（CMD 提交前的全部前置）
+
+- **假设**：`HANDSHAKE → MEM ALLOC → MEM MAP → MEM UNMAP → MEM FREE` 这条内存流水线可以完全由我们自己的进程完成，不经过 `libneuron`。
+- **预测**：四条 ioctl 全部返回 0；MAP 后拿到 IOVA；同时持有 4 个 buffer 时 IOVA 互不相同。
+- **做法**：`probe/apusctl.c`（NDK 静态编译，aarch64），按 E-006 解出的 40/48 字节参数结构，用**字节级 put/get** 写字段，避免编译器对齐假设。
+- **产物**：`probe/apusctl.c`、`probe/npu_hold.c`
+- **结果**：成立。
+  ```
+  handshake: version=0x4 dev_bitmask=0xd6 mem_bitmask=0x36 meta_size=32
+  buffer cmd    size=400   handle=0x4 iova=0x25b6d000
+  buffer param  size=8192  handle=0x5 iova=0x25d14000
+  buffer input  size=4096  handle=0x6 iova=0x25b6c000
+  buffer output size=4096  handle=0x7 iova=0x25b82000
+  ```
+  早期版本曾因结构体多出 8 字节（56 B vs 48 B）报 `Bad address` —— 说明驱动会校验 `_IOC` 尺寸，**结构体布局必须与 ABI 精确一致**（已用 `_Static_assert` 固定 40/48）。
+- **适用范围**：MT6897 本板；MAIN 内存类型、4096 对齐。
+- **未完成**：`CMD RUN`。还缺 `mdw_cmd_in` / `mdw_subcmd_info` 的字段语义与 cmdbuf 内容重定位规则；
+  按 AGENTS.md R10 **不在这里猜**，下一步用"在已抓到的合法提交上做单字段变异"（E-105B）来确定，而不是凭名字硬填。
