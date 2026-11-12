@@ -1,0 +1,44 @@
+{
+  "op": "MAXIMUM",
+  "shape": {
+    "M": 1,
+    "K": 64
+  },
+  "dtype": "int8",
+  "inputs": [
+    {
+      "name": "a",
+      "shape": [
+        1,
+        64
+      ],
+      "type": "int8"
+    },
+    {
+      "name": "b",
+      "shape": [
+        1,
+        64
+      ],
+      "type": "int8"
+    }
+  ],
+  "output": {
+    "name": "out",
+    "shape": [
+      1,
+      64
+    ],
+    "type": "int8"
+  },
+  "quant": {
+    "input": 0.007874015748031496,
+    "input1": 0.007874015748031496,
+    "output": 0.007874015748031496
+  },
+  "int8_tol": 0,
+  "reference": "int64_exact_clip",
+  "quant_note": "full-range codes in [-100,100]; out_scale == in_scale, no requant; edge/tie pairs injected at flat idx 0..7",
+  "tflite_options": "MaximumMinimumOptions",
+  "seed": 20261112
+}
