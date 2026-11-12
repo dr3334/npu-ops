@@ -1,0 +1,9 @@
+op        : GATED_SILU_MUL {'T': 8, 'W': 696}  dtype=fp16
+expected  : 5568 vals   device: 5568 vals   logical shape=(8, 696)
+max_abs   : 3.906e-03
+rmse      : 6.737e-04
+rel_l2    : 3.551e-04
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-7.902,7.48]  dev [-7.902,7.48]
+tol       : atol=0.002 rtol=0.01
+PASS

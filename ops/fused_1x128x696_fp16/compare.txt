@@ -1,0 +1,9 @@
+op        : FUSED_FC_SILU_MUL {'T': 1, 'W': 696, 'K': 128}  dtype=fp16
+expected  : 696 vals   device: 696 vals   logical shape=(1, 696)
+max_abs   : 6.250e-02
+rmse      : 5.943e-03
+rel_l2    : 5.398e-04
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-55.56,73]  dev [-55.56,72.94]
+tol       : atol=0.002 rtol=0.01
+PASS

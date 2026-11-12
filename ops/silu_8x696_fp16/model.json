@@ -1,0 +1,55 @@
+{
+  "op": "SILU(LOGISTIC+MUL)",
+  "graph": [
+    "LOGISTIC",
+    "MUL"
+  ],
+  "shape": {
+    "T": 8,
+    "W": 696
+  },
+  "op_shape": [
+    8,
+    696
+  ],
+  "dtype": "fp16",
+  "input": {
+    "name": "input",
+    "shape": [
+      8,
+      696
+    ],
+    "type": "float16",
+    "bytes": 11136
+  },
+  "inputs": [
+    {
+      "name": "input",
+      "shape": [
+        8,
+        696
+      ],
+      "type": "float16"
+    }
+  ],
+  "output": {
+    "name": "output",
+    "shape": [
+      8,
+      696
+    ],
+    "type": "float16",
+    "bytes": 11136
+  },
+  "quant": {},
+  "reference": "float64_exact_then_store",
+  "alt_reference": "unfused_fp16_rounding",
+  "seed": 20261112,
+  "prediction": "same graph, real batch; 696*2 = 1392 B rows are 16-aligned",
+  "generator": "tools/build_silu.py",
+  "tflite": "model.tflite",
+  "tflite_bytes": 532,
+  "atol": 0.002,
+  "rtol": 0.01,
+  "tolerance_rationale": "fp16: atol is a small multiple of the ULP of the last rounded tensor; the graph stores intermediate tensors as fp16, so rtol covers large |y|."
+}
