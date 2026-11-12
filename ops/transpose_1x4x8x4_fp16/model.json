@@ -29,7 +29,7 @@
       8,
       4
     ],
-    "type": "fp16"
+    "type": "float16"
   },
   "output": {
     "name": "output",
@@ -39,7 +39,7 @@
       4,
       4
     ],
-    "type": "fp16"
+    "type": "float16"
   },
   "quant": {
     "input": null,

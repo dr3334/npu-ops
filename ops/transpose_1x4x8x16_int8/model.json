@@ -47,6 +47,7 @@
   },
   "int8_tol": 0,
   "reference": "numpy_exact",
+  "note": "fp16 variant only for the channel-boundary discriminator",
   "tflite": "model.tflite",
   "tflite_bytes": 664,
   "seed": 20261112

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Regenerate every op's model.tflite from its builder (tflite/dla are gitignored artifacts).
+#   ./tools/rebuild_ops.sh [--list-only]
+# Builders differ in --out convention:
+#   file-path builders : build_ops, build_add, build_dynb, build_actreduce   (--out <dir>/model.tflite)
+#   dir builders       : build_shapeops                                     (--out <dir>)
+set -uo pipefail
+cd "$(dirname "$0")/.." || exit 2
+WL() { wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && $*"; }
+LIST_ONLY=0; [ "${1:-}" = "--list-only" ] && LIST_ONLY=1
+
+FILE_BUILDERS="build_ops build_add build_dynb build_actreduce"
+DIR_BUILDERS="build_shapeops"
+
+total=0; made=0; failed=0; exists=0
+run_one() { # builder, spec, kind
+  local b=$1 s=$2 kind=$3
+  [ -d "ops/$s" ] || return 0
+  total=$((total+1))
+  [ "$LIST_ONLY" = "1" ] && { echo "  $b -> $s"; return 0; }
+  if [ -f "ops/$s/model.tflite" ]; then exists=$((exists+1)); return 0; fi
+  local cmd
+  if [ "$kind" = "dir" ]; then cmd="/usr/bin/python3 tools/$b.py $s --out ops/$s";
+  else cmd="/usr/bin/python3 tools/$b.py $s --out ops/$s/model.tflite"; fi
+  if WL "$cmd" >/dev/null 2>&1; then made=$((made+1)); else echo "  BUILD FAIL $b -> $s"; failed=$((failed+1)); fi
+}
+
+for b in $FILE_BUILDERS; do
+  [ -f "tools/$b.py" ] || continue
+  for s in $(WL "/usr/bin/python3 tools/$b.py --list 2>/dev/null"); do run_one "$b" "$s" file; done
+done
+for b in $DIR_BUILDERS; do
+  [ -f "tools/$b.py" ] || continue
+  for s in $(WL "/usr/bin/python3 tools/$b.py --list 2>/dev/null"); do run_one "$b" "$s" dir; done
+done
+[ "$LIST_ONLY" = "1" ] || echo "---- built=$total regenerated=$made already=$exists failed=$failed"

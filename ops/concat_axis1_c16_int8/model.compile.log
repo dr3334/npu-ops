@@ -1,6 +1,6 @@
-# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/concat_axis1_c16_int8/model.tflite -d ops/concat_axis1_c16_int8/model.dla
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/concat_axis1_c16_int8//model.tflite -d ops/concat_axis1_c16_int8//model.dla
 # version: Version: 7.3.15
-# date: 2026-11-12T20:56:50+08:00
+# date: 2026-11-12T21:12:30+08:00
 
 ===Graph[0] has 1 Execution Step(s)===
 Graph[0] Step[0]
@@ -24,5 +24,5 @@ TargetExecutionOrder:
  └ MDLA_5_0
 
 EXIT=0
-SIZE=3465
-SHA256=e8a82586daacb6c84e298aaa627b66b96f08ddc7f678469dcf272e823e5a05b6
+SIZE=3463
+SHA256=58548060218370e6302ea6220e75240155d549673461775fbcec0f3bf46f380d
