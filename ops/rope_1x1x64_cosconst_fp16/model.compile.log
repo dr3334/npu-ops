@@ -1,6 +1,6 @@
-# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/rope_1x1x64_cosconst_fp16/model.tflite -d ops/rope_1x1x64_cosconst_fp16/model.dla
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/rope_1x1x64_cosconst_fp16//model.tflite -d ops/rope_1x1x64_cosconst_fp16//model.dla
 # version: Version: 7.3.15
-# date: 2026-11-12T23:46:05+08:00
+# date: 2026-11-12T23:58:46+08:00
 
 ===Graph[0] has 1 Execution Step(s)===
 Graph[0] Step[0]
@@ -32,5 +32,5 @@ TargetExecutionOrder:
  └ MDLA_5_0
 
 EXIT=0
-SIZE=6723
-SHA256=35ff4cb653dbd7ae2c700b8e4b6b08018d1183cdec2644382a0603f1738be5d1
+SIZE=6725
+SHA256=a15ea4f799dd7d81d94ef20484fb48ad82e9ce37d22103900ce418f319831c1a

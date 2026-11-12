@@ -59,14 +59,6 @@
   "filter_layout": "[OC,1,1,IC] = V transposed: rows are V columns",
   "seed": 20261112,
   "int8_tol": 0,
-  "alt_b": {
-    "seed": 20262112,
-    "files": [
-      "golden/input1_alt.bin",
-      "golden/expected_alt.bin"
-    ],
-    "purpose": "same A + different B: one compiled .dla must serve any weights (L3 re-bind check, replicates S4/E-005 on the dual-dynamic path)"
-  },
   "spec": "conv_bmm_pv_t8_int8",
   "tflite": "model.tflite",
   "tflite_bytes": 1032

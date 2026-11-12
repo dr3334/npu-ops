@@ -1,0 +1,213 @@
+#!/usr/bin/env python3
+"""Block v2 — the v1 block **plus RMSNorm inside the NPU graph**.
+
+New vs v1: `n = x * rsqrt(mean(x^2) + eps) * gamma` is now part of the graph
+(MUL → MEAN → ADD → RSQRT → MUL → MUL), for both the pre-attention and pre-MLP norms.
+RSQRT was proven native on MDLA_5_0 (rms-agent, E-111), so no CPU-side rsqrt is needed.
+
+Still outside the graph: RoPE (sin/cos tables; proven separately as a 9-layer const-table
+composition by rope-agent, not wired in here yet).
+
+    /usr/bin/python3 tools/build_block2.py --out ops/block_qwen25_1l_norm_fp16
+"""
+import argparse
+import json
+import os
+
+import numpy as np
+
+import build_ops as bo
+
+T, H, HD, F = 8, 64, 32, 128
+SEED = 20261112
+EPS = 1e-5
+
+
+def f16(a):
+    return np.asarray(a, dtype=np.float16)
+
+
+def main(out_dir):
+    rng = np.random.default_rng(SEED)
+    Wq = f16(rng.normal(0, 0.05, (HD, H)))
+    Wk = f16(rng.normal(0, 0.05, (HD, H)))
+    Wv = f16(rng.normal(0, 0.05, (HD, H)))
+    Wo = f16(rng.normal(0, 0.05, (H, HD)))
+    Wg = f16(rng.normal(0, 0.05, (F, H)))
+    Wu = f16(rng.normal(0, 0.05, (F, H)))
+    Wd = f16(rng.normal(0, 0.05, (H, F)))
+    g1 = f16(rng.uniform(0.8, 1.2, (H,)))
+    g2 = f16(rng.uniform(0.8, 1.2, (H,)))
+    x = f16(rng.normal(0, 0.5, (T, H)))
+
+    b = bo.flatbuffers.Builder(1 << 21)
+    S = bo.S
+    F16 = bo.F16
+
+    buffers = [bo.buf_empty(b)]
+    tensors, opcodes, operators = [], [], []
+    idx = {}
+
+    def const(arr):
+        buffers.append(bo.buf_data(b, f16(arr)))
+        return len(buffers) - 1
+
+    def act(name, shape):
+        tensors.append(bo.tensor(b, name, list(shape), F16, 0))
+        idx[name] = len(tensors) - 1
+        return idx[name]
+
+    def oc(builtin, version=1):
+        opcodes.append(bo.opcode(b, builtin, version))
+        return len(opcodes) - 1
+
+    OC_FC = oc(bo.BuiltinOperator.FULLY_CONNECTED)
+    OC_SM = oc(bo.BuiltinOperator.SOFTMAX)
+    OC_ADD = oc(bo.BuiltinOperator.ADD)
+    OC_MUL = oc(bo.BuiltinOperator.MUL)
+    OC_SIG = oc(bo.BuiltinOperator.LOGISTIC)
+    OC_MEAN = oc(bo.BuiltinOperator.MEAN)
+    OC_RSQRT = oc(bo.BuiltinOperator.RSQRT)
+
+    act("x", (T, H))
+
+    def fc(inp, out, wts, m, k, n, dyn_w=None):
+        t_o = act(out, (m, n))
+        if dyn_w is None:
+            t_w = bo.tensor(b, f"W_{out}", [n, k], F16, const(wts))
+            tensors.append(t_w)
+            ti_w = len(tensors) - 1
+        else:
+            ti_w = idx[dyn_w]
+        S.FullyConnectedOptionsStart(b)
+        S.FullyConnectedOptionsAddFusedActivationFunction(b, 0)
+        S.FullyConnectedOptionsAddWeightsFormat(b, 0)
+        S.FullyConnectedOptionsAddKeepNumDims(b, True)
+        S.FullyConnectedOptionsAddAsymmetricQuantizeInputs(b, False)
+        opt = S.FullyConnectedOptionsEnd(b)
+        operators.append(bo.operator(b, OC_FC, [idx[inp], ti_w], [t_o],
+                                    bo.BuiltinOptions.FullyConnectedOptions, opt))
+        return t_o
+
+    def binary(a_name, b_name, out, shape, opc):
+        t_o = act(out, shape)
+        if opc == OC_ADD:
+            S.AddOptionsStart(b); S.AddOptionsAddFusedActivationFunction(b, 0); opt = S.AddOptionsEnd(b)
+            ot = bo.BuiltinOptions.AddOptions
+        else:
+            S.MulOptionsStart(b); S.MulOptionsAddFusedActivationFunction(b, 0); opt = S.MulOptionsEnd(b)
+            ot = bo.BuiltinOptions.MulOptions
+        operators.append(bo.operator(b, opc, [idx[a_name], idx[b_name]], [t_o], ot, opt))
+        return t_o
+
+    def rmsnorm(inp, out, gamma, t_name):
+        # square -> mean(axis=1, keep) -> +eps -> rsqrt -> *x -> *gamma
+        binary(inp, inp, f"{out}_sq", (T, H), OC_MUL)
+        t_m = act(f"{out}_mean", (T, 1))
+        S.ReducerOptionsStart(b)
+        S.ReducerOptionsAddKeepDims(b, True)
+        ro = S.ReducerOptionsEnd(b)
+        ax = bo.tensor(b, f"{out}_ax", [1], bo.I32, const(np.asarray([1], np.int32)))
+        tensors.append(ax); ti_ax = len(tensors) - 1
+        operators.append(bo.operator(b, OC_MEAN, [idx[f"{out}_sq"], ti_ax], [t_m],
+                                    bo.BuiltinOptions.ReducerOptions, ro))
+        idx[f"{out}_mean"] = len(tensors) - 1
+        eps = bo.tensor(b, f"{out}_eps", [1], F16, const(np.asarray([EPS], np.float16)))
+        tensors.append(eps); ti_eps = len(tensors) - 1
+        t_e = act(f"{out}_epsadd", (T, 1))
+        S.AddOptionsStart(b); S.AddOptionsAddFusedActivationFunction(b, 0); ao = S.AddOptionsEnd(b)
+        operators.append(bo.operator(b, OC_ADD, [idx[f"{out}_mean"], ti_eps], [t_e],
+                                    bo.BuiltinOptions.AddOptions, ao))
+        idx[f"{out}_epsadd"] = len(tensors) - 1
+        t_r = act(f"{out}_rsqrt", (T, 1))
+        operators.append(bo.operator(b, OC_RSQRT, [idx[f"{out}_epsadd"]], [t_r]))
+        idx[f"{out}_rsqrt"] = len(tensors) - 1
+        binary(inp, f"{out}_rsqrt", f"{out}_scaled", (T, H), OC_MUL)
+        gam = bo.tensor(b, f"g_{t_name}", [H], F16, const(gamma))
+        tensors.append(gam); ti_g = len(tensors) - 1
+        t_o = act(out, (T, H))
+        S.MulOptionsStart(b); S.MulOptionsAddFusedActivationFunction(b, 0); mo = S.MulOptionsEnd(b)
+        operators.append(bo.operator(b, OC_MUL, [idx[f"{out}_scaled"], ti_g], [t_o],
+                                    bo.BuiltinOptions.MulOptions, mo))
+        idx[out] = len(tensors) - 1
+
+    # ---- block body ----
+    rmsnorm("x", "n1", g1, "1")
+    fc("n1", "q", Wq, T, H, HD)
+    fc("n1", "k", Wk, T, H, HD)
+    fc("n1", "v", Wv, T, H, HD)
+    fc("q", "s", None, T, HD, T, dyn_w="k")          # scores = q · kᵀ (dynamic B)
+    S.SoftmaxOptionsStart(b); S.SoftmaxOptionsAddBeta(b, 1.0); smo = S.SoftmaxOptionsEnd(b)
+    act("p", (T, T))
+    operators.append(bo.operator(b, OC_SM, [idx["s"]], [idx["p"]],
+                                bo.BuiltinOptions.SoftmaxOptions, smo))
+    # vt = vᵀ via transposing in numpy is impossible in-graph without TRANSPOSE; use FC(p, v)
+    # with weights = vᵀ: TFLite FC weight operand is [N,K] => need [HD,T]; do TRANSPOSE
+    OC_TR = oc(bo.BuiltinOperator.TRANSPOSE)
+    act("vt", (HD, T))
+    perm = bo.tensor(b, "perm", [2], bo.I32, const(np.asarray([1, 0], np.int32)))
+    tensors.append(perm); ti_perm = len(tensors) - 1
+    S.TransposeOptionsStart(b); tro = S.TransposeOptionsEnd(b)
+    operators.append(bo.operator(b, OC_TR, [idx["v"], ti_perm], [idx["vt"]],
+                                bo.BuiltinOptions.TransposeOptions, tro))
+    fc("p", "a", None, T, T, HD, dyn_w="vt")
+    fc("a", "o", Wo, T, HD, H)
+    binary("x", "o", "r1", (T, H), OC_ADD)
+    rmsnorm("r1", "n2", g2, "2")
+    fc("n2", "g", Wg, T, H, F)
+    fc("n2", "u", Wu, T, H, F)
+    act("sig", (T, F))
+    operators.append(bo.operator(b, OC_SIG, [idx["g"]], [idx["sig"]]))
+    binary("g", "sig", "m", (T, F), OC_MUL)
+    binary("m", "u", "y", (T, F), OC_MUL)
+    fc("y", "d", Wd, T, F, H)
+    binary("r1", "d", "out", (T, H), OC_ADD)
+
+    blob = bo.finish(b, buffers, opcodes, tensors, operators, [idx["x"]], [idx["out"]],
+                     "qwen25 block v2 (RMSNorm in graph) T=8 H=64 HD=32 F=128 fp16")
+
+    # ---- numpy reference ----
+    xf = np.asarray(x, np.float32)
+    W = {n: np.asarray(v, np.float32) for n, v in
+         dict(Wq=Wq, Wk=Wk, Wv=Wv, Wo=Wo, Wg=Wg, Wu=Wu, Wd=Wd).items()}
+    G1, G2 = np.asarray(g1, np.float32), np.asarray(g2, np.float32)
+
+    def rms(t):
+        return t / np.sqrt((t * t).mean(axis=-1, keepdims=True) + EPS) * G1
+
+    n1 = rms(xf)
+    q, k, v = n1 @ W["Wq"].T, n1 @ W["Wk"].T, n1 @ W["Wv"].T
+    sc = q @ k.T
+    sc = sc - sc.max(axis=1, keepdims=True)
+    e = np.exp(sc); p_ = e / e.sum(axis=1, keepdims=True)
+    a_ = p_ @ v
+    o_ = a_ @ W["Wo"].T
+    r1 = xf + o_
+    n2 = r1 / np.sqrt((r1 * r1).mean(axis=-1, keepdims=True) + EPS) * G2
+    g_ = n2 @ W["Wg"].T; u_ = n2 @ W["Wu"].T
+    y_ = (g_ / (1.0 + np.exp(-g_))) * u_
+    d_ = y_ @ W["Wd"].T
+    ref = r1 + d_
+
+    os.makedirs(os.path.join(out_dir, "golden"), exist_ok=True)
+    open(os.path.join(out_dir, "model.tflite"), "wb").write(blob)
+    np.asarray(x).astype(np.float16).tofile(os.path.join(out_dir, "golden", "input.bin"))
+    ref.astype(np.float16).tofile(os.path.join(out_dir, "golden", "expected.bin"))
+    meta = {
+        "op": "QWEN25_BLOCK_1L_V2_RMSNORM",
+        "shape": {"T": T, "H": H, "HD": HD, "FFN": F},
+        "dtype": "float16",
+        "inputs": [{"name": "x", "shape": [T, H], "type": "float16"}],
+        "output": {"name": "out", "shape": [T, H], "type": "float16"},
+        "atol": 3e-2, "rtol": 3e-2,
+        "note": "RMSNorm in graph (MUL->MEAN->ADD->RSQRT->MUL->MUL); RoPE still outside",
+        "tflite_bytes": len(blob),
+    }
+    json.dump(meta, open(os.path.join(out_dir, "model.json"), "w"), indent=2)
+    print(f"{out_dir}: {len(blob)}B, RMSNorm in graph, T={T} H={H} HD={HD} F={F}")
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default="ops/block_qwen25_1l_norm_fp16")
+    main(ap.parse_args().out)

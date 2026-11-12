@@ -50,3 +50,23 @@ q=FC(x,Wq) k=FC(x,Wk) v=FC(x,Wv) → s=FC(q,k)[动态B] → softmax → a=FC(p,v
 2. int8 版整块（需要更多对齐检查：E-003 的 requant 规则已经可用于写 golden）；
 3. 多 head / T=128 的 prefill 变体；
 4. 把整块作为"基线"，再逐个用自建提交器替换其中的 Linear（openmtk M2/M3 的路径）。
+
+## 6. v2 尝试（RMSNorm 进图）—— 目前失败，记为失败知识
+
+`tools/build_block2.py` 把 RMSNorm 链（`MUL→MEAN→ADD→RSQRT→MUL→MUL`）放进同一个图，
+ncc 在 **importer 阶段**就拒了：
+
+```
+ERROR: Fail to process the given model     EXIT=1
+```
+
+（没有层清单，说明还没走到 lowering；RMSNorm 单独编译是能过且落 MDLA 的，见 `docs/OP-rmsnorm.md`。）
+
+**待排除的候选**（下一轮按顺序做，一次只改一处）：
+1. `gamma` 的 **广播 MUL**：`[T,H] × [H]` 在 TFLite 合法，但 ncc 可能不接受非标量广播 → 先换成 `[1,H]` 常量或把 gamma 乘进相邻 FC；
+2. `RSQRT` 在这个图里的 **op version**（单独模型用 version=1 通过，这里可能被折叠成别的形式）；
+3. `MEAN` 的 axis 常量张量形状（`[1]` vs 标量）；
+4. 图规模（16 → 27 层）触发的 importer 限制。
+
+结论：**"带 Norm 的整块"还没有跑通**；v1（无 Norm）已跑通，四类新算子（RMSNorm/RoPE/SiLU/BMM）
+各自单独在 NPU 上都已证明。把 v2 的 importer 错误排掉，才谈得上"完整 block"。

@@ -1,4 +1,4 @@
-op        : FULLY_CONNECTED {'T': 16, 'D': 64, 'M': 16, 'K': 64, 'N': 16}  dtype=int8
+op        : FULLY_CONNECTED {'T': 16, 'D': 64, 'heads': 1, 'M': 16, 'K': 64, 'N': 16}  dtype=int8
 expected  : 256 vals   device: 256 vals   logical shape=(16, 16)
 exact     : NO   mismatched=1/256
 contract  : int8_tol=1  max_abs_diff=1  fraction_off=0.3906%

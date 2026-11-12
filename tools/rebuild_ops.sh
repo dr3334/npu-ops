@@ -13,8 +13,8 @@ WSLROOT="${WSLROOT:-/mnt/$_drv${_win:2}}"
 WL() { wsl.exe -e bash -lc "cd '$WSLROOT' && $*"; }
 LIST_ONLY=0; [ "${1:-}" = "--list-only" ] && LIST_ONLY=1
 
-FILE_BUILDERS="build_ops build_add build_dynb build_actreduce build_convpool build_rmsnorm build_rope build_silu build_bmm"
-DIR_BUILDERS="build_shapeops"
+FILE_BUILDERS="build_ops build_add build_dynb build_actreduce build_convpool build_rmsnorm build_silu build_bmm"
+DIR_BUILDERS="build_shapeops build_rope"
 
 total=0; made=0; failed=0; exists=0
 run_one() { # builder, spec, kind

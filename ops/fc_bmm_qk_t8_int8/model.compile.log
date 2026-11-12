@@ -1,6 +1,6 @@
-# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/fc_bmm_qk_t8_int8/model.tflite -d ops/fc_bmm_qk_t8_int8/model.dla
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/fc_bmm_qk_t8_int8//model.tflite -d ops/fc_bmm_qk_t8_int8//model.dla
 # version: Version: 7.3.15
-# date: 2026-11-12T23:41:03+08:00
+# date: 2026-11-12T23:52:37+08:00
 
 ===Graph[0] has 1 Execution Step(s)===
 Graph[0] Step[0]
@@ -24,5 +24,5 @@ TargetExecutionOrder:
  └ MDLA_5_0
 
 EXIT=0
-SIZE=3078
-SHA256=09c428eae93d794f8ca5d9ac5aa593b647ee3f08f1557278d81c3c6e9530aef3
+SIZE=3081
+SHA256=3a9b287a376e15ee9adc98558afebb190f5900c0538d8a567b5021bd315a921b

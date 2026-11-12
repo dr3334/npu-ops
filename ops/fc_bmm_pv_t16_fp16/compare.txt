@@ -1,4 +1,4 @@
-op        : FULLY_CONNECTED {'T': 16, 'D': 64, 'M': 16, 'K': 16, 'N': 64}  dtype=fp16
+op        : FULLY_CONNECTED {'T': 16, 'D': 64, 'heads': 1, 'M': 16, 'K': 16, 'N': 64}  dtype=fp16
 expected  : 1024 vals   device: 1024 vals   logical shape=(16, 64)
 max_abs   : 2.441e-04
 rmse      : 7.630e-06
