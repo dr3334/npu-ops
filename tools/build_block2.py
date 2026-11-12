@@ -107,12 +107,13 @@ def main(out_dir):
         S.ReducerOptionsStart(b)
         S.ReducerOptionsAddKeepDims(b, True)
         ro = S.ReducerOptionsEnd(b)
-        ax = bo.tensor(b, f"{out}_ax", [1], bo.I32, const(np.asarray([1], np.int32)))
+        buffers.append(bo.buf_data(b, np.asarray([1], np.int32)))
+        ax = bo.tensor(b, f"{out}_ax", [1], bo.I32, len(buffers) - 1)
         tensors.append(ax); ti_ax = len(tensors) - 1
         operators.append(bo.operator(b, OC_MEAN, [idx[f"{out}_sq"], ti_ax], [t_m],
                                     bo.BuiltinOptions.ReducerOptions, ro))
         idx[f"{out}_mean"] = len(tensors) - 1
-        eps = bo.tensor(b, f"{out}_eps", [1], F16, const(np.asarray([EPS], np.float16)))
+        eps = bo.tensor(b, f"{out}_eps", [T, 1], F16, const(np.full((T, 1), EPS, np.float16)))
         tensors.append(eps); ti_eps = len(tensors) - 1
         t_e = act(f"{out}_epsadd", (T, 1))
         S.AddOptionsStart(b); S.AddOptionsAddFusedActivationFunction(b, 0); ao = S.AddOptionsEnd(b)
@@ -122,20 +123,13 @@ def main(out_dir):
         t_r = act(f"{out}_rsqrt", (T, 1))
         operators.append(bo.operator(b, OC_RSQRT, [idx[f"{out}_epsadd"]], [t_r]))
         idx[f"{out}_rsqrt"] = len(tensors) - 1
-        binary(inp, f"{out}_rsqrt", f"{out}_scaled", (T, H), OC_MUL)
-        gam = bo.tensor(b, f"g_{t_name}", [H], F16, const(gamma))
-        tensors.append(gam); ti_g = len(tensors) - 1
-        t_o = act(out, (T, H))
-        S.MulOptionsStart(b); S.MulOptionsAddFusedActivationFunction(b, 0); mo = S.MulOptionsEnd(b)
-        operators.append(bo.operator(b, OC_MUL, [idx[f"{out}_scaled"], ti_g], [t_o],
-                                    bo.BuiltinOptions.MulOptions, mo))
-        idx[out] = len(tensors) - 1
+        binary(inp, f"{out}_rsqrt", out, (T, H), OC_MUL)   # gamma 折进后续 FC 权重
 
     # ---- block body ----
     rmsnorm("x", "n1", g1, "1")
-    fc("n1", "q", Wq, T, H, HD)
-    fc("n1", "k", Wk, T, H, HD)
-    fc("n1", "v", Wv, T, H, HD)
+    fc("n1", "q", f16(np.asarray(Wq, np.float32) * np.asarray(g1, np.float32)), T, H, HD)
+    fc("n1", "k", f16(np.asarray(Wk, np.float32) * np.asarray(g1, np.float32)), T, H, HD)
+    fc("n1", "v", f16(np.asarray(Wv, np.float32) * np.asarray(g1, np.float32)), T, H, HD)
     fc("q", "s", None, T, HD, T, dyn_w="k")          # scores = q · kᵀ (dynamic B)
     S.SoftmaxOptionsStart(b); S.SoftmaxOptionsAddBeta(b, 1.0); smo = S.SoftmaxOptionsEnd(b)
     act("p", (T, T))
@@ -145,7 +139,8 @@ def main(out_dir):
     # with weights = vᵀ: TFLite FC weight operand is [N,K] => need [HD,T]; do TRANSPOSE
     OC_TR = oc(bo.BuiltinOperator.TRANSPOSE)
     act("vt", (HD, T))
-    perm = bo.tensor(b, "perm", [2], bo.I32, const(np.asarray([1, 0], np.int32)))
+    buffers.append(bo.buf_data(b, np.asarray([1, 0], np.int32)))
+    perm = bo.tensor(b, "perm", [2], bo.I32, len(buffers) - 1)
     tensors.append(perm); ti_perm = len(tensors) - 1
     S.TransposeOptionsStart(b); tro = S.TransposeOptionsEnd(b)
     operators.append(bo.operator(b, OC_TR, [idx["v"], ti_perm], [idx["vt"]],
@@ -154,8 +149,8 @@ def main(out_dir):
     fc("a", "o", Wo, T, HD, H)
     binary("x", "o", "r1", (T, H), OC_ADD)
     rmsnorm("r1", "n2", g2, "2")
-    fc("n2", "g", Wg, T, H, F)
-    fc("n2", "u", Wu, T, H, F)
+    fc("n2", "g", f16(np.asarray(Wg, np.float32) * np.asarray(g2, np.float32)), T, H, F)
+    fc("n2", "u", f16(np.asarray(Wu, np.float32) * np.asarray(g2, np.float32)), T, H, F)
     act("sig", (T, F))
     operators.append(bo.operator(b, OC_SIG, [idx["g"]], [idx["sig"]]))
     binary("g", "sig", "m", (T, F), OC_MUL)
