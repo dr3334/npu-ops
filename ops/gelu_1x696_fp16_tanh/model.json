@@ -1,0 +1,55 @@
+{
+  "op": "GELU",
+  "graph": [
+    "GELU"
+  ],
+  "shape": {
+    "T": 1,
+    "W": 696
+  },
+  "op_shape": [
+    1,
+    696
+  ],
+  "dtype": "fp16",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      696
+    ],
+    "type": "float16",
+    "bytes": 5568
+  },
+  "inputs": [
+    {
+      "name": "input",
+      "shape": [
+        1,
+        696
+      ],
+      "type": "float16"
+    }
+  ],
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      696
+    ],
+    "type": "float16",
+    "bytes": 1392
+  },
+  "quant": {},
+  "reference": "float64_exact_then_store",
+  "alt_reference": "unfused_fp16_rounding",
+  "seed": 20261112,
+  "prediction": "accepted only in the tanh-approximated form, if at all; numeric diff vs exact erf is the approximation error, not a kernel error",
+  "gelu_approximate": true,
+  "generator": "tools/build_silu.py",
+  "tflite": "model.tflite",
+  "tflite_bytes": 412,
+  "atol": 0.002,
+  "rtol": 0.01,
+  "tolerance_rationale": "fp16: atol is a small multiple of the ULP of the last rounded tensor; the graph stores intermediate tensors as fp16, so rtol covers large |y|."
+}
