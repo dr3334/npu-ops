@@ -24,7 +24,7 @@
       128
     ],
     "type": "float16",
-    "bytes": 1024
+    "bytes": 256
   },
   "inputs": [
     {

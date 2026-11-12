@@ -1,0 +1,5 @@
+op        : FUSED_FC_SILU_MUL {'T': 8, 'W': 696, 'K': 128}  dtype=int8
+expected  : 5568 vals   device: 5568 vals   logical shape=(8, 696)
+exact     : NO   mismatched=321/5568
+contract  : int8_tol=3  max_abs_diff=1  fraction_off=5.7651%
+PASS

@@ -172,6 +172,15 @@ SPECS = {
                                  prediction="accepted only in the tanh-approximated form, "
                                             "if at all; numeric diff vs exact erf is the "
                                             "approximation error, not a kernel error"),
+    # ---- control: LOGISTIC alone, same width, same input bytes ----------------------
+    # Not a claim about the LOGISTIC operator (that is OP-actreduce's scope).  This is the
+    # control that attributes the composition's 1-code residual: if the sigmoid layer alone
+    # is bit-exact at 696 wide then the residual comes from the MUL, otherwise the LUT
+    # binning at this width is the cause.
+    "logistic_1x696_fp16": dict(kind="logistic", T=1, W=696, dtype="fp16",
+                                atol=2e-3, rtol=1e-2,
+                                prediction="if bit-exact, the silu 1-code residual is the MUL, "
+                                           "not the sigmoid LUT"),
 }
 
 
@@ -270,7 +279,7 @@ def _pin(arr, values):
 def sample(kind, dtype, T, W, K, rng):
     """Stored fp16 arrays or int8 codes for one model."""
     d = {}
-    if kind in ("silu", "gated", "gelu"):
+    if kind in ("silu", "gated", "gelu", "logistic"):
         if dtype == "fp16":
             d["x"] = _pin(fp16(rng.uniform(X_LO, X_HI, size=(T, W))), X_PINS)
         else:
@@ -317,19 +326,23 @@ def compute(spec, d):
 
     # ------------------------------------------------------------------ fp16 branch
     if dtype == "fp16":
+        if kind == "logistic":
+            x = d["x"].astype(np.float64)
+            exact = fp16(sigmoid(x))
+            return d["x"], exact, exact, exact, qm
         if kind == "silu":
             x = d["x"].astype(np.float64)
             s = sigmoid(x)
             exact = fp16(x * s)
             alt = fp16(x * fp16(s))                  # sigmoid tensor stored as fp16 first
-            return x, exact, alt, alt, qm
+            return d["x"], exact, alt, alt, qm
         if kind == "gated":
             x = d["x"].astype(np.float64)
             u = d["up"].astype(np.float64)
             s = sigmoid(x)
             exact = fp16(x * s * u)
             alt = fp16(fp16(x * fp16(s)) * u)        # s stored fp16, product stored fp16
-            return x, exact, alt, alt, qm
+            return d["x"], exact, alt, alt, qm
         if kind == "fused":
             x = d["x"].astype(np.float64)
             gate = x @ d["wg"].astype(np.float64).T + d["bg"].astype(np.float64)
@@ -338,11 +351,11 @@ def compute(spec, d):
             exact = fp16(gate * s * up)
             g16, u16 = fp16(gate), fp16(up)          # every tensor materialised as fp16
             alt = fp16(fp16(g16 * fp16(sigmoid(g16))) * u16)
-            return x, exact, alt, alt, qm
+            return d["x"], exact, alt, alt, qm
         x = d["x"].astype(np.float64)
         exact = fp16(gelu_exact(x))
         alt = fp16(gelu_tanh(x)) if spec.get("approximate") else exact
-        return x, exact, alt, alt, qm
+        return d["x"], exact, alt, alt, qm
 
     # ------------------------------------------------------------------ int8 branch
     if kind == "silu":
@@ -454,7 +467,13 @@ def build_blob(spec, d):
     sig_quant = q8(b, S_SIG, S_SIG_ZP) if i8 else None
     act_q = (lambda s: q8(b, s, 0)) if i8 else (lambda s: None)
 
-    if kind == "silu":
+    if kind == "logistic":
+        t_x = add("input", [T, W], act_q(S_X))                       # buffer 0 = empty
+        t_y = add("output", [T, W], sig_quant)
+        ops += [("LOGISTIC", [t_x], [t_y])]
+        mi, mo = [t_x], [t_y]
+
+    elif kind == "silu":
         t_x = add("input", [T, W], act_q(S_X))                       # buffer 0 = empty
         t_sig = add("sigmoid", [T, W], sig_quant)
         t_y = add("output", [T, W], act_q(S_OUT_SILU))
@@ -524,11 +543,13 @@ def build_blob(spec, d):
 
 
 # ------------------------------------------------------------------------------ main
-GRAPH = {"silu": ["LOGISTIC", "MUL"],
+GRAPH = {"logistic": ["LOGISTIC"],
+         "silu": ["LOGISTIC", "MUL"],
          "gated": ["LOGISTIC", "MUL", "MUL"],
          "fused": ["FULLY_CONNECTED", "FULLY_CONNECTED", "LOGISTIC", "MUL", "MUL"],
          "gelu": ["GELU"]}
-OPNAME = {"silu": "SILU(LOGISTIC+MUL)", "gated": "GATED_SILU_MUL",
+OPNAME = {"logistic": "LOGISTIC(control)", "silu": "SILU(LOGISTIC+MUL)",
+          "gated": "GATED_SILU_MUL",
           "fused": "FUSED_FC_SILU_MUL", "gelu": "GELU"}
 
 

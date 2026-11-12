@@ -19,7 +19,7 @@
       696
     ],
     "type": "float16",
-    "bytes": 5568
+    "bytes": 1392
   },
   "inputs": [
     {
@@ -45,6 +45,7 @@
   "alt_reference": "unfused_fp16_rounding",
   "seed": 20261112,
   "prediction": "ncc may reject the GELU builtin; tested, not assumed",
+  "gelu_approximate": false,
   "generator": "tools/build_silu.py",
   "tflite": "model.tflite",
   "tflite_bytes": 400,
