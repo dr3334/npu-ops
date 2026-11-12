@@ -1,0 +1,68 @@
+{
+  "op": "CONV_2D",
+  "shape": {
+    "N": 1,
+    "H": 8,
+    "W": 8,
+    "C": 4,
+    "OH": 8,
+    "OW": 8,
+    "OC": 8,
+    "FH": 3,
+    "FW": 3,
+    "stride": 1,
+    "dilation": 1,
+    "mult": 1,
+    "padding": "SAME",
+    "activation": "NONE"
+  },
+  "dtype": "int8",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      8,
+      8,
+      4
+    ],
+    "type": "int8",
+    "bytes": 256
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      8,
+      8,
+      8
+    ],
+    "type": "int8",
+    "bytes": 512
+  },
+  "quant": {
+    "input": 0.0078125,
+    "weights": 0.0078125,
+    "bias": 6.103515625e-05,
+    "output": 6.103515625e-05
+  },
+  "filter_shape": [
+    8,
+    3,
+    3,
+    4
+  ],
+  "bias": true,
+  "reference": "int64_exact",
+  "requant": {
+    "rule": "dev",
+    "num": 1,
+    "den": 1,
+    "m0": 2147483648,
+    "shift": 0
+  },
+  "codes": "small",
+  "int8_tol": 0,
+  "seed": 20261112,
+  "tflite": "model.tflite",
+  "tflite_bytes": 1104
+}

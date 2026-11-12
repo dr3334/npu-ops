@@ -1,0 +1,11 @@
+D:/deepseek_ workspace/mtk/wt-convpool/ops/maxpool_1x8x8x16_2x2s2_int8/model.dla: 1 file pushed, 0 skipped. 6.9 MB/s (2545 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-convpool/ops/maxpool_1x8x8x16_2x2s2_int8/golden/input.bin: 1 file pushed, 0 skipped. 2.1 MB/s (1024 bytes in 0.000s)
+Inference repeats for 3 times.
+Total inference time = 2.979 ms (0.993 ms/inf)
+Avg. FPS : 890.2
+/data/local/tmp/npuops/dla/maxpool_1x8x8x16_2x2s2_int8.out.bin: 1 file pulled, 0 skipped. 0.0 MB/s (256 bytes in 0.006s)
+op        : MAX_POOL_2D {'N': 1, 'H': 8, 'W': 8, 'C': 16, 'OH': 4, 'OW': 4, 'OC': 16, 'FH': 2, 'FW': 2, 'stride': 2, 'dilation': 1, 'mult': 1, 'padding': 'VALID', 'activation': 'NONE'}  dtype=int8
+expected  : 256 vals   device: 256 vals   logical shape=(1, 4, 4, 16)
+exact     : YES   mismatched=0/256
+contract  : int8_tol=0  max_abs_diff=0  fraction_off=0.0000%
+PASS
