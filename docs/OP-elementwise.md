@@ -18,7 +18,7 @@
 | MAXIMUM | 8x128 | **PASS** | 跑通 | **PASS 0/1024** |
 | MINIMUM | 8x128 | **PASS** | 跑通 | **PASS 0/1024** |
 
-* **四个算子全部编译成功并落到 MDLA_5_0，全部逐位通过**（8 个模型、共 4480 个输出编码 0 误差）。
+* **四个算子全部编译成功并落到 MDLA_5_0，全部逐位通过**（8 个模型、共 4×64 + 4×1024 = 4352 个输出编码 0 误差）。
 * **没有任何一个"算子级"编译失败**：MUL/SUB/MAXIMUM/MINIMUM 都被 ncc 识别为原生 `ElementWise*Layer`。
 * 真正的失败边界是**形状粒度**（E-108D）：`K` 必须是 16 的倍数（例外：`K=4` 且 `M` 是 4 的倍数），否则 ncc 要插一个非 DLA 的搬运层，被 `--disallow-bridge` 挡住：
   ```
@@ -43,7 +43,8 @@
 
 每个 op 目录里 `model.compile.log` 含 cmd 行、ncc 版本、date、`Target: MDLA_5_0`、DRAM 表、`EXIT=0`、`SIZE=`、`SHA256=`；`compare.txt` 是 `tools/compare.py` 的原始输出；`e2e.json` 是 `tools/e2e.sh` 的机器可读收尾行。
 
-`.dla` 指纹（sha256，取自各自 `model.compile.log`）：
+`.dla` 指纹（sha256，取自各自 `model.compile.log`）。**它只能标识"某一次编译的产物"，不是可复现性或回归依据** ——
+见下面的复验：
 
 | op | 1x64 | 8x128 |
 |---|---|---|
@@ -51,6 +52,19 @@
 | SUB | `b85cb44a28711b0c…` | `cca0877bb986ff5e…` |
 | MAXIMUM | `0fa025b2d936ea2c…` | `301bc6025aca59d7…` |
 | MINIMUM | `eca7b2e54fea927b…` | `be4ea48388257715…` |
+
+**复验：`.dla` 不是字节可复现的（AGENTS §4 的规则，2026-11-12 21:07 在本 worktree 实测）**
+
+* 同一个 `ops/mul_1x64_int8/model.tflite`（`sha256 = d0633bdb…`）、同一条 ncc 命令，连编 3 次到**同一个**输出路径：
+  `SIZE=3063` 三次相同，`SHA256` **三次互不相同**（`9ffb83b9…` / `a424fe42…` / `81241850…`）；
+* 换输出路径（`/tmp/repro/m1.dla`）：三次都是 3061 B；本 worktree 最初那次（输出到 `ops/.../model.dla`）是 3071 B
+  ⇒ **`.dla` 的字节数也随输出路径变化**（产物里嵌了与路径/生成时刻相关的信息）。
+* 因此 `model.compile.log` 里的 `SIZE/SHA256` 只作"那次运行的产物标识"留档，**不能**当构建一致性或回归依据；
+  一致性与回归只比**数值**（`compare.txt`，本实验 8 个模型全部 `max_abs_diff=0`、`int8_tol=0`）。
+  与之相对，**输入侧是可复现的**：`tools/build_binop.py` 固定 seed，同参数重复运行得到同一字节
+  （`model.tflite` = `d0633bdb…` ×3、`golden/expected.bin` = `9adfbb1a…` ×2，实测一致）。
+  复现链条：`build_binop.py`（可复现）→ `.tflite`（可复现）→ `.dla`（**不可复现**，只做产物标识）
+  → 板端数值（`compare.txt`，回归依据）。
 
 ---
 
@@ -345,6 +359,9 @@ npu_binop(MINIMUM) rc=-100 (assets not captured yet)
 * 公共工具**未改**。已向 Lead 报告过的两处共享工具问题（worktree 下 `WSLROOT` 写死、CRLF shebang）已由 Lead
   在 master 修复（`tools/e2e.sh` 自行推导 WSL 根、`.gitattributes` `text eol=lf`），本 worktree 已同步，
   之后所有板端命令都直接用 `./tools/e2e.sh`，无需任何 workaround。
+* **回归判据**：按 AGENTS §4（`.dla` 非字节可复现，本文 §1 已复验），一致性只比数值 `compare.txt`；
+  `.dla` 的 `SIZE/SHA256` 只用来标识"某个产物"。新增算子照此执行，不要把 sha 相等当通过条件。
+* 复跑本实验：8 个目录可直接 `./tools/e2e.sh ops/<name>`（`model.tflite`/`.dla` 缺失时会自动重建重编）。
 * 下一步建议（按价值排序）：
   1. `(M,K)` 最小可行集合的机制实验（§6.3-1），并给 `tools/` 加一个"编译可行性扫描器"，把 §5 的网格变成可回归的测试；
   2. MUL requant（`so=1/127`）的舍入语义；
