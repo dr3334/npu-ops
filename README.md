@@ -87,3 +87,18 @@ CMD 的 `RUN`/`DEL` 与 6.1 头布局一致，`priority=10` 与内核 trace 交�
 - 剩下 75 个字与形状无关（算子类型/常量）→ 同族算子可共享命令模板，只改 25 个字。
 
 工具：`probe/diff_cmd.py`。
+
+## 方法与计划（先读这两个）
+
+- [`../AGENTS.md`](../AGENTS.md)：本工作区的 AI 开发规范（证据驱动循环、10 条硬规则、实验设计范式、记录规范）。
+- [`PLAN.md`](PLAN.md)：动态计划 W1 护栏 → W2 语义 → W3 边界 → W4 自主 → W5 泛化，含下一批实验 E-101～E-106 与"已排除"清单。
+- [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md)：E-001～E-008 实验记录（假设/预测/做法/产物/结果/适用范围/剩余疑问）。
+
+## 护栏工具
+
+```bash
+./tools/devlock.sh status                     # 板端是否被占用
+./tools/devlock.sh run -- ./tools/e2e.sh ops/fc_1x64x64_int8   # 串行执行板端实验
+./tools/healthcheck.sh                        # 已知正常程序 + 设备状态自检（实验前后都要跑）
+./tools/healthcheck.sh --quick                # 只跑设备存在性 + 一次已知正常算子
+```
