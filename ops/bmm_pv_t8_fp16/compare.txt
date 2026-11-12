@@ -1,0 +1,9 @@
+op        : BATCH_MATMUL {'T': 8, 'D': 64, 'batch': 1, 'adj_x': 0, 'adj_y': 0}  dtype=fp16
+expected  : 512 vals   device: 512 vals   logical shape=(1, 8, 64)
+max_abs   : 0.000e+00
+rmse      : 0.000e+00
+rel_l2    : 0.000e+00
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-2.922,2.588]  dev [-2.922,2.588]
+tol       : atol=0.01 rtol=0.03
+PASS

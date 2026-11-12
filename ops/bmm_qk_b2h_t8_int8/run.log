@@ -1,0 +1,12 @@
+D:/deepseek_ workspace/mtk/wt-bmm/ops/bmm_qk_b2h_t8_int8/model.dla: 1 file pushed, 0 skipped. 9.3 MB/s (3838 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-bmm/ops/bmm_qk_b2h_t8_int8/golden/input.bin: 1 file pushed, 0 skipped. 1.7 MB/s (1024 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-bmm/ops/bmm_qk_b2h_t8_int8/golden/input1.bin: 1 file pushed, 0 skipped. 2.9 MB/s (1024 bytes in 0.000s)
+Inference repeats for 3 times.
+Total inference time = 3.218 ms (1.07267 ms/inf)
+Avg. FPS : 761.2
+/data/local/tmp/npuops/dla/bmm_qk_b2h_t8_int8.out.bin: 1 file pulled, 0 skipped. 0.0 MB/s (128 bytes in 0.007s)
+op        : BATCH_MATMUL {'T': 8, 'D': 64, 'batch': 2, 'adj_x': 0, 'adj_y': 1}  dtype=int8
+expected  : 128 vals   device: 128 vals   logical shape=(1, 2, 8, 8)
+exact     : YES   mismatched=0/128
+contract  : int8_tol=0  max_abs_diff=0  fraction_off=0.0000%
+PASS

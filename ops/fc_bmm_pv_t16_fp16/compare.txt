@@ -1,0 +1,9 @@
+op        : FULLY_CONNECTED {'T': 16, 'D': 64, 'M': 16, 'K': 16, 'N': 64}  dtype=fp16
+expected  : 1024 vals   device: 1024 vals   logical shape=(16, 64)
+max_abs   : 2.441e-04
+rmse      : 7.630e-06
+rel_l2    : 5.446e-06
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-5.363,4.594]  dev [-5.363,4.594]
+tol       : atol=0.01 rtol=0.03
+PASS
