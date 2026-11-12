@@ -1,0 +1,64 @@
+{
+  "op": "BATCH_MATMUL",
+  "form": "bmm",
+  "matmul": "P\u00b7V",
+  "shape": {
+    "T": 16,
+    "D": 64,
+    "batch": 1,
+    "adj_x": 0,
+    "adj_y": 0
+  },
+  "dtype": "int8",
+  "inputs": [
+    {
+      "name": "a",
+      "shape": [
+        1,
+        16,
+        16
+      ],
+      "type": "int8"
+    },
+    {
+      "name": "b",
+      "shape": [
+        1,
+        16,
+        64
+      ],
+      "type": "int8"
+    }
+  ],
+  "output": {
+    "name": "out",
+    "shape": [
+      1,
+      16,
+      64
+    ],
+    "type": "int8",
+    "bytes": 1024
+  },
+  "quant": {
+    "a": 0.007874015748031496,
+    "b": 0.007874015748031496,
+    "out": 6.200012400024799e-05
+  },
+  "codes": "small",
+  "reference": "int64_exact",
+  "score": "repro",
+  "seed": 20261112,
+  "int8_tol": 0,
+  "alt_b": {
+    "seed": 20262112,
+    "files": [
+      "golden/input1_alt.bin",
+      "golden/expected_alt.bin"
+    ],
+    "purpose": "same A + different B: one compiled .dla must serve any weights (L3 re-bind check, replicates S4/E-005 on the dual-dynamic path)"
+  },
+  "spec": "bmm_pv_t16_int8",
+  "tflite": "model.tflite",
+  "tflite_bytes": 608
+}

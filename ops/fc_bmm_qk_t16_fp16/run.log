@@ -1,0 +1,16 @@
+D:/deepseek_ workspace/mtk/wt-bmm/ops/fc_bmm_qk_t16_fp16/model.dla: 1 file pushed, 0 skipped. 9.1 MB/s (3080 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-bmm/ops/fc_bmm_qk_t16_fp16/golden/input.bin: 1 file pushed, 0 skipped. 5.0 MB/s (2048 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-bmm/ops/fc_bmm_qk_t16_fp16/golden/input1.bin: 1 file pushed, 0 skipped. 5.1 MB/s (2048 bytes in 0.000s)
+Inference repeats for 3 times.
+Total inference time = 2.252 ms (0.750667 ms/inf)
+Avg. FPS : 1154
+/data/local/tmp/npuops/dla/fc_bmm_qk_t16_fp16.out.bin: 1 file pulled, 0 skipped. 0.1 MB/s (512 bytes in 0.007s)
+op        : FULLY_CONNECTED {'T': 16, 'D': 64, 'M': 16, 'K': 64, 'N': 16}  dtype=fp16
+expected  : 256 vals   device: 256 vals   logical shape=(16, 16)
+max_abs   : 0.000e+00
+rmse      : 0.000e+00
+rel_l2    : 0.000e+00
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-7.438,7.719]  dev [-7.438,7.719]
+tol       : atol=0.01 rtol=0.03
+PASS

@@ -1,0 +1,74 @@
+{
+  "op": "CONV_2D",
+  "form": "conv",
+  "matmul": "Q\u00b7K\u1d40",
+  "shape": {
+    "T": 16,
+    "D": 64,
+    "H": 16,
+    "W": 1,
+    "C": 64,
+    "OC": 16,
+    "FH": 1,
+    "FW": 1,
+    "pad": "SAME",
+    "stride": 1
+  },
+  "dtype": "fp16",
+  "inputs": [
+    {
+      "name": "input",
+      "shape": [
+        1,
+        16,
+        1,
+        64
+      ],
+      "type": "fp16"
+    },
+    {
+      "name": "filter",
+      "shape": [
+        16,
+        1,
+        1,
+        64
+      ],
+      "type": "fp16"
+    }
+  ],
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      16,
+      1,
+      16
+    ],
+    "type": "fp16",
+    "bytes": 512
+  },
+  "quant": {
+    "input": null,
+    "weights": null,
+    "bias": null,
+    "output": null
+  },
+  "codes": "-",
+  "reference": "float32_accum_to_fp16",
+  "filter_layout": "[OC,1,1,IC] = K rows",
+  "seed": 20261112,
+  "atol": 0.01,
+  "rtol": 0.03,
+  "alt_b": {
+    "seed": 20262112,
+    "files": [
+      "golden/input1_alt.bin",
+      "golden/expected_alt.bin"
+    ],
+    "purpose": "same A + different B: one compiled .dla must serve any weights (L3 re-bind check, replicates S4/E-005 on the dual-dynamic path)"
+  },
+  "spec": "conv_bmm_qk_t16_fp16",
+  "tflite": "model.tflite",
+  "tflite_bytes": 632
+}

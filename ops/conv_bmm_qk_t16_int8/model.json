@@ -1,0 +1,73 @@
+{
+  "op": "CONV_2D",
+  "form": "conv",
+  "matmul": "Q\u00b7K\u1d40",
+  "shape": {
+    "T": 16,
+    "D": 64,
+    "H": 16,
+    "W": 1,
+    "C": 64,
+    "OC": 16,
+    "FH": 1,
+    "FW": 1,
+    "pad": "SAME",
+    "stride": 1
+  },
+  "dtype": "int8",
+  "inputs": [
+    {
+      "name": "input",
+      "shape": [
+        1,
+        16,
+        1,
+        64
+      ],
+      "type": "int8"
+    },
+    {
+      "name": "filter",
+      "shape": [
+        16,
+        1,
+        1,
+        64
+      ],
+      "type": "int8"
+    }
+  ],
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      16,
+      1,
+      16
+    ],
+    "type": "int8",
+    "bytes": 256
+  },
+  "quant": {
+    "input": 0.007874015748031496,
+    "weights": 0.007874015748031496,
+    "bias": 6.200012400024799e-05,
+    "output": 6.200012400024799e-05
+  },
+  "codes": "small",
+  "reference": "int64_exact",
+  "filter_layout": "[OC,1,1,IC] = K rows",
+  "seed": 20261112,
+  "int8_tol": 0,
+  "alt_b": {
+    "seed": 20262112,
+    "files": [
+      "golden/input1_alt.bin",
+      "golden/expected_alt.bin"
+    ],
+    "purpose": "same A + different B: one compiled .dla must serve any weights (L3 re-bind check, replicates S4/E-005 on the dual-dynamic path)"
+  },
+  "spec": "conv_bmm_qk_t16_int8",
+  "tflite": "model.tflite",
+  "tflite_bytes": 840
+}
