@@ -38,6 +38,24 @@ static int nmaps = 0;
 static void dump_buffers(void);
 static void dump_maps(void);
 
+/* E-105B: single-field mutation of a *valid* submission. The spec file holds one
+   line "0xOFFSET 0xVALUE"; the word is rewritten just before the ioctl is issued,
+   so we can tell whether a field is used, ignored, or fatal without guessing the
+   struct layout. (env vars are scrubbed by neuronrt, hence a file.) */
+static int g_patch_off = -1;
+static uint32_t g_patch_val = 0;
+
+static void load_patch(void) {
+  FILE *f = fopen("/data/local/tmp/npuops/probe/patch.txt", "r");
+  if (!f) return;
+  unsigned off = 0, val = 0;
+  if (fscanf(f, "%x %x", &off, &val) == 2) {
+    g_patch_off = (int)off;
+    g_patch_val = (uint32_t)val;
+  }
+  fclose(f);
+}
+
 // Capture the final state at process exit: by then the runtime has copied the NPU
 // output back into the output dma-buf, so this is where the result becomes visible.
 static void dump_final(void) {
@@ -201,6 +219,7 @@ int ioctl(int fd, int req_, ...) {
     real_mmap = dlsym(RTLD_NEXT, "mmap");
     open_log();
     atexit(dump_final);
+
   }
 
   unsigned type = (req >> 8) & 0xffu, nr = req & 0xffu, size = req_size(req);
@@ -210,6 +229,15 @@ int ioctl(int fd, int req_, ...) {
     dprintf(logfd, "PRE  fd=%d nr=%u size=%u\n", fd, nr, size);
     if (arg && size >= 8 && size <= 256) hexdump("in ", arg, size, 2);
     if (nr == 34 && arg && size >= 8 && ((unsigned char *)arg)[0] == 0 /* RUN */) {
+      static int patch_loaded = 0;
+      if (!patch_loaded) { patch_loaded = 1; load_patch(); }
+      if (g_patch_off >= 0 && (unsigned)g_patch_off + 4 <= size) {
+        uint32_t old = 0;
+        memcpy(&old, (char *)arg + g_patch_off, 4);
+        memcpy((char *)arg + g_patch_off, &g_patch_val, 4);
+        dprintf(logfd, "PATCH off=0x%x old=0x%08x new=0x%08x\n", g_patch_off, old,
+                g_patch_val);
+      }
       dump_pointers((const unsigned char *)arg, size, "cmd_run");
       dump_maps();
       dump_buffers();
@@ -242,6 +270,7 @@ void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off) {
     real_mmap = dlsym(RTLD_NEXT, "mmap");
     open_log();
     atexit(dump_final);
+
   }
   void *p = real_mmap(addr, len, prot, flags, fd, off);
   if (logfd >= 0 && p != MAP_FAILED && fd >= 0 && nmaps < MAXMAP && len >= 64 && len <= (1 << 20)) {
