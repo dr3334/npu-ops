@@ -232,9 +232,10 @@ DRAM Usage:
 ```
 
 eDPA is the MDLA-side DMA engine, i.e. the fallback is *still NPU*, not CPU — but
-`--disallow-bridge` rejects it. The warning also tells us the DMA burst length equals the
-channel count in bytes (4 for C=4, 8 for C=8), which is consistent with a per-pixel
-layout conversion.
+`--disallow-bridge` rejects it. The burst warning reports 4 bytes for the C=4 pools and the
+C=4 dw-mult2 case, 8 bytes for the C=8 stride-2 conv **and also** for the C=4 dilation case,
+so the burst length tracks the offending per-pixel access rather than C alone. What exactly
+triggers the relayout is **UNKNOWN**; only the pass/fail map below is measured.
 
 **Boundary map (`ops/_scan/convpool_scan.tsv`, `tools/scan_convpool.py`, 36 configs):**
 
