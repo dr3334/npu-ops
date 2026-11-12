@@ -1,0 +1,29 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/chain_concat_pad_int8/model.tflite -d ops/chain_concat_pad_int8/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-12T20:58:19+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ ConcatLayer<0>{CONCATENATION}
+   ├ PadLayer<1>{PAD}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     1.0K   1.9K    0     448     1.3K  4.6K
+
+Total Memory:
+  DRAM: 4.6K
+  L1:   0
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=5669
+SHA256=09b750f8aa638fd0580615658e4ac5146c5b9ed6e3671ce650ef076516af3e78

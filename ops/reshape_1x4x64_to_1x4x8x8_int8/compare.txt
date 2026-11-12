@@ -1,0 +1,5 @@
+op        : RESHAPE {'in': [1, 4, 64], 'out': [1, 4, 8, 8]}  dtype=int8
+expected  : 256 vals   device: 256 vals   logical shape=(1, 4, 8, 8)
+exact     : YES   mismatched=0/256
+contract  : int8_tol=0  max_abs_diff=0  fraction_off=0.0000%
+PASS

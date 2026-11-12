@@ -1,0 +1,51 @@
+{
+  "op": "SPLIT",
+  "shape": {
+    "in": [
+      1,
+      4,
+      8,
+      16
+    ],
+    "axis": 3,
+    "num_splits": 2,
+    "graph_output": 0,
+    "out": [
+      1,
+      4,
+      8,
+      8
+    ]
+  },
+  "dtype": "int8",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      4,
+      8,
+      16
+    ],
+    "type": "int8"
+  },
+  "output": {
+    "name": "out0",
+    "shape": [
+      1,
+      4,
+      8,
+      8
+    ],
+    "type": "int8"
+  },
+  "quant": {
+    "input": 0.007874015748031496,
+    "output": 0.007874015748031496
+  },
+  "int8_tol": 0,
+  "reference": "numpy_exact",
+  "note": "slice 0 of 2; the other slice(s) are unused operator outputs",
+  "tflite": "model.tflite",
+  "tflite_bytes": 752,
+  "seed": 20261112
+}
