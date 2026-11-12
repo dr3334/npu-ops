@@ -6,10 +6,14 @@
 #   dir builders       : build_shapeops                                     (--out <dir>)
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 2
-WL() { wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && $*"; }
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+_win="$(cd "$ROOT" && pwd -W 2>/dev/null || echo /d/x)"
+_drv="$(printf %s "${_win:0:1}" | tr A-Z a-z)"
+WSLROOT="${WSLROOT:-/mnt/$_drv${_win:2}}"
+WL() { wsl.exe -e bash -lc "cd  && $*"; }
 LIST_ONLY=0; [ "${1:-}" = "--list-only" ] && LIST_ONLY=1
 
-FILE_BUILDERS="build_ops build_add build_dynb build_actreduce build_convpool"
+FILE_BUILDERS="build_ops build_add build_dynb build_actreduce build_convpool build_rmsnorm"
 DIR_BUILDERS="build_shapeops"
 
 total=0; made=0; failed=0; exists=0
