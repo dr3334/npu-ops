@@ -281,3 +281,21 @@
 - **结果**：成立 —— 板端 **64/64 逐位相等**，1.70 ms/inf（含进程开销）。
 - **适用范围**：M=1,K=64,int8；未测 broadcast、未测 M>1。
 - **剩余疑问**：broadcast（N≠M 形状）是否支持；int8 溢出语义（clip 还是 wrap）只在 clip 这一档验证过。
+
+---
+
+## E-106B（进行中）ADD 的完整提交结构已抓全，但"自建执行器"还差两块
+
+- **目标**：用我们自己的函数库对一块自分配内存发一次 ADD，得到 `C = A + B`，不经过 `neuronrt`/`libneuron`。
+- **本轮已完成（抓取面）**：把 shim 的两个盲点补掉后，**一次 ADD 提交的所有结构都拿到了**：
+  - `mdw_cmd_in` 152 B：`op=0`、`priority=10`、`num_subcmds=1`、`subcmd_infos@0x50`、`adj_matrix@0x58`、`fence=-1`、`0x68=9`；
+  - `mdw_subcmd_info` 80 B：`type@0=2`、`num_cmdbufs@64=3`、`cmdbufs@72` → 指针；
+  - `mdw_subcmd_cmdbuf[3]`（每个 24 B）：`{handle=7,size=0x20,align=0x100,dir=1}`、`{8,0x10,0x100,1}`、`{2,0x170,0x100,1}`；
+  - **三块 cmdbuf 的实际内容**：368 B 的是真正的命令流（含 `0xa5xxxxxx` 型命令字与 `0x0259…` 设备地址），32 B 与 16 B 两块是**全零占位**。
+- **关键修正**：此前 mmap 捕获阈值是 `len>=64`，导致 32 B / 16 B 的命令缓冲被漏掉；改成 `len>=8` 后三块全部落盘。
+- **仍然缺（未完成，不宣称实现）**：
+  1. **地址翻译**：368 B 命令流里的地址字要映射到"我们自己的 buffer 的 IOVA"。已知提交前 runtime 会重写其中 3 处（E-102），但还需要把每个地址字与 A/B/C/命令缓冲的**新区**一一对上（旧 `handle→IOVA` 表在每次运行都不同，必须同一次抓取里配套记录）；
+  2. **`adj_matrix`（0x58）**：驱动会解引用，但内容格式未定（置 0 会被拒，非法指针会被拒）；需要先做"指向全零矩阵"的实验；
+  3. **完成等待**：`CMD RUN` 之后如何判断执行结束（fence 是 -1，可能要 poll 输出 buffer 或走 MEM SYNC）。
+- **产物**：`probe/ioAdd*.log`、`probe/buf/add_map*.bin`（三块 cmdbuf + A/B/C）、`probe/iolog2.c`（`dump_subcmds` + 8 字节阈值）。
+- **下一步（按成本排序）**：① 同一次抓取里把 `handle→IOVA` 表与命令流一起落盘 → 建地址翻译表；② `adj_matrix` 用全零 buffer 试提交（干净失败也被接受）；③ 若 ② 通过，先跑"数据不变、只换地址"的复现，再换输入值。

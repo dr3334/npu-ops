@@ -133,6 +133,30 @@ static void dump_pointers(const unsigned char *b, unsigned size, const char *why
   }
 }
 
+/* E-106B: chase mdw_cmd_in -> subcmd_infos[] -> cmdbufs[] so we can rebuild the
+   submission ourselves. Offsets come from mdw_ioctl.h and were confirmed by the
+   mutation experiments (E-105B/C): subcmd_infos@0x50, num_cmdbufs@+64, cmdbufs@+72. */
+static void dump_subcmds(const unsigned char *cmd, unsigned size) {
+  if (size < 0x58) return;
+  uint64_t p = 0;
+  memcpy(&p, cmd + 0x50, 8);
+  unsigned char sc[128];
+  ssize_t got = safe_read(sc, (uintptr_t)p, sizeof(sc));
+  if (got < 80) { dprintf(logfd, "SUBSCMD unreadable ptr=0x%llx got=%zd\n",
+                          (unsigned long long)p, got); return; }
+  hexdump("subcmd", sc, 80, 2);
+  uint32_t n = 0;
+  uint64_t cbs = 0;
+  memcpy(&n, sc + 64, 4);
+  memcpy(&cbs, sc + 72, 8);
+  dprintf(logfd, "SUBSCMD num_cmdbufs=%u cmdbufs=0x%llx\n", n, (unsigned long long)cbs);
+  if (n == 0 || n > 8) return;
+  unsigned char cb[8 * 24];
+  ssize_t g2 = safe_read(cb, (uintptr_t)cbs, (size_t)n * 24);
+  if (g2 <= 0) { dprintf(logfd, "SUBSCMD cmdbufs unreadable\n"); return; }
+  hexdump("cmdbufs", cb, (size_t)g2, 2);
+}
+
 #include <signal.h>
 #include <setjmp.h>
 
@@ -170,7 +194,7 @@ static void dump_buffers(void) {
   if (!dir) dir = "/data/local/tmp/npuops/probe/buf";
   char path[256];
   for (int i = 0; i < nmaps; i++) {
-    if (maps[i].len < 64 || maps[i].len > 65536) continue;
+    if (maps[i].len < 8 || maps[i].len > 65536) continue;
     snprintf(path, sizeof(path), "%s/map%02d_fd%d_len%zx%s.bin", dir, i, maps[i].fd,
              maps[i].len, getenv("BUFSUFFIX") ? getenv("BUFSUFFIX") : "");
     int f = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -239,6 +263,7 @@ int ioctl(int fd, int req_, ...) {
                 g_patch_val);
       }
       dump_pointers((const unsigned char *)arg, size, "cmd_run");
+      dump_subcmds((const unsigned char *)arg, size);
       dump_maps();
       dump_buffers();
     }
@@ -273,7 +298,7 @@ void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off) {
 
   }
   void *p = real_mmap(addr, len, prot, flags, fd, off);
-  if (logfd >= 0 && p != MAP_FAILED && fd >= 0 && nmaps < MAXMAP && len >= 64 && len <= (1 << 20)) {
+  if (logfd >= 0 && p != MAP_FAILED && fd >= 0 && nmaps < MAXMAP && len >= 8 && len <= (1 << 20)) {
     maps[nmaps].addr = (uintptr_t)p;
     maps[nmaps].len = len;
     maps[nmaps].fd = fd;
