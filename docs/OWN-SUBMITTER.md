@@ -87,3 +87,22 @@ int8 `[1,8,16]` 逐位相等、fp16 差 1 个 code、`beta` 生效——**不是
 函数近似（LUT/多项式）在 MTK 上的价值是**性能选项**，不是可用性前提：
 先用原生层保证正确性，再用 `npu_add64/npu_binop` 这套自有提交器做 A/B 对比是否值得替换。
 （RK 那边用 DPU LUT，是因为它的 softmax 走 DPU；MTK 有独立 SoftMax 层，策略不同。）
+
+## 6. 🔑 矩阵乘级算子：FULLY_CONNECTED（动态权重）
+
+这是"自己算 transformer"最关键的一步：现在**权重也是运行时输入**的 FC 已经能由自建提交器跑起来。
+
+| 项 | 值 |
+|---|---|
+| 形状 | `A[1,64] int8` × `W[64,64] int8` → `C[1,64]`（W 是运行时输入，不是常量） |
+| 资产 | `probe/assets/fcdyn`（3 个 cmdbuf：32/16/368 B；iova.txt 三个地址） |
+| 提交 | `CMD RUN rc=0`，`probe/npu_fc_demo` |
+| 重定位 | 3 处命中：`0x078`=B(权重)、`0x098`=A(激活)、`0x110`=C |
+| 数值 | **1/64 元素差 1 个 code**（`first@46 dev=-75 exp=-74`），两次运行完全一致 |
+| 判定 | 与厂商路径 FC 的 `int8_tol=1` 契约一致（requant 舍入边界，见 `docs/OP-convpool.md` 的反推规则） |
+
+新增机制：plan 里加了 `bytes_b`（第二个输入的字节数——权重 4096，激活只有 64），
+其余（握手/分配/重定位/提交/等待/同步）与二元算子完全复用。
+
+**至此自建提交器覆盖 7 个算子 + 1 个矩阵乘级算子**：ADD / MUL / SUB / MAXIMUM / MINIMUM / RELU /
+（以及）FULLY_CONNECTED(动态权重)。仍未覆盖：常量权重的 FC、多输入 >2、非 64 的形状。

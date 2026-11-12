@@ -169,6 +169,19 @@ static npu_binop_plan_t g_plan_tanh = {
     .expect_patches = 2,
     .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
 };
+static npu_binop_plan_t g_plan_fcdyn = {
+    .name = "FULLY_CONNECTED(dynW)",
+    .asset_dir = "/data/local/tmp/npuops/assets/fcdyn",
+    .old_iova = { 0, 0, 0 },
+    .bytes = 64,
+    .bytes_b = 4096,
+    .alloc_size = NPU_BINOP_ALLOC,
+    .n_inputs = 2,
+    .cmdbuf_dir = { 1, 2, 1 },
+    .patch_idx = 2,
+    .expect_patches = 3,
+    .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
+};
 static const npu_binop_plan_t *const g_plans[NPU_OP__COUNT] = {
     [NPU_OP_ADD] = &g_plan_add,
     [NPU_OP_MUL] = &g_plan_mul,
@@ -178,6 +191,7 @@ static const npu_binop_plan_t *const g_plans[NPU_OP__COUNT] = {
     [NPU_OP_RELU] = &g_plan_relu,
     [NPU_OP_LOGISTIC] = &g_plan_logistic,
     [NPU_OP_TANH] = &g_plan_tanh,
+    [NPU_OP_FC_DYNW] = &g_plan_fcdyn,
 };
 
 static const char *const g_op_names[NPU_OP__COUNT] = {
@@ -360,7 +374,7 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
   memset(einfo.host, 0, 76);
 
   memcpy(a1.host, a, plan->bytes);
-  if (plan->n_inputs == 2) memcpy(b1.host, b, plan->bytes);   /* 一元算子没有 B 缓冲 */
+  if (plan->n_inputs == 2) memcpy(b1.host, b, plan->bytes_b ? plan->bytes_b : plan->bytes);
 
   /* 写回主机 -> 设备前同步 A/B（START|WRITE + END|WRITE） */
   dma_buf_sync(a1.handle, (1u << 30) | 2u);
