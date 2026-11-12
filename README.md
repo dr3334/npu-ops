@@ -116,3 +116,22 @@ int npu_add64(const int8_t *a, const int8_t *b, int8_t *out);   /* 64 元素，�
 - 关键坑（都在内核日志里露过面）：`exec_infos`(cmd@0x68) 是 **76 B 缓冲的 MEM handle**，不是用户指针；
   命令流地址是 `iova>>4`；cmdbuf 顺序为 `[32B dir1][16B dir2][368B dir1]`；完成后要等并同步缓存。
 - 验证：`A=[10..80]×8 + B=[1..8]×8 → [11,22,…,88]×8`，逐字节等于参考；两次运行一致；healthcheck PASS。
+
+## 算子矩阵（W6 并行泛化，2026-11-12）
+
+四个 worktree 并行推进后合并，**回归 75 PASS / 16 XFAIL / 0 FAIL**（`tools/run_all.sh`，前后 healthcheck PASS）。
+
+```bash
+./tools/rebuild_ops.sh     # 新克隆/合并后先重建 tflite（*.tflite/*.dla 不入库）
+./tools/run_all.sh         # 全量：编译→板端→数值对拍（XFAIL=已记录的反例）
+```
+
+覆盖：FULLY_CONNECTED（int8 静态/动态、fp16）、ADD（自建提交器）、MUL/SUB/MAXIMUM/MINIMUM、
+RESHAPE/TRANSPOSE/CONCAT/SPLIT/PAD、RELU/LOGISTIC/TANH/**SOFTMAX**/MEAN/SUM、
+CONV_2D/DEPTHWISE_CONV_2D/MAX_POOL/AVG_POOL。
+
+两条可复用的硬结论：
+1. **16 字节行规则**：无桥编译要求 DRAM 边界张量最内层行 ≥16 B 且 %16==0（解释了 FC 的 K%16）；
+2. **int8 requant 是 gemmlowp 两次舍入**，按该规则写 golden 可逐位——这解决了早期 FC 的 ±1 LSB。
+
+完整矩阵：`docs/OP-MATRIX.md`；各算子细节：`docs/OP-{shapeops,actreduce,elementwise,convpool}.md`。
