@@ -324,3 +324,39 @@
 `adj_matrix`（全零已证明可用）。
 **尚未试**（下一步）：① 复制 runtime 的完整握手序列（BASIC×2 + DEV×5 + MEM×4，我们只做了 1 次 BASIC）；
 ② cmdbuf 是否需要 MEM MAP 后才可作为命令源；③ `subcmd_info` 其余字段（boost/affinity 等）是否需要与 device type 匹配。
+
+---
+
+## ✅ E-106B-3 成功：我们自己的进程让 NPU 完成了加法
+
+**结果（最终）**
+
+```
+addin/out.bin md5 = 4cc17bf2a68a4bd5cf16e516d2450c06
+期望      exp2.bin md5 = 4cc17bf2a68a4bd5cf16e516d2450c06      ← 逐字节相同
+A=[10,20,30,40,50,60,70,80]×8   B=[1..8]×8   →   C=[11,22,33,44,55,66,77,88]×8
+两次运行输出逐字节相同；healthcheck PASS
+```
+
+路径：`probe/apusctl_run.c`（NDK 静态 aarch64）——**全程自己的 ioctl，没有任何 `libneuron`/`neuronrt` 调用**：
+`HANDSHAKE(BASIC×2 + DEV×5 + MEM×4) → ALLOC → mmap → MEM MAP → 写内容 → 复制命令流并重定位地址
+→ 组装 cmdbuf[3]/subcmd_info/cmd_in → CMD RUN → 等待 + DMA_BUF_SYNC → 读回`。
+
+**最后三个卡点是怎么解的（都有驱动日志作证）**
+
+1. **`exec_infos`（`cmd_in@0x68`）是 MEM handle，不是用户指针**
+   先错传用户指针 → 内核打印
+   `mdw_mem_get get dma_buf handle(4963376) fail` / `mdw_cmd_create get exec info fail`。
+   改成"分配一块 76 B 缓冲、把它的 **handle** 填进 0x68"后立刻 `rc=0`。
+   （这也解释了抓取里 `0x68=9`——那正是 runtime 的 76 B 缓冲 handle。）
+2. **命令流里的地址是 `iova >> 4`**（`0x25969000` 存成 `0x02596900`），三处地址字：`0x054`=B、`0x074`=A、`0x118`=C。
+3. **完成后必须等 + 同步缓存**：`rc=0` 只代表提交成功；加 `usleep(200 ms)` 再对输出缓冲做
+   `DMA_BUF_IOCTL_SYNC(START|READ)` / `(END|READ)`，读回才是正确数据（否则读到预填的 0xAA）。
+
+**另外两条已经验证的结论**
+- `adj_matrix`（0x58）可以指向一块**全零**缓冲（E-106B-2，用原始 runtime 替换验证，输出与 golden 一致）；
+- cmdbuf 描述符的**顺序有语义**：必须 `[0]=32 B(dir1) [1]=16 B(dir2) [2]=368 B(dir1)`；
+- 驱动不支持 `MEM op=1 (FREE)`（内核稳定打印 `not support memory op(1)`），所以收尾不做 FREE。
+
+**等级变化**：行为与独立性同时达成 → **L3.5（自有提交器 + 模板命令）**。仍不是 L4：
+命令流仍是 ncc 编译产物，我们只做重定位，没有自己生成 MDLA 命令字。

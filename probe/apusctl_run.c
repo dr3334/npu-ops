@@ -47,11 +47,25 @@ typedef struct { uint64_t handle; void *host; uint64_t iova; uint32_t size; } bu
 static int apu_open_handshake(void) {
   g_fd = open("/dev/apusys", O_RDWR | O_SYNC);
   if (g_fd < 0) { perror("open"); return -1; }
-  hs_args_t hs; memset(&hs, 0, sizeof(hs)); put32(&hs, 0, 0);
-  if (ioctl(g_fd, APU_HANDSHAKE, &hs) < 0) { perror("handshake"); return -1; }
+  hs_args_t hs;
+  /* E-106B-3 实验①: 复制 runtime 的完整握手序列 BASIC x2 -> DEV(1,2,4,6,7) -> MEM(1,2,4,5) */
+  for (int i = 0; i < 2; i++) {
+    memset(&hs, 0, sizeof(hs)); put32(&hs, 0, 0);
+    if (ioctl(g_fd, APU_HANDSHAKE, &hs) < 0) { perror("hs basic"); return -1; }
+  }
   printf("handshake version=0x%llx dev=0x%llx mem=0x%llx\n",
          (unsigned long long)get64(&hs, 0), (unsigned long long)get64(&hs, 8),
          (unsigned long long)get64(&hs, 16));
+  static const uint32_t devs[] = {1, 2, 4, 6, 7}, mems[] = {1, 2, 4, 5};
+  for (unsigned i = 0; i < sizeof(devs) / sizeof(devs[0]); i++) {
+    memset(&hs, 0, sizeof(hs)); put32(&hs, 0, 1); put32(&hs, 16, devs[i]);
+    if (ioctl(g_fd, APU_HANDSHAKE, &hs) < 0) { perror("hs dev"); return -1; }
+  }
+  for (unsigned i = 0; i < sizeof(mems) / sizeof(mems[0]); i++) {
+    memset(&hs, 0, sizeof(hs)); put32(&hs, 0, 2); put32(&hs, 16, mems[i]);
+    if (ioctl(g_fd, APU_HANDSHAKE, &hs) < 0) { perror("hs mem"); return -1; }
+  }
+  printf("handshake sequence: 2 basic + 5 dev + 4 mem done\n");
   return 0;
 }
 
@@ -127,12 +141,15 @@ int main(int argc, char **argv) {
   if (apu_open_handshake()) return 2;
 
   buf_t c0 = {0}, c1 = {0}, c2 = {0}, a = {0}, b = {0}, c = {0};
-  if (apu_alloc_map(&c0, 368, 0x100, 0)) return 3;
-  if (apu_alloc_map(&c1, 32, 0x100, 0)) return 3;
-  if (apu_alloc_map(&c2, 16, 0x100, 0)) return 3;
+  buf_t einfo = {0};
+  if (apu_alloc_map(&c0, 368, 0x100, 1)) return 3;
+  if (apu_alloc_map(&c1, 32, 0x100, 1)) return 3;
+  if (apu_alloc_map(&c2, 16, 0x100, 1)) return 3;
   if (apu_alloc_map(&a, 4096, 0x100, 1)) return 3;
   if (apu_alloc_map(&b, 4096, 0x100, 1)) return 3;
   if (apu_alloc_map(&c, 4096, 0x100, 1)) return 3;
+  if (apu_alloc_map(&einfo, 76, 0x0, 1)) return 3;
+  memset(einfo.host, 0, 76);
 
   snprintf(p, sizeof(p), "%s/cmd368.bin", dir);
   if (read_file(p, c0.host, 368)) return 4;
@@ -154,8 +171,10 @@ int main(int argc, char **argv) {
   /* 用户态结构：cmdbuf 描述符数组 + subcmd_info + cmd_in */
   static unsigned char cbs[3 * 24];
   memset(cbs, 0, sizeof(cbs));
+  /* 顺序必须与抓取一致：[0]=32B(dir1) [1]=16B(dir2) [2]=368B(dir1)
+     —— cmdbuf 的**下标**有语义，早期按 c0/c1/c2 填导致 EINVAL。 */
   struct { uint64_t h; uint32_t sz, al, dir; } e[3] = {
-      { c0.handle, 368, 0x100, 1 }, { c1.handle, 32, 0x100, 1 }, { c2.handle, 16, 0x100, 2 },
+      { c1.handle, 32, 0x100, 1 }, { c2.handle, 16, 0x100, 2 }, { c0.handle, 368, 0x100, 1 },
   };
   for (int k = 0; k < 3; k++) {
     memcpy(cbs + k * 24 + 0, &e[k].h, 8);
@@ -171,6 +190,8 @@ int main(int argc, char **argv) {
   put64(subcmd, 72, (uint64_t)(uintptr_t)cbs);
 
   static unsigned char adj[64];
+  /* exec_infos 是 **MEM handle**（内核日志：mdw_mem_get get dma_buf handle(0x...) fail），
+     不是用户指针；runtime 也是把一个 76 B 缓冲的 handle 填在 0x68。 */
   memset(adj, 0, sizeof(adj));  /* UNKNOWN：先给全零，看驱动是否接受 */
 
   cmd_args_t cmd;
@@ -190,7 +211,7 @@ int main(int argc, char **argv) {
   put64(&cmd, 0x50, (uint64_t)(uintptr_t)subcmd);
   put64(&cmd, 0x58, (uint64_t)(uintptr_t)adj);
   put64(&cmd, 0x60, 0xffffffffffffffffULL);
-  put64(&cmd, 0x68, 9);
+  put64(&cmd, 0x68, einfo.handle);                 /* exec_infos = 76 B 缓冲的 MEM handle */
 
   printf("submit: cmd_in=%p subcmd=%p cmdbufs=%p\n", (void *)&cmd, (void *)subcmd, (void *)cbs);
   errno = 0;
@@ -200,7 +221,16 @@ int main(int argc, char **argv) {
                        (unsigned long long)get64(&cmd, 0),
                        (unsigned long long)get64(&cmd, 8)); }
 
-  /* 完成等待：先假设 ioctl 阻塞；再直接读回输出 */
+  /* 完成等待 + 缓存同步：驱动返回不代表数据已到主机内存 */
+  usleep(200000);
+  {
+    struct { uint64_t flags; } sync;
+    int dfd = (int)c.handle;
+    sync.flags = (1u << 30) | 1u;   /* DMA_BUF_SYNC_START | DMA_BUF_SYNC_READ */
+    ioctl(dfd, _IOW(0x62, 1, struct { uint64_t flags; }), &sync);
+    sync.flags = (1u << 31) | 1u;   /* DMA_BUF_SYNC_END | DMA_BUF_SYNC_READ */
+    ioctl(dfd, _IOW(0x62, 1, struct { uint64_t flags; }), &sync);
+  }
   unsigned char out[64];
   memcpy(out, c.host, 64);
   snprintf(p, sizeof(p), "%s/out.bin", dir);
