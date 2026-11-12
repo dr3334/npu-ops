@@ -219,6 +219,39 @@ PAD 档另外令**输入码值永不为 0**，于是 0 值只可能来自 pad �
 
 全部 6 个失败的模型都**保留在 `ops/` 下**（`model.tflite` + `model.json` + `model.compile.log`），没有数值结论。
 
+### 4.0 可直接搬进能力表的失败原文（每个失败形状一行）
+
+`--disallow-bridge` 下只观测到 **两种**失败句子（设备/工具链见页首；失败句都在 exec plan 打印**之后**出现）：
+
+```
+# ncc-tflite 7.3.15 · --arch=mdla5.0 --num-mdla=2 --l1-size-kb=3072 --opt=3 --disallow-bridge
+IN_GAP    = "Bridging is disallowed but gap is detected between Input and MDLA_5_0"
+OUT_GAP   = "Bridging is disallowed but gap is detected between MDLA_5_0 and Output"
+FAIL_TAIL = "ERROR: Fail to compile ops/<model-dir>/model.tflite"   # 紧跟在 gap 句之后
+```
+
+| # | 算子（TFLite 语义） | 具体形状 / 属性 | 违反的边界张量 | 每行字节 | 失败句 | 证据目录 |
+|---|---|---|---|---|---|---|
+| F1 | RESHAPE | `[1,4,8,8]` → `[1,8,4,8]`，int8 | **外部输入** C=8 | 8 B | `IN_GAP` | `ops/reshape_1x4x8x8_to_1x8x4x8_int8/` |
+| F2 | TRANSPOSE | `[1,4,8,8]`，perm `(0,2,1,3)`，int8 | **外部输入** C=8 | 8 B | `IN_GAP` | `ops/transpose_1x4x8x8_int8/` |
+| F3 | CONCATENATION | axis=3，`2×[1,4,8,8]` → `[1,4,8,16]`，int8 | **两个外部输入** 均 C=8 | 8 B | `IN_GAP` | `ops/concat_axis3_int8/` |
+| F4 | TRANSPOSE | `[1,4,8,4]`，perm `(0,2,1,3)`，**fp16** | **外部输入** C=4 | 8 B | `IN_GAP` | `ops/transpose_1x4x8x4_fp16/` |
+| F5 | TRANSPOSE | `[1,4,8,16]`，perm `(0,3,1,2)` → 输出 `[1,16,4,8]`，int8 | **外部输出** C=8 | 8 B | `OUT_GAP` | `ops/transpose_1x4x8x16_perm0312_int8/` |
+| F6 | SPLIT | axis=3，num_splits=2，输入 `[1,4,8,16]`，graph output = **第 1 片** | **外部输出** C=8 | 8 B | `OUT_GAP` | `ops/split_axis3_part2_int8/` |
+
+配套的"应当通过"对照（写能力表时并排给出，说明这不是算子不支持）：
+
+| 对照 | 形状 | 每行字节 | 结果 |
+|---|---|---|---|
+| F1' | RESHAPE `[1,4,8,16]`→`[1,8,4,16]`，int8 | 16 B | 编译 ✓ + 板端 512/512 逐位 |
+| F2' | TRANSPOSE `[1,4,8,8]`，perm `(0,2,1,3)`，**fp16** | 16 B | 编译 ✓ + 板端 max_abs 0 |
+| F3' | CONCATENATION axis=3，`2×[1,4,8,16]`，int8 | 16 B | 编译 ✓ + 板端 1024/1024 逐位 |
+| F6' | SPLIT axis=3，输入 `[1,4,8,32]`，graph output = 第 1 片（C=16） | 16 B | 编译 ✓ + 板端 512/512 逐位 |
+
+> 一句话进能力表：**shape/layout 五算子在 `--disallow-bridge` 下的唯一失败原因是"DRAM 边界张量每行 < 16 B"
+> （`IN_GAP` = 外部输入不达标，`OUT_GAP` = 外部输出不达标），不是算子缺失；每行 ≥ 16 B 的同一算子全部编译通过且板端逐位正确。**
+> 未验证：关掉 `--disallow-bridge` 时这些形状是否只是回退到 CPU 桥接（按策略我们不测、也不接受，记 UNKNOWN）。
+
 | 模型 | 阶段 | 原始错误行 |
 |---|---|---|
 | `reshape_1x4x8x8_to_1x8x4x8_int8` | 编译期 | `Bridging is disallowed but gap is detected between Input and MDLA_5_0` / `ERROR: Fail to compile ops/reshape_1x4x8x8_to_1x8x4x8_int8/model.tflite` |
@@ -322,14 +355,22 @@ NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock" \
 3. `tools/compare.py` 的 dtype 取值表键是 `int8/int32/float32/float16`，`model.json` 里写 `fp16` 会
    `KeyError: 'fp16'`（我最初写 `fp16` 时踩到，已按工具约定改成 `float16`）。建议 Lead 在
    `AGENT-BRIEF.md` 里把这条写进"model.json 契约"，避免下一个 agent 再踩。
+   **Lead 已修**：`compare.py` 现在同时接受别名 `fp16/fp32/i8/i32`；本文件的 `model.json` 仍统一写规范名
+   （`int8` / `float16`），两种都能跑。
 4. `tools/e2e.sh` 只支持 1 个输入 + 可选 `input1.bin`、只回读 1 个输出；`CONCAT` ≥3 输入、
    `SPLIT` 多输出只能拆成"每片一个模型"来做（本文件即如此，见 E-SHP-04）。若要做真实 q|k|v，
-   需要工具升级。
+   需要工具升级。→ **Lead 记为待办**；本文件的证据就是"每片一个模型"的做法，验收时请按此口径看。
 5. `.gitattributes` 只覆盖 `*.sh/*.py/*.c/*.h/*.md`；`model.json / model.compile.log / compare.txt`
    仍会触发 `LF will be replaced by CRLF` 警告（内容不受影响，但建议把 `*.json *.log *.txt` 一并加进
    `text eol=lf`，否则下次 checkout 会把这些证据文件变成 CRLF，diff 噪音大）。
+   **Lead 已修**：`.gitattributes` 现覆盖 `*.json/*.log/*.txt/*.tsv`。
 6. **`tools/healthcheck.sh` 会改写基线证据文件**：在全新 worktree 里 `ops/fc_1x64x64_int8/model.tflite`
    不存在（`.tflite` 被 gitignore），所以 healthcheck 会**重新生成并重新编译**基线模型，
    把 `model.compile.log`（`SIZE 7545 → 7549`、sha256 变化）和 `e2e.json` 时间戳写脏。
    多个 worktree 并行时这是**共享文件的写冲突源**。我这次已用 `git checkout -- ops/fc_1x64x64_int8/`
    还原，没有把它带进提交。建议 Lead 让 healthcheck 用独立的临时目录（或 `GOOD_OP` 指向 worktree 私有副本）。
+   **Lead 已修**：healthcheck 现在跑完会 `git checkout -- ops/$GOOD_OP` 还原（`[restore] cleaned …`，
+   可用 `HEALTH_RESTORE=0` 关闭）。
+
+> 以上 1/2/3/4/5/6 都已在 master 修复并同步进本 worktree（`chore: sync shared tooling from master` 两个提交）；
+> 本文件的板端记录是在 1、2 修好后重跑的，其余条目只影响工具体验、不影响任何数值结论。
