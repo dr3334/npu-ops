@@ -62,3 +62,17 @@ CMD 的 `RUN`/`DEL` 与 6.1 头布局一致，`priority=10` 与内核 trace 交�
 - `neuronrt` 依赖设备 `/vendor/lib64` 的 neuron runtime；固定版本对照实验时需要把我们 push 的 `mt6897/lib` 放到 `LD_LIBRARY_PATH` 前面。
 - 板端耗时来自 `neuronrt -c N`，含进程/提交开销，不是定频性能结论。
 - 只覆盖 FULLY_CONNECTED；`SIN/COS/EMBEDDING_LOOKUP/GATHER` 的既有否定结论见 `.tmp/findings/ops2_empirical.md`，不重复测。
+
+## 缓冲地图（S5，见 `reports/S5-cmdbuf-capture.md`）
+
+一次 `fc_1x64x64_int8` 推理实际用到的 dma-buf：
+
+| 大小 | fd(=MEM handle) | IOVA | 角色 | 证据 |
+|---|---|---|---|---|
+| 4096 | 3 | 0x25c5f000 | 输入激活 | 前 64 B == `golden/input.bin` |
+| 4096 | 0xb | 0x25c7b000 | **输出** | 推理后前 64 B == 板端输出 |
+| 400 | 6 | — | 命令/寄存器描述区（静态） | 前后 0 字节变化 |
+| 8192 | 7 | 0x25c78000 | 网络/参数区（静态） | 前后 0 字节变化 |
+| 76 | 0xa | — | 小结构（未解码） | — |
+
+工具：`probe/iolog2.c`（PRE/POST + mmap 跟踪 + 带信号保护的 dma-buf 快照）。
