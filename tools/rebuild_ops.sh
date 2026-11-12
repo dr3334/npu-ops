@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.." || exit 2
 WL() { wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && $*"; }
 LIST_ONLY=0; [ "${1:-}" = "--list-only" ] && LIST_ONLY=1
 
-FILE_BUILDERS="build_ops build_add build_dynb build_actreduce"
+FILE_BUILDERS="build_ops build_add build_dynb build_actreduce build_convpool"
 DIR_BUILDERS="build_shapeops"
 
 total=0; made=0; failed=0; exists=0
@@ -42,7 +42,7 @@ for d in ops/*/; do
   case "$op" in MUL|SUB|MAXIMUM|MINIMUM) : ;; *) continue ;; esac
   m=$(grep -m1 '"M"' "$d/model.json" | tr -dc '0-9'); k=$(grep -m1 '"K"' "$d/model.json" | tr -dc '0-9')
   [ -n "$m" ] && [ -n "$k" ] || continue
-  if WL "/usr/bin/python3 tools/build_binop.py --op $op --m $m --k $k --out ops/$n/model.tflite" >/dev/null 2>&1; then
+  if WL "/usr/bin/python3 tools/build_binop.py --op $op --m $m --k $k --out ops/$n" >/dev/null 2>&1; then
     echo "  rebuilt(binop) $n"
   else echo "  BUILD FAIL binop -> $n"; fi
 done

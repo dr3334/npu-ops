@@ -18,6 +18,8 @@ pass=0; fail=0; skip=0; xfail=0
 printf "%-28s %-8s %-10s %s\n" "op" "result" "contract" "detail"
 for d in ops/*/; do
   n=$(basename "$d")
+  # 以 _ 开头的目录是辅助产物（参照实现、扫描输出），不参与回归。
+  case "$n" in _*) printf "%-28s %-8s\n" "$n" "SKIP"; skip=$((skip+1)); continue ;; esac
   if [ ! -f "$d/model.json" ]; then printf "%-28s %-8s\n" "$n" "SKIP"; skip=$((skip+1)); continue; fi
   # 预期失败档：提交里记录的编译日志写着 EXIT=1（形状边界/不支持的反例）。
   # 这类目录不跑设备，只复核"它仍然编译失败"，避免把已知反例误报成回归。

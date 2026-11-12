@@ -1,6 +1,6 @@
-# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/avgpool_1x8x8x16_2x2s1_same_int8/model.tflite -d ops/avgpool_1x8x8x16_2x2s1_same_int8/model.dla
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/avgpool_1x8x8x16_2x2s1_same_int8//model.tflite -d ops/avgpool_1x8x8x16_2x2s1_same_int8//model.dla
 # version: Version: 7.3.15
-# date: 2026-11-12T21:08:30+08:00
+# date: 2026-11-12T21:16:10+08:00
 
 ===Graph[0] has 1 Execution Step(s)===
 Graph[0] Step[0]
@@ -24,5 +24,5 @@ TargetExecutionOrder:
  └ MDLA_5_0
 
 EXIT=0
-SIZE=2555
-SHA256=1d5c1433720db9d8068c95355711b6dd879e3915a7112564c81100d40dee0c90
+SIZE=2553
+SHA256=a9708273887169b22da469072be4e838f3ec213cdeef5723d4a3b9c4a2e4906e

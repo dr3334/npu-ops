@@ -373,3 +373,27 @@ patch off=0x054 ... / 0x074 ... / 0x118 ...
 npu_add64 rc=0
 C[0..7] = 11 22 33 44 55 66 77 88        ← A=[10..80]×8 + B=[1..8]×8
 ```
+
+---
+
+# W6 并行批次索引（2026-11-12）
+
+四个 worktree 分支合并进 master，各自的分内实验保留在自己的文档里；这里是编号映射与一句话结论。
+
+| 分支 | 文档 | 本地编号 | 一句话结论 |
+|---|---|---|---|
+| `feat/shapeops` | `docs/OP-shapeops.md` | E-SHP-01…06 | RESHAPE/TRANSPOSE/CONCAT/SPLIT/PAD 全部落 MDLA 且逐位相等；失败只发生在 DRAM 边界行宽 <16 B |
+| `feat/actreduce` | `docs/OP-actreduce.md` | E-ACT-01…09 | RELU/LOGISTIC/TANH/MEAN/SUM 逐位；**SOFTMAX 是真实 NPU 算子（fp16+int8，beta 生效）** |
+| `feat/elem` | `docs/OP-elementwise.md` | E-ELEM-01…05 | MUL/SUB/MAX/MIN 逐位（4352 codes 零误差）；`K==4` 例外机制 UNKNOWN |
+| `feat/convpool` | `docs/OP-convpool.md` | CP-01…05 | CONV/DW/POOL 逐位；**反推出真实 int8 requant 规则并用未见乘子验证**；C=8 失败机制 UNKNOWN |
+
+合并后回归：`PASS=75 XFAIL=16 FAIL=0`（`tools/run_all.sh`，前后 healthcheck 均 PASS）。
+汇总表见 `docs/OP-MATRIX.md`。
+
+## 由本批次修正的既有结论
+
+1. **E-003 的 ±1 LSB 得到解释**：不是"MTK 的 requant 无法复现"，而是 gemmlowp 的**两次舍入**
+   （`round_half_up(acc·M0/2^31)` 再 `RoundingDivideByPOT(shift)`）。按该规则写 golden 即可逐位。
+2. **`.dla` 不可字节复现**（同 tflite 三次编译、大小相同、sha256 三次不同）；回归只比数值。
+3. **`--disallow-bridge` 的语义边界**被推到台面：convpool 发现 C=4/8 的失败其实由 **eDPA relayout**
+   （MDLA 自己的 DMA，仍是 NPU）填充，被我们的严格策略拒绝。是否允许它，是一个**政策选择**，待定。
