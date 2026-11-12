@@ -267,17 +267,72 @@ subcmd/cmdin`，加三个旧 IOVA）存成资产，然后自己走 `HANDSHAKE �
 CMD RUN → DMA_BUF_SYNC` 完成提交，不调用 `libneuron`/`neuronrt`。
 
 它的"算子无关"部分（握手、分配、重定位、提交、同步）与"算子相关"部分（命令流资产 + 旧 IOVA + 元素数）
-是混在一起的。把前者抽成 `npu_bin_binop(asset_dir, old_iova[3], nelem, a, b, out)` 是可行的，
+是混在一起的。把前者抽成 `npu_bin_binop(const npu_binop_plan_t *, a, b, out)`（plan = 资产目录 + 旧 IOVA +
+元素数 + cmdbuf 顺序）是可行的，
 因为四个算子的 `.dla` 都是**单层、同形状、两个输入一个输出**，命令流的布局（三处地址字、3 个 cmdbuf、
 同一 cmdbin 结构）应当相同 —— 但"应当"不是证据：每个算子都需要**自己的一次抓取**（`probe/iolog2.c`
 + `probe/run_shim.sh`）来确定它自己的命令流资产与旧 IOVA。
 
-本轮的交付边界：**没有**修改 `probe/`；若要推进，见 `probe/npu_binop.c`（新增文件，泛化版本；验证情况写在该文件头注释与本文 §7.1）。
+本轮的交付边界：**没有修改** `probe/` 下任何既有文件（`npuadd.c/h` 原样）；新增 `probe/npu_binop.{h,c}`
+把提交器泛化成"按算子取参数"的版本，实测见 §7.1。
 
-### 7.1 泛化版状态
+### 7.1 泛化版实测（`probe/npu_binop.{h,c}`，新增文件；**未改** `probe/npuadd.c`）
 
-见 `probe/npu_binop.c` 头部注释（`npu_binop(op, a, b, out)` + 资产目录/IOVA 参数化；ADD 资产路径与
-`npu_add64()` 行为等价，MUL/SUB/MAX/MIN 需要各自的抓取资产）。
+接口：
+
+```c
+typedef struct {                    /* 全部"算子相关"的参数 */
+  const char *name, *asset_dir;
+  uint64_t old_iova[3];             /* 抓取那次运行 A/B/C 的 IOVA */
+  uint32_t bytes, alloc_size;
+  int cmdbuf_dir[3], patch_idx, expect_patches;
+  const char *cmdbuf_file[3];
+} npu_binop_plan_t;
+
+int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b, int8_t *out);
+int npu_binop(npu_op_t op, const int8_t *a, const int8_t *b, int8_t *out);  /* NPU_OP_ADD/MUL/SUB/MAXIMUM/MINIMUM */
+const npu_binop_plan_t *npu_binop_plan(npu_op_t op);
+```
+
+与 `npu_add64()` 的差别只在"常量变成参数"：cmdbuf 大小改为**读文件大小**（不再写死 368/32/16），
+subcmd 的 `num_cmdbufs`/数组指针按**文件长度回推**（`size-16`/`size-8`），地址字重定位、cmdbuf 顺序、
+`exec_infos` 必须是 MEM handle、200 ms 等待 + DMA_BUF_SYNC 等结论全部沿用 E-106B-3。
+
+构建与运行（NDK r26d，静态 aarch64）：
+
+```bash
+CC=/home/dr/android-ndk-r26d/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android31-clang
+$CC -O2 -static -Wall -Wextra -DNPU_BINOP_DEMO -o probe/npu_binop_demo probe/npu_binop.c
+adb push probe/npu_binop_demo /data/local/tmp/npuops/probe/
+NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock" ./tools/devlock.sh run -- \
+  bash -c 'adb shell "cd /data/local/tmp/npuops && ./probe/npu_binop_demo"'
+```
+
+实测输出（设备原文，2026-11-12 21:05，全程无 `neuronrt`/`libneuron` 调用）：
+
+```
+patch off=0x054 0x02596800 -> 0x0258a900 (buf1)
+patch off=0x074 0x02596900 -> 0x0258aa00 (buf0)
+patch off=0x118 0x02596c00 -> 0x0258a800 (buf2)
+npu_binop(ADD) rc=0
+C[0..7] = 11 22 33 44 55 66 77 88
+golden check: PASS (0/64 mismatched)
+npu_binop(MUL) rc=-100 (assets not captured yet)
+npu_binop(SUB) rc=-100 (assets not captured yet)
+npu_binop(MAXIMUM) rc=-100 (assets not captured yet)
+npu_binop(MINIMUM) rc=-100 (assets not captured yet)
+```
+
+结论（分开写）：
+
+* **接口泛化成立**：同一份提交逻辑 + ADD 的 plan 在真机上跑出与 `npu_add64()` 相同的结果；
+  重定位命中的偏移式样（`0x054`=B、`0x074`=A、`0x118`=C）与 E-106B-3 一致。
+* **MUL/SUB/MAXIMUM/MINIMUM 的自建提交路径仍未达成**（`-100 ENOASSET`）：它们的**命令流资产**还没抓取，
+  这是 per-operator 的一次性工作（用 `probe/iolog2.c` + `probe/run_shim.sh` 跑一次对应 `.dla`，
+  从 hexdump 里取出 3 个 cmdbuf、`subcmd`(80 B)、`cmdin`(152 B) 与 A/B/C 旧 IOVA）。
+  本文件**不声称**这四个算子已经能脱离厂商 runtime 运行。
+* 该 demo 之后立即跑 `tools/healthcheck.sh`：全项 PASS（已知正常算子 + 重复性 + dmesg 干净）
+  ⇒ 自建提交器（ADD 路径）不污染后续任务（AGENTS §3.4）。
 
 ---
 
@@ -285,7 +340,8 @@ CMD RUN → DMA_BUF_SYNC` 完成提交，不调用 `libneuron`/`neuronrt`。
 
 * 新增产物：`tools/build_binop.py`（生成器）、`ops/{mul,sub,max,min}_{1x64,8x128}_int8/`、
   `docs/OP-elementwise.md`（本文）、`docs/OP-elementwise-compile-fail.log`（失败原文归档）、
-  `probe/npu_binop.c`（泛化提交器，见 §7）。
+  `probe/npu_binop.h` + `probe/npu_binop.c`（泛化提交器，含 `-DNPU_BINOP_DEMO` 自检 demo，见 §7.1）。
+* 设备上新增（非仓库产物）：`/data/local/tmp/npuops/probe/npu_binop_demo`（静态 aarch64）。
 * 公共工具**未改**。已向 Lead 报告过的两处共享工具问题（worktree 下 `WSLROOT` 写死、CRLF shebang）已由 Lead
   在 master 修复（`tools/e2e.sh` 自行推导 WSL 根、`.gitattributes` `text eol=lf`），本 worktree 已同步，
   之后所有板端命令都直接用 `./tools/e2e.sh`，无需任何 workaround。
@@ -293,4 +349,4 @@ CMD RUN → DMA_BUF_SYNC` 完成提交，不调用 `libneuron`/`neuronrt`。
   1. `(M,K)` 最小可行集合的机制实验（§6.3-1），并给 `tools/` 加一个"编译可行性扫描器"，把 §5 的网格变成可回归的测试；
   2. MUL requant（`so=1/127`）的舍入语义；
   3. 广播变体；
-  4. 自建提交器对四个算子的覆盖（需要 per-op 命令流抓取）。
+  4. 自建提交器对四个算子的覆盖：只需 per-op 命令流抓取（§7.1 步骤），`npu_binop()` 的代码不用改。
