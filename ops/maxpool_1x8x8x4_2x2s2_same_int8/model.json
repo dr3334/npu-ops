@@ -1,0 +1,60 @@
+{
+  "op": "MAX_POOL_2D",
+  "shape": {
+    "N": 1,
+    "H": 8,
+    "W": 8,
+    "C": 4,
+    "OH": 4,
+    "OW": 4,
+    "OC": 4,
+    "FH": 2,
+    "FW": 2,
+    "stride": 2,
+    "dilation": 1,
+    "mult": 1,
+    "padding": "SAME",
+    "activation": "NONE"
+  },
+  "dtype": "int8",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      8,
+      8,
+      4
+    ],
+    "type": "int8",
+    "bytes": 256
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      4,
+      4,
+      4
+    ],
+    "type": "int8",
+    "bytes": 64
+  },
+  "quant": {
+    "input": 0.0078125,
+    "weights": null,
+    "bias": null,
+    "output": 0.0078125
+  },
+  "filter_shape": null,
+  "bias": false,
+  "reference": "int64_exact_max",
+  "requant": {
+    "rule": "none",
+    "divisor": null
+  },
+  "codes": "pow2",
+  "int8_tol": 0,
+  "seed": 20261112,
+  "tflite": "model.tflite",
+  "tflite_bytes": 560
+}

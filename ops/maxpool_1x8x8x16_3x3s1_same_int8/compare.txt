@@ -1,0 +1,5 @@
+op        : MAX_POOL_2D {'N': 1, 'H': 8, 'W': 8, 'C': 16, 'OH': 8, 'OW': 8, 'OC': 16, 'FH': 3, 'FW': 3, 'stride': 1, 'dilation': 1, 'mult': 1, 'padding': 'SAME', 'activation': 'NONE'}  dtype=int8
+expected  : 1024 vals   device: 1024 vals   logical shape=(1, 8, 8, 16)
+exact     : YES   mismatched=0/1024
+contract  : int8_tol=0  max_abs_diff=0  fraction_off=0.0000%
+PASS

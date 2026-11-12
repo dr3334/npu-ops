@@ -1,0 +1,65 @@
+{
+  "op": "AVERAGE_POOL_2D",
+  "shape": {
+    "N": 1,
+    "H": 8,
+    "W": 8,
+    "C": 16,
+    "OH": 8,
+    "OW": 8,
+    "OC": 16,
+    "FH": 2,
+    "FW": 2,
+    "stride": 1,
+    "dilation": 1,
+    "mult": 1,
+    "padding": "SAME",
+    "activation": "NONE"
+  },
+  "dtype": "int8",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      8,
+      8,
+      16
+    ],
+    "type": "int8",
+    "bytes": 1024
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      8,
+      8,
+      16
+    ],
+    "type": "int8",
+    "bytes": 1024
+  },
+  "quant": {
+    "input": 0.0078125,
+    "weights": null,
+    "bias": null,
+    "output": 0.0078125
+  },
+  "filter_shape": null,
+  "bias": false,
+  "reference": "int64_avg_round_half_up_over_valid_count",
+  "requant": {
+    "rule": "round_half_up",
+    "divisor": "valid_count",
+    "counts": [
+      1,
+      2,
+      4
+    ]
+  },
+  "codes": "pow2",
+  "int8_tol": 0,
+  "seed": 20261112,
+  "tflite": "model.tflite",
+  "tflite_bytes": 568
+}

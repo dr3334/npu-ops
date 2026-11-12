@@ -1,0 +1,68 @@
+{
+  "op": "CONV_2D",
+  "shape": {
+    "N": 1,
+    "H": 64,
+    "W": 1,
+    "C": 64,
+    "OH": 64,
+    "OW": 1,
+    "OC": 64,
+    "FH": 1,
+    "FW": 1,
+    "stride": 1,
+    "dilation": 1,
+    "mult": 1,
+    "padding": "SAME",
+    "activation": "NONE"
+  },
+  "dtype": "int8",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      64,
+      1,
+      64
+    ],
+    "type": "int8",
+    "bytes": 4096
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      64,
+      1,
+      64
+    ],
+    "type": "int8",
+    "bytes": 4096
+  },
+  "quant": {
+    "input": 0.0078125,
+    "weights": 0.0078125,
+    "bias": 6.103515625e-05,
+    "output": 0.125
+  },
+  "filter_shape": [
+    64,
+    1,
+    1,
+    64
+  ],
+  "bias": true,
+  "reference": "int64_devrule_pow2",
+  "requant": {
+    "rule": "dev",
+    "num": 1,
+    "den": 2048,
+    "m0": 1073741824,
+    "shift": 10
+  },
+  "codes": "pow2",
+  "int8_tol": 0,
+  "seed": 20261112,
+  "tflite": "model.tflite",
+  "tflite_bytes": 5136
+}
