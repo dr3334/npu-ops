@@ -140,3 +140,26 @@ ERROR: Fail to process the given model     EXIT=1
 
 **经验**：这类"独立算子能跑、拼图就跑不了"的问题，**tflite tensor 表的字段 diff 比手写试错快一个数量级**
 ——这次 10 分钟定位，而之前三轮盲试都没找到。
+
+## 9. 完整 block（RMSNorm + RoPE + 多头就绪的 attention + SwiGLU）✅
+
+| 变体 | 层数 | 编译 | 板端 |
+|---|---|---|---|
+| `block_qwen25_1l_full_fp16`（T=8，1 head，**RMSNorm + RoPE 都在图内**） | **42** | EXIT=0，单 MDLA 步，`.dla` 91.8 KB | **PASS**，max_abs ≈ 1 fp16 code（rmse 1.86e-04） |
+| `block_qwen25_1l_full_t128_fp16`（**T=128 prefill**） | 42 | EXIT=0，`.dla` 99.5 KB | **PASS**，rmse 1.90e-04 |
+
+图内现在包含：`MUL→MEAN→RSQRT→MUL`（×2 RMSNorm）、`SPLIT→MUL×4→SUB/ADD→CONCAT`（×2 RoPE）、
+`FC`（含 1 个动态权重 scores）、`SoftMax`、`Transpose`、`Sigmoid`、`MUL`、`ADD` —— 全部在**同一个 execution step**。
+
+### 多 head 变体：WIP（未通过）
+
+`--heads 2` 走 `RESHAPE → BATCH_MATMUL(adj_y) → SoftMax → BATCH_MATMUL → RESHAPE` 的路径，
+当前在 importer 阶段失败：`ERROR: Fail to process the given model`（无层清单）。
+候选原因：手写 `ReshapeOptions.NewShape` 向量的构造顺序（flatbuffers 里需要逆序 Prepend），
+或 BMM 的输入 rank。**未作为结论**，下一步用 `probe/dump_tflite.py` 与 bmm-agent 生成的
+`ops/bmm_*` 模型做同款 tensor 表 diff（这条路本轮已验证有效：RMSNorm 的 bug 就是这样 10 分钟定位的）。
+
+### 覆盖声明（不夸大）
+
+- ✅ 单 head、T=8 / T=128、fp16、RMSNorm+RoPE+attention+SwiGLU 全在 NPU；
+- ⚠️ 多 head 未通；int8 整块未做；无 KV cache；**仍是厂商编译路径**（`.dla` 由 ncc 生成）。

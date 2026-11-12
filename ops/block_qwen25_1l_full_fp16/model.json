@@ -1,0 +1,32 @@
+{
+  "op": "QWEN25_BLOCK_1L_V2_RMSNORM",
+  "shape": {
+    "T": 8,
+    "H": 64,
+    "HD": 32,
+    "FFN": 128
+  },
+  "dtype": "float16",
+  "inputs": [
+    {
+      "name": "x",
+      "shape": [
+        8,
+        64
+      ],
+      "type": "float16"
+    }
+  ],
+  "output": {
+    "name": "out",
+    "shape": [
+      8,
+      64
+    ],
+    "type": "float16"
+  },
+  "atol": 0.03,
+  "rtol": 0.03,
+  "note": "RMSNorm in graph (MUL->MEAN->ADD->RSQRT->MUL->MUL); RoPE still outside",
+  "tflite_bytes": 73672
+}
