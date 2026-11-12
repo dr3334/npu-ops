@@ -1,0 +1,1 @@
+{"op":"softmax_1x8x16_int8","repeat":3,"compare_exit":0,"ts":"2026-11-12T21:05:32+08:00"}

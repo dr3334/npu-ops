@@ -1,0 +1,45 @@
+{
+  "op": "SOFTMAX",
+  "shape": {
+    "d0": 1,
+    "d1": 12,
+    "d2": 128
+  },
+  "op_shape": [
+    1,
+    12,
+    128
+  ],
+  "dtype": "fp16",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      12,
+      128
+    ],
+    "type": "float16",
+    "bytes": 3072
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      12,
+      128
+    ],
+    "type": "float16",
+    "bytes": 3072
+  },
+  "quant": {},
+  "reference": "float64",
+  "seed": 20261112,
+  "prediction": "attention shape with 1/sqrt(d) style beta: does ncc honour beta?",
+  "generator": "tools/build_actreduce.py",
+  "beta": 0.125,
+  "atol": 0.002,
+  "rtol": 0.01,
+  "tolerance_rationale": "fp16 storage: atol is a small multiple of the fp16 ULP at the op's output magnitude; exactness is additionally reported as max_abs",
+  "tflite": "model.tflite",
+  "tflite_bytes": 432
+}
