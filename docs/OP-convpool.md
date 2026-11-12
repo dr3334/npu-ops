@@ -18,7 +18,7 @@
 | golden #2 | `tools/verify_convpool.py` — plain nested-loop Python, exact `Fraction` quantisation |
 | device runs | `NPU_LOCK=/d/deepseek_ workspace/mtk/.npu-board.lock ./tools/devlock.sh run -- ./tools/e2e.sh ops/<name>` |
 | `.dla` sha256 | in each `ops/<name>/model.compile.log` — **identity only**, not a reproducibility check (per AGENTS.md §4: `.dla` is not byte-reproducible, two compiles of the same model differ) |
-| outputs compared | **17 232** device values across 21 ops |
+| outputs compared | **17 168** device values across 21 conv/pool ops (+64 for the FULLY_CONNECTED reference, §7) |
 
 Every model input is a runtime tensor with an empty data buffer (AGENTS.md §7.3: an input
 with data would be constant-folded into `IdentityLayer on NVM` and the op would not run).
@@ -190,9 +190,9 @@ seen so far; a 4×4 (count 16) or 7×7 probe would separate them. **UNKNOWN.**
 
 ## 4. Compile-time failures (exact errors) — the eDPA relayout boundary
 
-Six ops do not compile under the fixed policy. All four op families show the same error
-shape: ncc *does* map the op to the right MDLA layer and then refuses because a relayout
-step sits between the tensor and the MDLA step.
+Nine of the 30 probes do not compile under the fixed policy. All four op families show the
+same error shape: ncc *does* map the op to the right MDLA layer and then refuses because a
+relayout step sits between the tensor and the MDLA step.
 
 ```
 # ops/maxpool_1x8x8x4_2x2s2_int8/model.compile.log  (same text for the other five)
