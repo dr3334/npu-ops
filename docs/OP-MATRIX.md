@@ -77,3 +77,18 @@ convpool 的 9 个（C=4/8 的 pool 与 conv、dilation/stride 特定组合）�
 
 流程与资产格式、新增算子的三步法见 `docs/OWN-SUBMITTER.md`；抓取工具 `probe/mkasset.sh`。
 **未覆盖**：一元算子（RELU/SOFTMAX，代码已支持 `n_inputs=1`，待实测）、FULLY_CONNECTED（需要动态权重与更多重定位处）、非 64 元素形状。
+
+---
+
+## 10. W6b 新增（2026-11-13，按"一算子一 agent"并行）
+
+| 家族 | 算子 | 结果 | 关键结论 |
+|---|---|---|---|
+| 注意力矩阵乘 | **BATCH_MATMUL**（QKᵀ / PV，双动态输入） | 26/29 通过，int8 逐位、fp16 2.4e-4 | **两个操作数都是运行时张量也能上 NPU**；FC(dynW)/CONV_2D(dynF) 也接受运行时 B；换 B 不需重编译 |
+| 归一化 | **RSQRT + RMSNorm** | 链式 6 层同一个执行步，fp16 2 ULP / int8 ±1 code | RSQRT 是**原生层**，不需要 CPU 求倒数；int8 会把 sub-LSB 的 eps 常量折掉 |
+| 位置编码 | **RoPE（split-half）** | 10 变体全过，fp16 1 ULP | **sin/cos 可作运行时输入**（11 层），换位置不用重编译；4-D 形状炸到 35 层（rank 触发） |
+| 门控激活 | **SiLU / gated MLP** | fp16 全过（1 code），int8 需 696→704 填充 | 本 schema **没有 SILU 算子**，只能 `LOGISTIC+MUL`；组合误差为零 |
+| 整块 | 1 层 decoder block（无 Norm/RoPE） | ✅ 16 层同一 MDLA 步，max_abs 9.77e-4 | 见 `docs/OP-block.md` |
+| 整块 | + RMSNorm 进图 | ❌ 卡在形状传播 | bisect 到 2 算子仍失败；下一步做两份 tflite 的 tensor 表 diff |
+
+回归：**133 PASS / 0 FAIL / 26 XFAIL**（`./tools/run_all.sh`，前后 healthcheck PASS）。
