@@ -92,3 +92,22 @@ convpool 的 9 个（C=4/8 的 pool 与 conv、dilation/stride 特定组合）�
 | 整块 | + RMSNorm 进图 | ❌ 卡在形状传播 | bisect 到 2 算子仍失败；下一步做两份 tflite 的 tensor 表 diff |
 
 回归：**133 PASS / 0 FAIL / 26 XFAIL**（`./tools/run_all.sh`，前后 healthcheck PASS）。
+
+---
+
+## 11. 2026-11-13 收尾：三个里程碑
+
+| # | 里程碑 | 证据 |
+|---|---|---|
+| 1 | **完整 block**（RMSNorm + RoPE 都在图内） | `ops/block_qwen25_1l_full_fp16`：42 层、单 MDLA 步、`.dla` 91.8 KB、板端 rmse 1.86e-04 → PASS |
+| 1b | **T=128 prefill** | `ops/block_qwen25_1l_full_t128_fp16`：同样 42 层、PASS（rmse 1.90e-04） |
+| 1c | 多 head | ❌ WIP：`--heads 2` 走 RESHAPE+BMM 路径，importer 报 `Fail to process the given model` |
+| 2 | T=128 变体 | ✅ 同 1b |
+| 3 | **自建提交器跑 FC（动态权重）** | `probe/npu_fc_demo`：`CMA RUN rc=0`，3 处重定位，1/64 元素差 1 code（与 `int8_tol=1` 契约一致），两次运行一致 |
+
+回归：**136 PASS / 0 FAIL / 26 XFAIL**（`tools/run_all.sh`，前后 healthcheck PASS）。
+
+### 定位 v2 bug 的方法（写进流程）
+`probe/dump_tflite.py` 打印 tensor 表 + operator 表，两份模型 diff → 一眼看到
+`RSQRT` 的输入是 **axis 张量**（`len(tensors)-1` 在 append 之后取值导致的索引错位）。
+**"独立算子能跑、拼进整图跑不了"这类问题，tflite 表 diff 比手写试错快一个数量级。**
