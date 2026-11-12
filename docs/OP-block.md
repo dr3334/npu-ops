@@ -70,3 +70,24 @@ ERROR: Fail to process the given model     EXIT=1
 
 结论：**"带 Norm 的整块"还没有跑通**；v1（无 Norm）已跑通，四类新算子（RMSNorm/RoPE/SiLU/BMM）
 各自单独在 NPU 上都已证明。把 v2 的 importer 错误排掉，才谈得上"完整 block"。
+
+## 7. v2 排错记录（截至本轮）
+
+按"一次只改一处"推进，importer 错误随修改在移动，说明结构在逐步对，但还没收敛：
+
+| 尝试 | 结果 |
+|---|---|
+| `mean[T,1] + eps[T,1]`（两个 fp16 常量/张量） | `ERROR: Invalid ElementWiseAddLayer<2>{ADD}: input types are incompatible with each other` |
+| 去掉 eps ADD（eps=0，直接 `RSQRT(mean)`） | `ERROR: Invalid RSqrtLayer<2>{RSQRT}: output shape is incompatible with inputs` |
+| 把 `mean`/`rsqrt` 改成 rank-1 `[T]`（keep_dims=false） | 仍是 RSQRT shape 不兼容，并新增 `ElementWiseMulLayer<3>: input shapes are incompatible` |
+
+**关键反差**：同一套 `MUL→MEAN→(ADD)→RSQRT→MUL→MUL` 在**独立模型**里（`docs/OP-rmsnorm.md`，
+形状 `[1,64]`/`[8,64]`）能编译并在 MDLA 上跑出 2 ULP 的结果；拼进整图就报形状/类型不兼容。
+⇒ 问题不在算子能力，而在**整图里的形状传播**（最可能是 MEAN 的 `keep_dims` 与后续张量声明不匹配，
+或 ncc 要求这组链路的张量保持与图其它部分一致的 rank）。
+
+**下一步（具体动作）**：把 `tools/build_rmsnorm.py` 里独立模型使用的
+`tensor()` 声明（shape/keep_dims/axis 常量形状）与 `build_block2.py` 逐字段对比，
+先把**只含 RMSNorm + 一个 FC** 的两算子图跑通，再逐步加回 attention/MLP。
+
+**当前可用的整块**：v1（无 Norm、无 RoPE）已通过，`ops/block_qwen25_1l_fp16`。

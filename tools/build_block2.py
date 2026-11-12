@@ -103,9 +103,9 @@ def main(out_dir):
     def rmsnorm(inp, out, gamma, t_name):
         # square -> mean(axis=1, keep) -> +eps -> rsqrt -> *x -> *gamma
         binary(inp, inp, f"{out}_sq", (T, H), OC_MUL)
-        t_m = act(f"{out}_mean", (T, 1))
+        t_m = act(f"{out}_mean", (T,))
         S.ReducerOptionsStart(b)
-        S.ReducerOptionsAddKeepDims(b, True)
+        S.ReducerOptionsAddKeepDims(b, False)
         ro = S.ReducerOptionsEnd(b)
         buffers.append(bo.buf_data(b, np.asarray([1], np.int32)))
         ax = bo.tensor(b, f"{out}_ax", [1], bo.I32, len(buffers) - 1)
@@ -113,15 +113,10 @@ def main(out_dir):
         operators.append(bo.operator(b, OC_MEAN, [idx[f"{out}_sq"], ti_ax], [t_m],
                                     bo.BuiltinOptions.ReducerOptions, ro))
         idx[f"{out}_mean"] = len(tensors) - 1
-        eps = bo.tensor(b, f"{out}_eps", [T, 1], F16, const(np.full((T, 1), EPS, np.float16)))
-        tensors.append(eps); ti_eps = len(tensors) - 1
-        t_e = act(f"{out}_epsadd", (T, 1))
-        S.AddOptionsStart(b); S.AddOptionsAddFusedActivationFunction(b, 0); ao = S.AddOptionsEnd(b)
-        operators.append(bo.operator(b, OC_ADD, [idx[f"{out}_mean"], ti_eps], [t_e],
-                                    bo.BuiltinOptions.AddOptions, ao))
-        idx[f"{out}_epsadd"] = len(tensors) - 1
-        t_r = act(f"{out}_rsqrt", (T, 1))
-        operators.append(bo.operator(b, OC_RSQRT, [idx[f"{out}_epsadd"]], [t_r]))
+        # NOTE: `mean + eps`（ElementWiseAdd，两输入均 fp16 [T,1]）在整图里被 ncc 判为
+        # "input types are incompatible"；本实验先令 eps=0，并把该失败记进 docs/OP-block.md。
+        t_r = act(f"{out}_rsqrt", (T,))
+        operators.append(bo.operator(b, OC_RSQRT, [idx[f"{out}_mean"]], [t_r]))
         idx[f"{out}_rsqrt"] = len(tensors) - 1
         binary(inp, f"{out}_rsqrt", out, (T, H), OC_MUL)   # gamma 折进后续 FC 权重
 
