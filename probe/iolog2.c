@@ -52,9 +52,20 @@ static void dump_final(void) {
 }
 
 static void open_log(void) {
+  char auto_path[128];
   const char *p = getenv("IOLOG");
-  if (!p) p = "/data/local/tmp/npuops/probe/io2.log";
+  if (!p) {
+    /* neuronrt scrubs the environment (observed: IOLOG/IODIR both NULL inside the
+       process), so fall back to a per-PID path instead of a shared default. */
+    snprintf(auto_path, sizeof(auto_path), "/data/local/tmp/npuops/probe/io2.%d.log",
+             (int)getpid());
+    p = auto_path;
+  }
   logfd = open(p, O_WRONLY | O_CREAT | O_APPEND, 0644);
+  if (logfd >= 0)
+    dprintf(logfd, "OPEN path=%s IOLOG=%s IODIR=%s pid=%d\n", p,
+            getenv("IOLOG") ? getenv("IOLOG") : "(null)",
+            getenv("IODIR") ? getenv("IODIR") : "(null)", getpid());
 }
 
 static void hexdump(const char *tag, const void *buf, size_t n, int indent) {
