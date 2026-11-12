@@ -63,3 +63,27 @@ adb push ops/<op>/golden/input1.bin /data/local/tmp/npuops/probe/<op>_b.bin
 2. **FULLY_CONNECTED / LINEAR**：需要"动态权重"那套（权重是第二个运行时输入），命令流里会有更多地址字，
    且权重缓冲要更大（8192/20480 B）；`npu_binop` 的 patch 计数从 3 变成 N，需要泛化；
 3. 目前只有 `bytes = 64` 的形状；扩展长度要重新抓资产（命令流里含长度字段，E-008 标出过 25 个形状相关字）。
+
+## 5. 一元算子（2026-11-12 更新）
+
+`npu_binop` 现在支持 `n_inputs = 1`（一元：A → C），并已注册 RELU：
+
+| 算子 | 状态 | 证据 |
+|---|---|---|
+| RELU | ✅ **自建提交器跑通** | `rc=0`，`0/64` 失配；输入含负值时输出正确截断为 0 |
+| LOGISTIC | ⚠️ 提交成功但数值未通过 | `rc=0`，但与现有 golden 比 64/64 失配（`dev=0` vs `exp=127`）→ 怀疑 golden 的量化尺度/存储类型与 int8 传输不一致，**未作为结论** |
+| TANH | ⚠️ 同上 | 同上 |
+
+一元抓取的两个技术点（都已落到工具里）：
+1. **命令流大小不固定**：一元算子是 336 B（不是 368 B）。`mkasset.py` 改为从
+   `mdw_subcmd_cmdbuf` 描述符（handle/size/dir）定位缓冲，不再硬编码尺寸；
+2. **重定位要跳过空槽**：一元的 B 槽 IOVA 是 0，`old>>4 == 0` 会匹配满屏零字
+   （第一次跑出 "patched 34/2"）。修复后 2 处精确命中（RELU：0x050=A、0x0f4=C）。
+
+### 关于 SOFTMAX 的说明（回答"是不是该用函数近似"）
+
+已有的板端证据（E-ACT/OP-actreduce）：**SOFTMAX 在 MTK 上是原生层 `SoftMaxLayer<0>`**，
+int8 `[1,8,16]` 逐位相等、fp16 差 1 个 code、`beta` 生效——**不是"NPU 不支持、只能 CPU 近似"**。
+函数近似（LUT/多项式）在 MTK 上的价值是**性能选项**，不是可用性前提：
+先用原生层保证正确性，再用 `npu_add64/npu_binop` 这套自有提交器做 A/B 对比是否值得替换。
+（RK 那边用 DPU LUT，是因为它的 softmax 走 DPU；MTK 有独立 SoftMax 层，策略不同。）
