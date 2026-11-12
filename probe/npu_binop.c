@@ -84,12 +84,56 @@ static const npu_binop_plan_t g_plan_add = {
 
 /* MUL/SUB/MAXIMUM/MINIMUM：接口就位、资产未抓取 -> NULL（npu_binop 返回 ENOASSET）。
    抓取后把下面四条 NULL 换成与 g_plan_add 同构的 plan 即可（目录约定见文件头注释）。 */
+static npu_binop_plan_t g_plan_mul = {
+    .name = "MUL",
+    .asset_dir = "/data/local/tmp/npuops/assets/mul",
+    .old_iova = { 0, 0, 0 },   /* 从资产目录 iova.txt 读（与命令流同一次抓取） */
+    .bytes = 64,
+    .alloc_size = NPU_BINOP_ALLOC,
+    .cmdbuf_dir = { 1, 2, 1 },
+    .patch_idx = 2,
+    .expect_patches = 3,
+    .cmdbuf_file = { "cmd32.bin", "cmd16.bin", "cmd368.bin" },
+};
+static npu_binop_plan_t g_plan_sub = {
+    .name = "SUB",
+    .asset_dir = "/data/local/tmp/npuops/assets/sub",
+    .old_iova = { 0, 0, 0 },   /* 从资产目录 iova.txt 读（与命令流同一次抓取） */
+    .bytes = 64,
+    .alloc_size = NPU_BINOP_ALLOC,
+    .cmdbuf_dir = { 1, 2, 1 },
+    .patch_idx = 2,
+    .expect_patches = 3,
+    .cmdbuf_file = { "cmd32.bin", "cmd16.bin", "cmd368.bin" },
+};
+static npu_binop_plan_t g_plan_maximum = {
+    .name = "MAXIMUM",
+    .asset_dir = "/data/local/tmp/npuops/assets/maximum",
+    .old_iova = { 0, 0, 0 },   /* 从资产目录 iova.txt 读（与命令流同一次抓取） */
+    .bytes = 64,
+    .alloc_size = NPU_BINOP_ALLOC,
+    .cmdbuf_dir = { 1, 2, 1 },
+    .patch_idx = 2,
+    .expect_patches = 3,
+    .cmdbuf_file = { "cmd32.bin", "cmd16.bin", "cmd368.bin" },
+};
+static npu_binop_plan_t g_plan_minimum = {
+    .name = "MINIMUM",
+    .asset_dir = "/data/local/tmp/npuops/assets/minimum",
+    .old_iova = { 0, 0, 0 },   /* 从资产目录 iova.txt 读（与命令流同一次抓取） */
+    .bytes = 64,
+    .alloc_size = NPU_BINOP_ALLOC,
+    .cmdbuf_dir = { 1, 2, 1 },
+    .patch_idx = 2,
+    .expect_patches = 3,
+    .cmdbuf_file = { "cmd32.bin", "cmd16.bin", "cmd368.bin" },
+};
 static const npu_binop_plan_t *const g_plans[NPU_OP__COUNT] = {
     [NPU_OP_ADD] = &g_plan_add,
-    [NPU_OP_MUL] = NULL,
-    [NPU_OP_SUB] = NULL,
-    [NPU_OP_MAXIMUM] = NULL,
-    [NPU_OP_MINIMUM] = NULL,
+    [NPU_OP_MUL] = &g_plan_mul,
+    [NPU_OP_SUB] = &g_plan_sub,
+    [NPU_OP_MAXIMUM] = &g_plan_maximum,
+    [NPU_OP_MINIMUM] = &g_plan_minimum,
 };
 
 static const char *const g_op_names[NPU_OP__COUNT] = {
@@ -226,6 +270,19 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
   if (!plan || !a || !b || !out) return NPU_BINOP_EINVAL;
   if (plan->bytes == 0 || plan->bytes > plan->alloc_size) return NPU_BINOP_EINVAL;
 
+  /* old IOVA 与命令流是同一次抓取的配对数据：默认从资产目录 iova.txt 读，
+     这样重新抓取资产不需要改代码；plan 里显式给了非零值则用 plan 的。 */
+  uint64_t old_iova[3] = { plan->old_iova[0], plan->old_iova[1], plan->old_iova[2] };
+  if (old_iova[0] == 0 || old_iova[1] == 0 || old_iova[2] == 0) {
+    snprintf(p, sizeof(p), "%s/iova.txt", plan->asset_dir);
+    FILE *f = fopen(p, "r");
+    if (!f) { fprintf(stderr, "%s: missing (needs 3 hex IOVAs)\n", p); return NPU_BINOP_EASSET; }
+    unsigned long long x = 0, y = 0, z = 0;
+    if (fscanf(f, "%llx %llx %llx", &x, &y, &z) != 3) { fclose(f); return NPU_BINOP_EASSET; }
+    fclose(f);
+    old_iova[0] = x; old_iova[1] = y; old_iova[2] = z;
+  }
+
   /* --- 资产大小先看清楚，再分配（这样 cmdbuf 大小不写死） --- */
   for (int k = 0; k < 3; k++) {
     snprintf(p, sizeof(p), "%s/%s", plan->asset_dir, plan->cmdbuf_file[k]);
@@ -266,7 +323,7 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
     uint64_t newv[3] = { a1.iova, b1.iova, c.iova };
     int k = plan->patch_idx;
     if (k < 0 || k > 2) { rc = NPU_BINOP_EINVAL; goto done; }
-    patch_addrs((unsigned char *)cb[k].host, cb_size[k], plan->old_iova, newv, &hits);
+    patch_addrs((unsigned char *)cb[k].host, cb_size[k], old_iova, newv, &hits);
     if (hits != (unsigned)plan->expect_patches) {
       fprintf(stderr, "npu_binop(%s): patched %u/%d addresses (command stream mismatch?)\n",
               plan->name, hits, plan->expect_patches);
