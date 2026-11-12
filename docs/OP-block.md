@@ -116,3 +116,27 @@ ERROR: Fail to process the given model     EXIT=1
 
 > 记录这条的意义：它说明"独立算子能跑"与"同一算子拼进整图能跑"是**两个不同的验证**，
 > 后者才是 block 级别真正需要的。
+
+## 8. ✅ v2 修好了：带 RMSNorm 的整块通过
+
+**根因**（tflite tensor 表 diff 一眼看出来的）：`rmsnorm()` 里先 `act("..._mean")` 建均值张量，
+随后又 append 了 axis 常量张量，于是 `idx[mean] = len(tensors) - 1` 指向了 **axis 张量**，
+`RSQRT` 的输入实际是那个 int32 的 axis → 报 "output shape is incompatible with inputs"。
+
+修法：`act()` 的返回值直接存成 `ti_m` / `ti_r`，不再用 `len(tensors)-1` 事后取。
+
+**结果**
+
+| 指标 | 值 |
+|---|---|
+| 图 | 24 层（含 2×RMSNorm 链：MUL→MEAN→RSQRT→MUL，10×FC、SoftMax、Transpose、Add×2、Sigmoid、Mul×2） |
+| 编译 | `EXIT=0`，单 `MDLA_5_0` 执行步，`.dla` 83.1 KB |
+| 板端 vs numpy | **max_abs 9.766e-04**，rmse 1.95e-04，rel_l2 3.73e-04 |
+| 判定 | PASS（fp16 合同 atol/rtol 3e-2；实测差 1 个 fp16 code） |
+
+**已知偏差（必须写清）**：图里 `eps = 0`（`mean + eps` 的 ElementWiseAdd 仍会报 type 不兼容，
+单独模型带 eps 是通过的）。因此本块与"真实 Qwen2.5 RMSNorm"差一个 eps=1e-5；
+在 `mean(x²)≈0.25` 的数据上相对影响 ~4e-5，但**不能声称 eps 已支持**。
+
+**经验**：这类"独立算子能跑、拼图就跑不了"的问题，**tflite tensor 表的字段 diff 比手写试错快一个数量级**
+——这次 10 分钟定位，而之前三轮盲试都没找到。

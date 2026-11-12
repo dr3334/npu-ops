@@ -103,21 +103,19 @@ def main(out_dir, bisect=False):
     def rmsnorm(inp, out, gamma, t_name):
         # square -> mean(axis=1, keep) -> +eps -> rsqrt -> *x -> *gamma
         binary(inp, inp, f"{out}_sq", (T, H), OC_MUL)
-        t_m = act(f"{out}_mean", (T, 1))
+        ti_m = act(f"{out}_mean", (T, 1))   # 保存索引：下面 append 了 axis 张量，len(tensors)-1 会变
         S.ReducerOptionsStart(b)
         S.ReducerOptionsAddKeepDims(b, True)
         ro = S.ReducerOptionsEnd(b)
         buffers.append(bo.buf_data(b, np.asarray([1], np.int32)))
         ax = bo.tensor(b, f"{out}_ax", [1], bo.I32, len(buffers) - 1)
         tensors.append(ax); ti_ax = len(tensors) - 1
-        operators.append(bo.operator(b, OC_MEAN, [idx[f"{out}_sq"], ti_ax], [t_m],
+        operators.append(bo.operator(b, OC_MEAN, [idx[f"{out}_sq"], ti_ax], [ti_m],
                                     bo.BuiltinOptions.ReducerOptions, ro))
-        idx[f"{out}_mean"] = len(tensors) - 1
         # NOTE: `mean + eps`（ElementWiseAdd，两输入均 fp16 [T,1]）在整图里被 ncc 判为
         # "input types are incompatible"；本实验先令 eps=0，并把该失败记进 docs/OP-block.md。
-        t_r = act(f"{out}_rsqrt", (T, 1))
-        operators.append(bo.operator(b, OC_RSQRT, [idx[f"{out}_mean"]], [t_r]))
-        idx[f"{out}_rsqrt"] = len(tensors) - 1
+        ti_r = act(f"{out}_rsqrt", (T, 1))
+        operators.append(bo.operator(b, OC_RSQRT, [ti_m], [ti_r]))
         binary(inp, f"{out}_rsqrt", out, (T, H), OC_MUL)   # gamma 折进后续 FC 权重
 
     # ---- block body ----
@@ -176,7 +174,7 @@ def main(out_dir, bisect=False):
     G1, G2 = np.asarray(g1, np.float32), np.asarray(g2, np.float32)
 
     def rms(t):
-        return t / np.sqrt((t * t).mean(axis=-1, keepdims=True) + EPS) * G1
+        return t / np.sqrt((t * t).mean(axis=-1, keepdims=True)) * G1   # 图里 eps=0
 
     n1 = rms(xf)
     q, k, v = n1 @ W["Wq"].T, n1 @ W["Wk"].T, n1 @ W["Wv"].T
@@ -186,7 +184,7 @@ def main(out_dir, bisect=False):
     a_ = p_ @ v
     o_ = a_ @ W["Wo"].T
     r1 = xf + o_
-    n2 = r1 / np.sqrt((r1 * r1).mean(axis=-1, keepdims=True) + EPS) * G2
+    n2 = r1 / np.sqrt((r1 * r1).mean(axis=-1, keepdims=True)) * G2   # 图里 eps=0
     g_ = n2 @ W["Wg"].T; u_ = n2 @ W["Wu"].T
     y_ = (g_ / (1.0 + np.exp(-g_))) * u_
     d_ = y_ @ W["Wd"].T
