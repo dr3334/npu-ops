@@ -188,6 +188,9 @@ ERROR: Fail to process the given model     EXIT=1
 > 分支 `impl/01-block-builder`（worktree `wt-t01`）· 生成器 `tools/build_block2.py` ·
 > 编译 `ncc-tflite 7.3.15 --arch=mdla5.0 --disallow-bridge --num-mdla=2 --l1-size-kb=3072`（`tools/compile.sh`）。
 > 本节是**修法定稿**：§9 的旧段落与 `ROUNDUP-2026-11-13.md` 里"多 head 在 importer 失败 / WIP"的说法**以本节为准**。
+>
+> **读法提醒**：本节这两张图（h2 / h14）是**验证 builder 权重声明修复**的多头图 —— RMSNorm 用 `fctile` 变体、
+> RoPE 不在多头路径里，所以**不要**把它们当作真实形状的 decoder 整块；整块的证据是 `ops/decoder_layer_t8_fp16`（票 09）。
 
 ### 10.1 问题：一句含混的错误挡住了一整条路线
 

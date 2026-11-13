@@ -336,8 +336,9 @@ RESHAPE 顺序、常量没写进文件）。它**不是**数值判据（可以�
    **可以被事先的 numpy 预测解释到 0.1%**（h2：预测 6.353e-3 / 实测 6.348e-3）；
 3. **逐层可定位**：h1 9.50 ULP、h2 自身 3.50 ULP、logits 自身 0.50 ULP；总差与自身差被分开报出，
    且 logits 的 rel_l2 与 h2 的完全相同（线性映射的相对 L2 守恒）—— 这就是「误差能落到哪一层」的证据形态；
-4. **tied LM head 在真实 hidden 上工作**：4×FC(N=37984)+CONCAT 喂 h2（rms≈0.32，非 RMS=1 的夹具）时自身 0.5 ULP，
-   权重只物化一份（272,269,312 B + 303,872 B 零 bias）；
+4. **tied LM head 在非归一化输入上也能跑对**：4×FC(N=37984)+CONCAT 喂 h2 时自身 0.5 ULP，
+   权重只物化一份（272,269,312 B + 303,872 B 零 bias）。h2 的 RMS 约 0.32、不是 RMS=1 的夹具分布，
+   这只说明「输入量级与夹具不同也照样在容差内」，**不是**任何 fidelity / faithfulness 证据；
 5. **每层重新装载权重的实测成本**（§6），可作为 24 层/常驻形态的输入；
 6. **判据有牙齿**（§7：换错权重/跳层/CONCAT 顺序 25–38× 阈值）；
 7. 噪声底 **0**，且跨会话可复现（md5 相同）—— 阈值不是靠抖动余量过的。
@@ -356,6 +357,9 @@ RESHAPE 顺序、常量没写进文件）。它**不是**数值判据（可以�
 6. **不覆盖**：int8（全 fp16）、KV cache / 增量解码、batch>1、变长序列、自建提交器的命令路径。
 7. **「板端交接」只证明了 fp16 张量能直接串**：真实部署里两层之间还有 KV cache 写入/读取、位置推进、
    采样等 state，本票全部不涉及。
+8. **夹具与 logits 图不含 Qwen 的 `model.norm`（最后一层之后的 final RMSNorm）**，因此 logits 是对 h2
+   直接做输出投影；真实 Qwen2.5 在这里还差这一层（一个 6 层 RMSNorm）。这是与真权重之间的**已知差值**，
+   本票没有实现、也没有对它做过任何测量。
 
 ---
 
@@ -368,7 +372,7 @@ RESHAPE 顺序、常量没写进文件）。它**不是**数值判据（可以�
 | 经输出投影得到 logits，**logits 向量 atol/rtol 对拍通过** | ✅ | ops/two_layer_logits_t8_fp16/compare.txt **PASS**：max_abs 3.662e-03、rel_l2 4.353e-03、阈值 1.54724e-2（预登记），nan/inf 0/0 |
 | 记录跨层重新装载权重的方式与耗时 | ✅ | §6：每层一个 .dla ⇒ 整块 28.5 MiB 重新 push+加载；实测 push 0.93–1.08 s、加载 0.15 s（logits 7.78 s / 0.30 s）；两个会话各一次 |
 | **top-1 仍不启用**；本票不含真实权重 | ✅ | 三个 model.json 的 tolerance_revision.top1.enabled=false + 理由（ADR 0003）；全部权重是票 02 冻结夹具（weights_digest=898fa3195d627a4c…） |
-| 写明「这一档证据能说明什么、不能说明什么」 | ✅ | §8（能说明 7 条 / 不能说明 7 条）；§10 适用范围 |
+| 写明「这一档证据能说明什么、不能说明什么」 | ✅ | §8（能说明 7 条 / 不能说明 8 条）；§10 适用范围 |
 
 附加交付（票面之外，对 24 层/Lead 有用）：--execcheck（三张图各 WIRING OK）、--diag（A/B/C 三段 + 噪声底）、
 --counterfactual（§7 的牙齿表）、ops/two_layer_chain_session.log（一次完整持锁会话的原文）。
@@ -384,7 +388,7 @@ RESHAPE 顺序、常量没写进文件）。它**不是**数值判据（可以�
 * 容差登记公式 atol = rtol = max(4·2^-11·max abs(out), 4·max(floor_self, floor_chain))：
   floor_chain 是「上一层 fp16 输出喂进来」的传播下限，**只要链路是 fp16 存储，这个下限就存在**，
   多层链路必须把它算进登记值，否则会把必然的传播误判成实现错；
-* tied LM head 的 4×FC+CONCAT 契约：x[T,896] fp16 任意量级（本票用 rms≈0.32 的真实 hidden 复验过），
+* tied LM head 的 4×FC+CONCAT 契约：x[T,896] fp16 任意量级（本票用 h2、RMS≈0.32 这一档复验过），
   N > 65535 必须分块（spec C3）；
 * layer1.* 的权重尺度（input_layernorm 均值 0.667、k_proj.bias std 19）在本层掩码区间内：
   S = max abs(scaled score) = 79.6 <= 1996（票 05 的掩码复用条件），−4096 仍有 25× 余量。

@@ -3,8 +3,9 @@
 
     /usr/bin/python3 tools/build_qkv_bias_rope.py --which q          # -> ops/qkv_q_bias_rope_t8_fp16
     /usr/bin/python3 tools/build_qkv_bias_rope.py --which k --out ops/<name>
-    /usr/bin/python3 tools/build_qkv_bias_rope.py --which v --diag ops/<name>     # device diagnostics
-    /usr/bin/python3 tools/build_qkv_bias_rope.py --which k --emit-neg-width896 ops/<name>/neg_width896
+    /usr/bin/python3 tools/build_qkv_bias_rope.py --which v --diag --out ops/<name>   # device diagnostics
+    /usr/bin/python3 tools/build_qkv_bias_rope.py --which k --emit-neg-width896 --out ops/qkv_k_bias_rope_t8_fp16
+                                                                  # -> <out>/neg_width896 (a second .tflite, no path argument)
 
 Why three graphs (one per projection) and not one
 -------------------------------------------------
