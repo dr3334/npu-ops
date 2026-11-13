@@ -248,9 +248,11 @@ swap 0.016 + decode 3.46 = **3.82 s**；余下 ~0.6 s 是 SDK `dlopen`（`libsen
 
 设备上两个 `.atrace` 不是二进制 ftrace ring buffer，而是 **`TRACE:` + zlib 压的文本 ftrace**
 （`qwen25_coarse.atrace` 363 KB → 5.1 MB 文本 / 38,783 行，`tracer: nop`）。把它们解出来、按 pid
-栈配对 `tracing_mark_write` 的 B/E，得到厂商（自家环境、2026-07-30 录的）每次 NPU 推理的耗时：
+栈配对 `tracing_mark_write` 的 B/E，得到厂商（自家环境、2026-07-30 录的）每次 NPU 推理的耗时。
+trace 文件**没有写用的是哪份 config**；下表的档位是**推定**：`qwen25_coarse` 的 prefill 66.0 ms（128 token
+→ 1940 tok/s）与 decode 12.6–13.2 ms，都对得上今天 512c 档的 1862 tok/s / 15.55 ms 端到端：
 
-| 量 | `qwen25_coarse`（512c 档） | `qwen25_2048_coarse`（2048c 档） |
+| 量 | `qwen25_coarse`（**推定** 512c 档） | `qwen25_2048_coarse`（2048c 档） |
 |---|---|---|
 | NPU 推理次数 | 17 | 17 |
 | prefill（最大那次） | **66.0 ms** | **84.7 ms** |
