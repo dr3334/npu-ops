@@ -1,0 +1,56 @@
+{
+  "op": "DECODER_LAYER",
+  "form": "w4a8",
+  "stage": "scores",
+  "shape": {
+    "T": 16,
+    "D": 896,
+    "H": 14,
+    "KV": 2,
+    "HD": 64,
+    "I": 4864
+  },
+  "dtype": "int8",
+  "weights_dtype": "int4",
+  "input": {
+    "name": "x",
+    "shape": [
+      16,
+      896
+    ],
+    "type": "int8"
+  },
+  "output": {
+    "name": "out",
+    "shape": [
+      14,
+      16,
+      16
+    ],
+    "type": "int8"
+  },
+  "quant": {
+    "input": 0.0005546029158464567,
+    "output": 37.08322617565878
+  },
+  "int8_tol": 2,
+  "tolerance_rationale": "Register-before-run, before the first board run of this graph. Code level: int8_tol=2 because the layer contains the int8 RMSNorm chain (its RSQRT is a fixed-point LUT: docs/OP-rmsnorm.md 2.3 registers 4 codes for that chain, and the component run here measured max 2 codes on 6% of the values) plus one fp16<->int8 seam. Quality level: ADR 0005 cosine >= 0.9999 -- registered as the criterion, NOT adjusted afterwards.",
+  "tflite": "model.tflite",
+  "tflite_bytes": 574216,
+  "fp32_ref": "scores",
+  "quality_criterion": {
+    "cosine_min": 0.9999,
+    "source": "ADR 0005 (operator-level)",
+    "code_criterion": "device vs quantised golden: |delta| <= int8_tol codes"
+  },
+  "accuracy_vs_fp32": {
+    "reference": "independent float64 chain (tools/build_w4a8.py chain_f32)",
+    "cosine": 0.9999013023172528,
+    "rel_l2": 0.014081734697365606,
+    "max_abs": 117.22316524299686,
+    "max_abs_over_maxabs_out": 0.02489041931748966,
+    "out_scale": 37.08322617565878,
+    "one_code_real": 37.08322617565878,
+    "note": "int8 quantisation error of the whole 4W8A path, no device involved"
+  }
+}
