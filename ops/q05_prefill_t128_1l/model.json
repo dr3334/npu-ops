@@ -1,0 +1,80 @@
+{
+  "op": "DECODER_LAYER_STACK",
+  "form": "w8a16",
+  "stage": "out",
+  "layers": 1,
+  "stacked": true,
+  "graph": "one tflite, no graph input/output between layers",
+  "shape": {
+    "T": 128,
+    "D": 896,
+    "H": 14,
+    "KV": 2,
+    "HD": 64,
+    "I": 4864
+  },
+  "dtype": "int16",
+  "weights_dtype": "int8",
+  "input": {
+    "name": "x",
+    "shape": [
+      128,
+      896
+    ],
+    "type": "int16"
+  },
+  "output": {
+    "name": "out",
+    "shape": [
+      128,
+      896
+    ],
+    "type": "int16"
+  },
+  "quant": {
+    "input": 2.1495581015198217e-06,
+    "output": 1.9058312660854177e-05
+  },
+  "weights_note": "fixture layer 0 repeated for all 1 layers (ticket 05 allows weight reuse): this graph is NOT a real 24-layer Qwen2.5-0.5B stack",
+  "int8_tol": 1200,
+  "tolerance_rationale": "Code level on a 24-layer CHAIN is not the single-layer contract. Registered before the first board run: int8_tol=1200 codes, derived as sqrt(24) x the per-layer device-vs-golden max of the same tier (ticket 04f measured 247 codes on one layer at 8W16A native; sqrt(24)*247 = 1210 -> 1200), i.e. the independent-rounding random-walk bound. It is a PROPAGATION bound, not a relaxation of the per-layer contract; the measured value is reported as-is and a miss is reported as FAIL.",
+  "abs_dcos_device_vs_golden_max": 0.003,
+  "rel_l2_device_vs_golden_max": 0.05,
+  "rel_l2_rationale": "Registered before the first board run: one layer's device-vs-golden rel_l2 at this tier is ~1e-2 (from ticket 04f abs(dcos) 4.6e-5); a 24-layer chain adds rounding per layer, so 5e-2 is the registered cap (sqrt(24)*1e-2 = 4.9e-2).",
+  "quality_criterion": {
+    "cosine_min": 0.9998,
+    "source": "ADR 0005 sixth revision: int8 weights -> quality EXPECTATION 0.9998; 24 chained layers accumulate, so a miss is reported, not smoothed. The real quality gate is the logits (ticket 06).",
+    "code_criterion": "device vs quantised golden: |delta| <= int8_tol codes"
+  },
+  "accuracy_vs_fp32": {
+    "reference": "independent float64 chain, all layers (tools/build_24layer.py)",
+    "cosine": 0.9965765270926054,
+    "rel_l2": 0.08289562015597025,
+    "max_abs": 0.19513470851963227,
+    "out_scale": 1.9058312660854177e-05,
+    "one_code_real": 1.9058312660854177e-05
+  },
+  "per_layer_fp64": [
+    {
+      "layer": 0,
+      "max_abs": 0.6268081801767578,
+      "rms": 0.12749389595778934,
+      "max_abs_scores": 5165.8589765141305
+    }
+  ],
+  "tflite": "model.tflite",
+  "tflite_bytes": 16920000,
+  "precision_tier": {
+    "weights": "int8, symmetric per-output-channel",
+    "activations": "int16 per-tensor",
+    "bias": "int32 per-channel",
+    "requant": "tools/quant_contract.py (two roundings)",
+    "builder": "tools/build_24layer.py --layers 1 --t 128"
+  },
+  "weights_source": {
+    "source": "fixture",
+    "fixture": "weights/qwen25_frozen (ticket 02 frozen fixture)",
+    "layer": 0,
+    "input_rows": "embedding rows of token ids [9707, 11, 1879, 828, 11780, 13, 220, 16, 41, 1144, 2247, 3350, 4453, 5556, 6659, 7762, 8865, 9968, 11071, 12174, 13277, 14380, 15483, 16586, 17689, 18792, 19895, 20998, 22101, 23204, 24307, 25410, 26513, 27616, 28719, 29822, 30925, 32028, 33131, 34234, 35337, 36440, 37543, 38646, 39749, 40852, 41955, 43058, 44161, 45264, 46367, 47470, 48573, 49676, 50779, 51882, 52985, 54088, 55191, 56294, 57397, 58500, 59603, 60706, 61809, 62912, 64015, 65118, 66221, 67324, 68427, 69530, 70633, 71736, 72839, 73942, 75045, 76148, 77251, 78354, 79457, 80560, 81663, 82766, 83869, 84972, 86075, 87178, 88281, 89384, 90487, 91590, 92693, 93796, 94899, 96002, 97105, 98208, 99311, 100414, 101517, 102620, 103723, 104826, 105929, 107032, 108135, 109238, 110341, 111444, 112547, 113650, 114753, 115856, 116959, 118062, 119165, 120268, 121371, 122474, 123577, 124680, 125783, 126886, 127989, 129092, 130195, 131298]"
+  }
+}

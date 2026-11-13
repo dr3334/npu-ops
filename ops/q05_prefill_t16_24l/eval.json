@@ -1,0 +1,25 @@
+{
+  "golden_vs_fp64": {
+    "cosine": 0.9961937045713246,
+    "rel_l2": 0.08732161252963698
+  },
+  "device_vs_fp64": {
+    "cosine": 0.996146891751519,
+    "rel_l2": 0.08786017176550259
+  },
+  "device_vs_golden": {
+    "cosine": 0.9999852312228618,
+    "abs_dcos": 4.6812819805563954e-05,
+    "rel_l2": 0.00543528647657516,
+    "codes_max": 354,
+    "codes_mean": 32.526157924107146,
+    "code_exact": 172,
+    "code_n": 14336
+  },
+  "gate": {
+    "codes": true,
+    "dcos": true,
+    "rel_l2": true,
+    "quality": false
+  }
+}

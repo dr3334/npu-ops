@@ -1,0 +1,218 @@
+{
+  "op": "DECODER_LAYER_STACK",
+  "form": "w8a16",
+  "stage": "out",
+  "layers": 24,
+  "stacked": true,
+  "graph": "one tflite, no graph input/output between layers",
+  "shape": {
+    "T": 16,
+    "D": 896,
+    "H": 14,
+    "KV": 2,
+    "HD": 64,
+    "I": 4864
+  },
+  "dtype": "int16",
+  "weights_dtype": "int8",
+  "input": {
+    "name": "x",
+    "shape": [
+      16,
+      896
+    ],
+    "type": "int16"
+  },
+  "output": {
+    "name": "out",
+    "shape": [
+      16,
+      896
+    ],
+    "type": "int16"
+  },
+  "quant": {
+    "input": 2.1495581015198217e-06,
+    "output": 0.0002691178685356932
+  },
+  "weights_note": "fixture layer 0 repeated for all 24 layers (ticket 05 allows weight reuse): this graph is NOT a real 24-layer Qwen2.5-0.5B stack",
+  "int8_tol": 1200,
+  "tolerance_rationale": "Code level on a 24-layer CHAIN is not the single-layer contract. Registered before the first board run: int8_tol=1200 codes, derived as sqrt(24) x the per-layer device-vs-golden max of the same tier (ticket 04f measured 247 codes on one layer at 8W16A native; sqrt(24)*247 = 1210 -> 1200), i.e. the independent-rounding random-walk bound. It is a PROPAGATION bound, not a relaxation of the per-layer contract; the measured value is reported as-is and a miss is reported as FAIL.",
+  "abs_dcos_device_vs_golden_max": 0.003,
+  "rel_l2_device_vs_golden_max": 0.05,
+  "rel_l2_rationale": "Registered before the first board run: one layer's device-vs-golden rel_l2 at this tier is ~1e-2 (from ticket 04f abs(dcos) 4.6e-5); a 24-layer chain adds rounding per layer, so 5e-2 is the registered cap (sqrt(24)*1e-2 = 4.9e-2).",
+  "quality_criterion": {
+    "cosine_min": 0.9998,
+    "source": "ADR 0005 sixth revision: int8 weights -> quality EXPECTATION 0.9998; 24 chained layers accumulate, so a miss is reported, not smoothed. The real quality gate is the logits (ticket 06).",
+    "code_criterion": "device vs quantised golden: |delta| <= int8_tol codes"
+  },
+  "accuracy_vs_fp32": {
+    "reference": "independent float64 chain, all layers (tools/build_24layer.py)",
+    "cosine": 0.9961945220885459,
+    "rel_l2": 0.08731214143091133,
+    "max_abs": 0.8687444571384562,
+    "out_scale": 0.0002691178685356932,
+    "one_code_real": 0.0002691178685356932
+  },
+  "per_layer_fp64": [
+    {
+      "layer": 0,
+      "max_abs": 0.5068899094984706,
+      "rms": 0.12922211343241433,
+      "max_abs_scores": 4709.569724308665
+    },
+    {
+      "layer": 1,
+      "max_abs": 0.7263296424038622,
+      "rms": 0.18478278869672723,
+      "max_abs_scores": 4772.558268880173
+    },
+    {
+      "layer": 2,
+      "max_abs": 1.0401178585697286,
+      "rms": 0.260652091496497,
+      "max_abs_scores": 4764.257285601374
+    },
+    {
+      "layer": 3,
+      "max_abs": 1.3114692544538054,
+      "rms": 0.3444051288106678,
+      "max_abs_scores": 4742.705729138429
+    },
+    {
+      "layer": 4,
+      "max_abs": 1.6680581654647897,
+      "rms": 0.43211821179168225,
+      "max_abs_scores": 4751.852044757306
+    },
+    {
+      "layer": 5,
+      "max_abs": 2.1071106115538147,
+      "rms": 0.5231969944597079,
+      "max_abs_scores": 4756.358129012014
+    },
+    {
+      "layer": 6,
+      "max_abs": 2.574274906989793,
+      "rms": 0.616932746263242,
+      "max_abs_scores": 4759.920041425054
+    },
+    {
+      "layer": 7,
+      "max_abs": 3.041724346632142,
+      "rms": 0.7125251381304416,
+      "max_abs_scores": 4762.858839910285
+    },
+    {
+      "layer": 8,
+      "max_abs": 3.5015265617181544,
+      "rms": 0.8092151489510504,
+      "max_abs_scores": 4765.425091993157
+    },
+    {
+      "layer": 9,
+      "max_abs": 3.9462852112951357,
+      "rms": 0.9064423020224811,
+      "max_abs_scores": 4767.774148277847
+    },
+    {
+      "layer": 10,
+      "max_abs": 4.370301649532702,
+      "rms": 1.003860435184995,
+      "max_abs_scores": 4769.8459803495425
+    },
+    {
+      "layer": 11,
+      "max_abs": 4.769708166235759,
+      "rms": 1.1012802423471821,
+      "max_abs_scores": 4771.508431006507
+    },
+    {
+      "layer": 12,
+      "max_abs": 5.142264410365104,
+      "rms": 1.1986110986203244,
+      "max_abs_scores": 4772.66206176467
+    },
+    {
+      "layer": 13,
+      "max_abs": 5.487057567108427,
+      "rms": 1.2958212879058582,
+      "max_abs_scores": 4773.265409723016
+    },
+    {
+      "layer": 14,
+      "max_abs": 5.804191828290946,
+      "rms": 1.39291294728564,
+      "max_abs_scores": 4773.325150893708
+    },
+    {
+      "layer": 15,
+      "max_abs": 6.094504518767541,
+      "rms": 1.489906252410678,
+      "max_abs_scores": 4772.879782415737
+    },
+    {
+      "layer": 16,
+      "max_abs": 6.359324715101933,
+      "rms": 1.5868296461971725,
+      "max_abs_scores": 4771.9857475195795
+    },
+    {
+      "layer": 17,
+      "max_abs": 6.600278915966685,
+      "rms": 1.6837141413278034,
+      "max_abs_scores": 4770.707430350461
+    },
+    {
+      "layer": 18,
+      "max_abs": 6.8191422397381425,
+      "rms": 1.7805901781329487,
+      "max_abs_scores": 4769.11050086264
+    },
+    {
+      "layer": 19,
+      "max_abs": 7.141584523272479,
+      "rms": 1.8774859576360436,
+      "max_abs_scores": 4767.257779736345
+    },
+    {
+      "layer": 20,
+      "max_abs": 7.573872655740426,
+      "rms": 1.9744266022698016,
+      "max_abs_scores": 4765.206888044679
+    },
+    {
+      "layer": 21,
+      "max_abs": 8.005229283730934,
+      "rms": 2.071433790602762,
+      "max_abs_scores": 4763.0091111666525
+    },
+    {
+      "layer": 22,
+      "max_abs": 8.43587943940169,
+      "rms": 2.168525674611801,
+      "max_abs_scores": 4760.70905775499
+    },
+    {
+      "layer": 23,
+      "max_abs": 8.866035641742,
+      "rms": 2.265716971740429,
+      "max_abs_scores": 4758.344815495672
+    }
+  ],
+  "tflite": "model.tflite",
+  "tflite_bytes": 368050440,
+  "precision_tier": {
+    "weights": "int8, symmetric per-output-channel",
+    "activations": "int16 per-tensor",
+    "bias": "int32 per-channel",
+    "requant": "tools/quant_contract.py (two roundings)",
+    "builder": "tools/build_24layer.py --layers 24 --t 16"
+  },
+  "weights_source": {
+    "source": "fixture",
+    "fixture": "weights/qwen25_frozen (ticket 02 frozen fixture)",
+    "layer": 0,
+    "input_rows": "embedding rows of token ids [9707, 11, 1879, 828, 11780, 13, 220, 16, 41, 1144, 2247, 3350, 4453, 5556, 6659, 7762]"
+  }
+}
