@@ -21,8 +21,10 @@
 | C 两次舍入，但 M0 从 float32 scale 乘积反算（1073741840） | **69** |
 | **B 两次舍入 + 整乘子 M0=2³⁰（= 现在的 golden）** | **0** |
 
-`D` 列在每个 op 上都与仓库里 commit 的 `golden/expected.bin` 逐位相同（表格末列 `D=gold` 全 0），
-所以上表不是"另一套推导"，而是**同一份 golden 的三种写法**。
+D` 列在每个 op 上都与**修复前** commit 的 `golden/expected.bin` 逐位相同（表格末列 `D=gold` 全 0；
+重放是在主检出 `npu-ops` 上跑的，那里还是旧 golden），所以上表不是"另一套推导"，
+而是**同一份 golden 的四种写法**。反过来在自己的 worktree 里跑同一张表，`D=gold` 列会正好
+等于 `D` 列对设备的失配数 —— 因为新 golden 就是 B，B 与 D 只在 D 错的地方不同。
 
 ## 2. 做了什么
 
