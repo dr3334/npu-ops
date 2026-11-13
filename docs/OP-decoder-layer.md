@@ -354,7 +354,7 @@ fp16 量化 → softmax → PV」这条链的固有代价。要更小只有两�
 | `k_proj` / `v_proj` | [128,896] | 各 229,376（0.22 MiB） | DRAM Static |
 | γ1/γ2 + qkv bias + 零 bias | — | 28,928 | DRAM Static |
 | RoPE 表（q+k）+ 掩码 | — | 34,560 | DRAM Static |
-| **静态合计** | — | **29,881,312 B ≈ 28.50 MiB** | `Static 28M` |
+| **静态合计** | — | **29,882,368 B ≈ 28.50 MiB** | `Static 28M` |
 | 中间最大激活 | `gate/up/silu/mlp_y` 各 [8,4864] | 各 77,824（76 KB） | L1（`L1 256K`） |
 | 第二梯队 | `attn/q` [8,896] 等 | 各 14,336 | L1 + 1 个 DRAM 暂存（`Temp 14K`） |
 | 注意力小张量 | `scores/probs` [14,8,8] | 各 1,792 | L1 |
