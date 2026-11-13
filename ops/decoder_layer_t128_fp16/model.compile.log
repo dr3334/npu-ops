@@ -1,6 +1,6 @@
 # cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/decoder_layer_t128_fp16/model.tflite -d ops/decoder_layer_t128_fp16/model.dla
 # version: Version: 7.3.15
-# date: 2026-11-13T11:19:27+08:00
+# date: 2026-11-13T11:28:31+08:00
 
 ===Graph[0] has 1 Execution Step(s)===
 Graph[0] Step[0]
@@ -85,4 +85,4 @@ TargetExecutionOrder:
 
 EXIT=0
 SIZE=30609269
-SHA256=0592b8ea3bd46a34287c417348bb627445a260d562bbda53d0f1605c2c2dfaef
+SHA256=cc1f3a1b2c56ebd99c47f5362ca425752e262005f3f7eb3fed2d66b8bd746772

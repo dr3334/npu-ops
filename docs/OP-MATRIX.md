@@ -173,7 +173,9 @@ spec: `.scratch/qwen25-attention/spec.md` · 权重：随机生成后冻结（�
 | SwiGLU FFN | `[8,896]`→`[8,4864]`→`[8,896]` | 6 / 1 | 1 ULP（2.44e-04） | `docs/OP-swiglu-ffn.md` |
 | LM head（tied embed，分块 FC） | `[8,896]`→`[8,151936]` | 5 / 1 | max_abs 9.77e-04、99.77% 逐位 | `docs/OP-lm-head.md` |
 | 多头整块（2 头 / 14 头真实形状） | `[8,64]` / `[8,896]`→同形 | 31 / 33，各 1 步 | 1 ULP / 2.2e-2（=fp16 层边界下限） | `docs/OP-block.md` §10 |
-| 1 层 decoder 整块 / 2 层集成 | 见票 09/10 | 见下 | 见下 | `docs/OP-decoder-layer.md` / `docs/OP-two-layer.md` |
+| 1 层 decoder 整块（T=8） | `[8,896]`→`[8,896]` | 61 / 1 | 9.50 ULP（下限 9.25） | `docs/OP-decoder-layer.md` |
+| **1 层 decoder 整块（T=128）** | `[128,896]`→`[128,896]` | 61 / 1 | 35.50 ULP（下限 34.75，+0.75） | `docs/OP-decoder-layer.md` §14 |
+| 2 层串联 + tied LM head | `[8,896]`→h1→h2→`[8,151936]` | 61/61/5，各 1 步 | h1 9.50、h2 6.50、logits 0.50 ULP（本层） | `docs/OP-two-layer.md` |
 
 ### 14.1 本批次新增/修正的边界（跨算子）
 

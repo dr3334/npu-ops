@@ -415,8 +415,9 @@ hidden 896、14 query head / 2 KV head、head_dim 64、vocab 151936、T=8。全�
 | 06 | `docs/OP-pv-o.md` | PV 3-D = **1 个原生层**，4-D 被降成 5 层；O 投影无 bias；残差独立成层；7 层/1 步 |
 | 07 | `docs/OP-swiglu-ffn.md` | SwiGLU 6 层/1 步/Temp 0；SiLU **不融合**（+2 层、同一步）；三个大张量各 8.72 MB |
 | 08 | `docs/OP-lm-head.md` | tied LM head：**FC 的 N ≤ 65535**（单体 151936 被编译期拒绝）→ 4×FC+CONCAT，5 层/1 步，板端 99.77% 逐位 |
-| 09 | `docs/OP-decoder-layer.md` | 1 层自包含整块（`[8,896]` 进 / 出）——见该文档 |
-| 10 | `docs/OP-two-layer.md` | 2 层串联 + 输出投影，logits 向量 atol/rtol 对拍——见该文档 |
+| 09 | `docs/OP-decoder-layer.md` | 1 层自包含整块，**61 层 / 1 执行步**，板端 9.50 ULP（设备无关下限 9.25），噪声底 0；首跑 FAIL 的证据与二分（attn_half/ffn_half）保留 |
+| 09+ | `docs/OP-decoder-layer.md` §14 | **T=128 prefill 档**：同样 61 层 / 1 步，板端 35.50 ULP（下限 34.75，设备只多 0.75）；T=8 产物逐字节未变 |
+| 10 | `docs/OP-two-layer.md` | 2 层串联（板端 h1 **字节**喂入第 2 层）+ tied LM head：h1 9.50 / h2 6.50 / logits 7.50 ULP，传播误差与本层误差分开（h2 本层 3.50、logits 本层 0.50 ULP），噪声底 0 |
 
 ### 由本批次新增的方法论（值得复用）
 

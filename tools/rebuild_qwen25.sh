@@ -53,6 +53,7 @@ build block_qwen25_multhead_h14_fp16 "/usr/bin/python3 tools/build_block2.py --h
 build _block_qwen25_multhead_h14_meannorm_control "/usr/bin/python3 tools/build_block2.py --heads 14 --hidden 896 --head_dim 64 --norm mean --out ops/_block_qwen25_multhead_h14_meannorm_control"
 # --- 票 09：1 层 decoder 整块（--out 是目录） ---
 build decoder_layer_t8_fp16 "/usr/bin/python3 tools/build_decoder_layer.py --out ops/decoder_layer_t8_fp16"
+build decoder_layer_t128_fp16 "/usr/bin/python3 tools/build_decoder_layer.py --T 128 --out ops/decoder_layer_t128_fp16"
 # --- 票 10：两张层图 + tied LM head 的 logits 图（--graph l0|l1|logits，--out 是目录） ---
 for g in l0 l1 logits; do
   build "two_layer_${g}_t8_fp16" "/usr/bin/python3 tools/build_two_layer.py --graph $g --out ops/two_layer_${g}_t8_fp16"

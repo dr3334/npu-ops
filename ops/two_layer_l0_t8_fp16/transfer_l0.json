@@ -1,6 +1,6 @@
 {"op":"two_layer_l0_t8_fp16","dla_bytes":29913363,"input_bytes":14336,"output_bytes":14336,
- "push_dla_ms":996,"push_input_ms":121,"run_ms":161,"pull_out_ms":89,
- "inference_total_ms":6.257,"load_and_startup_ms_est":155,
- "push_dla_MBps":30.03,
- "pull_out_MBps":0.16,
- "ts":"2026-11-13T11:03:34+08:00"}
+ "push_dla_ms":951,"push_input_ms":94,"run_ms":150,"pull_out_ms":99,
+ "inference_total_ms":4.845,"load_and_startup_ms_est":145,
+ "push_dla_MBps":31.45,
+ "pull_out_MBps":0.14,
+ "ts":"2026-11-13T11:27:41+08:00"}
