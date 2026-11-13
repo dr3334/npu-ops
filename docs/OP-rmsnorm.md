@@ -375,3 +375,39 @@ fp16 的 `1e-2` 是当前唯一可用的浮点契约，实测误差 2 ULP（≈2
 ./tools/compile.sh ops/rms896_d896_T8_vB/model.tflite ops/rms896_d896_T8_vB/model.dla
 ./tools/e2e.sh ops/rms896_d896_T8_vB
 ```
+
+---
+
+## 订正：D=896 的 MEAN 可用性（2026-11-13）
+
+### 起因为什么要订正
+
+上面 §「D=896 三变体」把 **A（MEAN）编不过** 记成“宽度依赖的形状问题”，而 `docs/OP-block.md` §10.4.2
+发现同一个 ncc 上 14 头块图的 `--norm mean` 能编（EXIT=0）。两者的差别在构造器，不在宽度。
+本节的唯一任务是：**把那条结论判定清楚**，并留下可复跑的板端证据。
+
+### 假设 / 预测（写在板端执行之前）
+
+- **H-bug（主假设）**：A/A0 的失败是 `tools/build_rms896.py` 的 idx 错位，不是编译器边界。
+  机制：`act("mean", …)` 之后又 `const(…)` 追加了 axis 张量，随后手写
+  `idx["mean"] = len(tensors) - 1` 把名字指到了那个 int32 张量上。
+  - 预测 1（编译）：修好后 A 在 D=896 **EXIT=0**，层清单 6 层
+    （`MUL → MEAN → ADD → RSQRT → MUL → MUL`）、**单个** `MDLA_5_0` 执行步、无 bridge。
+  - 预测 2（板端）：在**已经登记**的 `atol=rtol=2e-2`（未改）下 **PASS**；
+    `max_abs` 落在 1–2 个 fp16 ULP（`|out|` ≈ 4.4 ⇒ ULP ≈ 3.9e-3）即 ~1e-2 量级或更好，
+    `rel_l2` ~5e-4（与 B 同档）；两次连跑的噪声底预测为 **0**（本仓库 fp16 链的历史现象都是逐字节相同）。
+- **H-width（竞争假设）**：修好索引后仍然编不过。若如此，要把**报错原文 + 阶段**（加载期 /
+  逐层校验期 / 后端期）照抄进“结果”，并保留“MEAN 在大宽度不可用”的结论（只是换个根因）。
+- **层数预测**：单独 RMSNorm 图里 A 与 B **都是 6 层**（A 用 `ADD` 花掉 1 层、B 用 `FC+CONCAT`
+  花掉 2 层但**根本不带 eps**）⇒ 这一对图上“MEAN 少层”**不成立**；
+  “每个 RMSNorm 少 1 层”只在**块图**里成立（块图两侧都没有 eps 的 ADD：MEAN 4 层 vs FC+CONCAT 5 层）。
+
+### 做法
+
+1. 修 `tools/build_rms896.py`：`push_t()` 收敛唯一一处 `len(tensors) - 1`，
+   `const()/act()` 返回自己的索引（常量不进 `idx`；`act()` 遇重名直接 `KeyError`），
+   新增 `op(kind, ins, outs, …)` 让 operator 只认**张量名或那个返回值**。对外 CLI 与 golden 语义不变。
+2. 字节回归：B / C / B0 的 `model.tflite` sha256 **改前=改后**（`375c19c9…` / `65948e5f…` / `326dd1ee…`）
+   ⇒ 已有证据（含 `ops/rms896_d896_T8_vB` 的板端 PASS）不受这次修改影响；只有 A/A0 的接线变了。
+3. 重建 `ops/rms896_d896_T8_vA` → `./tools/compile.sh` → 持锁 `./tools/e2e.sh`（前后各一次
+   `healthcheck.sh --quick`），并连跑两次存 `out_r1.bin/out_r2.bin` 量噪声底。
