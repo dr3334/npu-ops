@@ -75,7 +75,8 @@ SEED = 20261113
 FP16_ULP_REL = 2.0 ** -11          # fp16 machine epsilon (11-bit significand)
 
 MAIN = "main"
-VARIANTS = ("main", "bmm_only", "twox7", "unroll14")
+VARIANTS = ("main", "bmm_only", "nary14", "twox7", "unroll14", "wrong_reshape",
+            "rank5")
 
 
 # --------------------------------------------------------------------- q/k source
@@ -239,6 +240,20 @@ class M:
                     bo.BuiltinOptions.BatchMatMulOptions, opt)
         return t
 
+    def reshape(self, x, in_shape, out_shape, name):
+        """RESHAPE: shape tensor + ReshapeOptions.new_shape, like the TFLite converter."""
+        b = self.b
+        shp = self.const(name + "_shape", [len(out_shape)], bo.I32,
+                         np.asarray(out_shape, np.int32))
+        nsv = b.CreateNumpyVector(np.asarray(out_shape, np.int32))
+        t = self.out(name, out_shape)
+        bo.S.ReshapeOptionsStart(b)
+        bo.S.ReshapeOptionsAddNewShape(b, nsv)
+        opt = bo.S.ReshapeOptionsEnd(b)
+        self.add_op(bo.BuiltinOperator.RESHAPE, [x, shp], [t],
+                    bo.BuiltinOptions.ReshapeOptions, opt)
+        return t
+
 
 # --------------------------------------------------------------------------- graphs
 def build_main(q, k):
@@ -303,8 +318,63 @@ def build_unroll14(q, k):
     return m.finish([0, 1], [out], "unroll14 fallback: 14 single-head BMMs")
 
 
-BUILDERS = {"main": build_main, "bmm_only": build_bmm_only,
-            "twox7": build_twox7, "unroll14": build_unroll14}
+def build_wrong_reshape(q, k):
+    """CONTROL (deliberately wrong): [T,H,HD] -> RESHAPE [H,T,HD] instead of TRANSPOSE.
+
+    This is the failure mode NOTES 10.2 warns about: it compiles, runs in one execution
+    step, and produces plausible-looking numbers that are mathematically wrong.  Kept in
+    the tree as the control that proves the board comparison is not vacuous.
+    """
+    m = M()
+    tq = m.io("q", [T, HQ, HD])
+    tk = m.io("k", [T, HKV, HD])
+    k0, k1 = m.split(tk, [T, HKV, HD], axis=1, num=2, names=["k0", "k1"])
+    rep = HQ // HKV
+    ka = m.concat([k0] * rep, [T, rep, HD], 1, "krep0")
+    kb = m.concat([k1] * rep, [T, rep, HD], 1, "krep1")
+    k14 = m.concat([ka, kb], [T, HQ, HD], 1, "k14")
+    kt = m.reshape(k14, [T, HQ, HD], [HQ, T, HD], "kt_wrong")
+    qt = m.reshape(tq, [T, HQ, HD], [HQ, T, HD], "qt_wrong")
+    sc = m.bmm(qt, kt, [HQ, T, T], "scores", adj_y=True)
+    return m.finish([0, 1], [sc], "CONTROL wrong layout: RESHAPE instead of TRANSPOSE")
+
+
+def build_nary14(q, k):
+    """Cheaper replication shape (compile-only probe): one 14-input CONCAT.
+
+    main uses 3 concatenations ([k0]*7, [k1]*7, then merge).  TFLite allows a single
+    CONCATENATION with N inputs, so the whole replication could be ONE layer.  Measured
+    here to see what ncc actually emits (docs section on the replication cost).
+    """
+    m = M()
+    tq = m.io("q", [T, HQ, HD])
+    tk = m.io("k", [T, HKV, HD])
+    k0, k1 = m.split(tk, [T, HKV, HD], axis=1, num=2, names=["k0", "k1"])
+    rep = HQ // HKV
+    k14 = m.concat([k0] * rep + [k1] * rep, [T, HQ, HD], 1, "k14")   # 14 inputs, 1 layer
+    kt = m.transpose(k14, [1, 0, 2], [HQ, T, HD], "kt")
+    qt = m.transpose(tq, [1, 0, 2], [HQ, T, HD], "qt")
+    sc = m.bmm(qt, kt, [HQ, T, T], "scores", adj_y=True)
+    return m.finish([0, 1], [sc], "nary14: single 14-input CONCAT replication (probe)")
+
+
+def build_rank5(q, k):
+    """Probe: the same BMM at rank 5 -- expected to be REJECTED (rank <= 4 is a hard limit).
+
+    Kept because a quoted limit without a reproduction is not evidence (E-112 quotes the
+    message; this re-derives it on this machine, ticket 04 asked to record the limit).
+    """
+    m = M()
+    tq = m.io("q5", [1, 1, HQ, T, HD])
+    tk = m.io("k5", [1, 1, HQ, T, HD])
+    sc = m.bmm(tq, tk, [1, 1, HQ, T, T], "scores5", adj_y=True)
+    return m.finish([0, 1], [sc], "rank5 probe: 5-D BATCH_MATMUL (expected reject)")
+
+
+BUILDERS = {"main": build_main, "bmm_only": build_bmm_only, "nary14": build_nary14,
+            "rank5": build_rank5,
+            "twox7": build_twox7, "unroll14": build_unroll14,
+            "wrong_reshape": build_wrong_reshape}
 
 
 # ----------------------------------------------------------------------------- main
@@ -352,6 +422,7 @@ def main(argv=None):
     k14 = np.repeat(np.transpose(k, (1, 0, 2)), HQ // HKV, axis=0)      # [HQ,T,HD]
     k14_t = np.ascontiguousarray(np.transpose(k14, (1, 0, 2)))          # [T,HQ,HD]
 
+    out_shape = [HQ, T, T]
     if args.variant == "bmm_only":
         blob = build_bmm_only(q, k14_t)
         arrays = [("input", q), ("input1", k14_t)]
@@ -360,6 +431,19 @@ def main(argv=None):
         arrays = [("input", q), ("input1", k)]
     elif args.variant == "unroll14":
         blob = build_unroll14(q, k)
+        arrays = [("input", q), ("input1", k)]
+    elif args.variant == "rank5":
+        blob = build_rank5(q, k)
+        arrays = [("input", np.ascontiguousarray(q.reshape(1, 1, T, HQ, HD))),
+                  ("input1", np.ascontiguousarray(
+                      np.repeat(np.transpose(k, (1, 0, 2)), HQ // HKV, axis=0)
+                      .reshape(1, 1, HQ, T, HD)))]
+        out_shape = [1, 1, HQ, T, T]
+    elif args.variant == "nary14":
+        blob = build_nary14(q, k)
+        arrays = [("input", q), ("input1", k)]
+    elif args.variant == "wrong_reshape":
+        blob = build_wrong_reshape(q, k)
         arrays = [("input", q), ("input1", k)]
     else:
         blob = build_main(q, k)
@@ -380,7 +464,7 @@ def main(argv=None):
                    {"name": "k" if args.variant != "bmm_only" else "k14",
                     "shape": [T, HQ if args.variant == "bmm_only" else HKV, HD],
                     "type": "fp16"}],
-        "output": {"name": "scores", "shape": [HQ, T, T], "type": "fp16",
+        "output": {"name": "scores", "shape": out_shape, "type": "fp16",
                    "bytes": int(exp.nbytes)},
         "quant": {"q": None, "k": None, "scores": None},
         "reference": "numpy_float32_accum_to_fp16",
@@ -411,7 +495,7 @@ def main(argv=None):
     out = args.out or ("ops/gqa_scores_t8_fp16" if args.variant == MAIN
                        else "ops/_gqa_variants/" + args.variant)
     os.makedirs(out, exist_ok=True)
-    emit(out, blob, meta, arrays, exp)
+    emit(out, blob, meta, arrays, np.ascontiguousarray(exp.reshape(out_shape)))
     print("%s: %d B  %s  q%s+k%s -> %s  max|out|=%.4g atol=rtol=%g" %
           (out, len(blob), args.variant, q.shape, arrays[1][1].shape, exp.shape,
            max_out, atol))

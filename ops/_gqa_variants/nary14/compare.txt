@@ -1,0 +1,9 @@
+op        : GQA_SCORES {'T': 8, 'Hq': 14, 'Hkv': 2, 'HD': 64, 'kv_repeat': 7, 'adj_y': 1, 'rank': 3}  dtype=fp16
+expected  : 896 vals   device: 896 vals   logical shape=(14, 8, 8)
+max_abs   : 0.000e+00
+rmse      : 0.000e+00
+rel_l2    : 0.000e+00
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-5368,4988]  dev [-5368,4988]
+tol       : atol=10.4844 rtol=10.4844
+PASS

@@ -1,0 +1,4 @@
+h//7 (chosen)      vs chosen mapping: max_abs=1.964 rel_l2=0.000201
+h%2 interleaved    vs chosen mapping: max_abs=4986 rel_l2=0.6376
+groups swapped     vs chosen mapping: max_abs=6449 rel_l2=1.051
+device vs golden: max_abs=0  rel_l2=0  bitwise=True

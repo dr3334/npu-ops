@@ -1,0 +1,33 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/_gqa_variants/nary14/model.tflite -d ops/_gqa_variants/nary14/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T10:21:49+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ SliceLayer<0>{SPLIT}
+   ├ SliceLayer<0>{SPLIT}
+   ├ ConcatLayer<1>{CONCATENATION}
+   ├ TransposeLayer<2>{TRANSPOSE}
+   ├ TransposeLayer<3>{TRANSPOSE}
+   ├ BatchMatMulLayer<4>{BATCH_MATMUL}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     16K    1.8K    0     0       8.1K  25K
+
+Total Memory:
+  DRAM: 25K
+  L1:   28K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=14910
+SHA256=79af0b6bcfd121471fac92e913b1440f7be82ad2afe9f2a728088313a021f1ae

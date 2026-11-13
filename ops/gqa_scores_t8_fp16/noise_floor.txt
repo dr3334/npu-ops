@@ -1,0 +1,6 @@
+n = 896  noise_floor max|r1-r2| = 0.0
+bits identical r1 vs r2: False
+raw fp16 bitwise equal: True
+dev vs exp: max_abs=0.000000e+00 rmse=0.000000e+00 rel_l2=0.000000e+00
+max|exp| = 5368  -> max_abs/max|exp| = 0.000000e+00
+1 ULP @ max|out| = 2.62109   -> dev is 0 ULP away
