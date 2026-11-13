@@ -156,15 +156,17 @@ def main(out_dir, bisect=False, T_override=None, heads=1):
                                     bo.BuiltinOptions.MulOptions, mo))
 
     def reshape(inp, out, shape):
+        """RESHAPE 需要两个输入：[数据, 新形状(int32 常量)]；NewShape 用 CreateNumpyVector
+        保持顺序（手写 Prepend 逆序是错的——照 shapeops 已验证的写法）。"""
+        buffers.append(bo.buf_data(b, np.asarray(shape, np.int32)))
+        t_sh = bo.tensor(b, f"{out}_shape", [len(shape)], bo.I32, len(buffers) - 1)
+        tensors.append(t_sh); ti_sh = len(tensors) - 1
         t_o = act(out, shape)
-        S.ReshapeOptionsStartNewShapeVector(b, len(shape))
-        for d in reversed(shape):
-            b.PrependInt32(d)
-        nsv = b.EndVector()
+        nsv = b.CreateNumpyVector(np.asarray(shape, np.int32))
         S.ReshapeOptionsStart(b)
         S.ReshapeOptionsAddNewShape(b, nsv)
         ro2 = S.ReshapeOptionsEnd(b)
-        operators.append(bo.operator(b, OC_RESHAPE, [idx[inp]], [t_o],
+        operators.append(bo.operator(b, OC_RESHAPE, [idx[inp], ti_sh], [t_o],
                                     bo.BuiltinOptions.ReshapeOptions, ro2))
 
     def bmm(a_name, b_name, out, shape, adj_y=False):
