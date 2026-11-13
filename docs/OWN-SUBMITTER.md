@@ -106,3 +106,24 @@ int8 `[1,8,16]` 逐位相等、fp16 差 1 个 code、`beta` 生效——**不是
 
 **至此自建提交器覆盖 7 个算子 + 1 个矩阵乘级算子**：ADD / MUL / SUB / MAXIMUM / MINIMUM / RELU /
 （以及）FULLY_CONNECTED(动态权重)。仍未覆盖：常量权重的 FC、多输入 >2、非 64 的形状。
+
+## 7. 🔑 自建提交器拼出"注意力核心"：FC → FC → BMM（17 次连续提交，0 失配）
+
+`probe/npu_attn_demo`（同一进程内连续提交，**无 libneuron/neuronrt**）：
+
+```
+stage1 BMM(golden a,b)   rc=0  mismatched=0/64      ← BMM 资产本身与 golden 逐字节一致
+stage2 FC->FC->BMM       rc=0  mismatched=0/64      ← 8 次 FC(Wq) + 8 次 FC(Wk) + 1 次 BMM
+RESULT: PASS
+```
+
+- **q = x·Wqᵀ、k = x·Wkᵀ**：逐 token 走 `FULLY_CONNECTED(动态权重)`（每次提交 1 个 token）；
+- **s = q·kᵀ**：走新抓的 `BATCH_MATMUL (T=8, D=64, int8)` 资产，**一次提交算完 8×8**；
+- 参考值用**我们实际产生的 int8 q/k** 在 int64 下精确乘加后夹到 int8 —— 这样验证的是"串联链路"，
+  不把 FC 的 requant ±1 code 混进结论（FC 单算子的 1/64 差 1 code 已单独记录）。
+
+**这一步的意义**：矩阵乘级算子（投影、QKᵀ）已经能由我们自己的提交器链起来，
+构成 attention 的 q/k/scores 部分。**还缺**：softmax 与 P·V 两段（需要各自的资产），
+以及把它们和 v 的投影接起来。
+
+覆盖清单更新：ADD / MUL / SUB / MAXIMUM / MINIMUM / RELU / FC(动态权重) / **BATCH_MATMUL(QKᵀ)**。

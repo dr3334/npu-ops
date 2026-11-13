@@ -33,6 +33,7 @@ typedef enum {
   NPU_OP_LOGISTIC,
   NPU_OP_TANH,
   NPU_OP_FC_DYNW,
+  NPU_OP_BMM_QK,
   NPU_OP__COUNT
 } npu_op_t;
 

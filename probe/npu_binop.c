@@ -182,6 +182,19 @@ static npu_binop_plan_t g_plan_fcdyn = {
     .expect_patches = 3,
     .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
 };
+static npu_binop_plan_t g_plan_bmm_qk = {
+    .name = "BATCH_MATMUL(QK^T T=8 D=64)",
+    .asset_dir = "/data/local/tmp/npuops/assets/bmm_qk",
+    .old_iova = { 0, 0, 0 },
+    .bytes = 512,          /* [1,8,64] int8 */
+    .bytes_b = 512,
+    .alloc_size = NPU_BINOP_ALLOC,
+    .n_inputs = 2,
+    .cmdbuf_dir = { 1, 2, 1 },
+    .patch_idx = 2,
+    .expect_patches = 3,
+    .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
+};
 static const npu_binop_plan_t *const g_plans[NPU_OP__COUNT] = {
     [NPU_OP_ADD] = &g_plan_add,
     [NPU_OP_MUL] = &g_plan_mul,
@@ -192,6 +205,7 @@ static const npu_binop_plan_t *const g_plans[NPU_OP__COUNT] = {
     [NPU_OP_LOGISTIC] = &g_plan_logistic,
     [NPU_OP_TANH] = &g_plan_tanh,
     [NPU_OP_FC_DYNW] = &g_plan_fcdyn,
+    [NPU_OP_BMM_QK] = &g_plan_bmm_qk,
 };
 
 static const char *const g_op_names[NPU_OP__COUNT] = {
