@@ -1,0 +1,9 @@
+op        : PV_3D_BMM__O_PROJ__RESIDUAL_NEGATIVE_CONTROL {'T': 8, 'H': 14, 'KV': 2, 'HD': 64, 'D': 896, 'PV_rank': 3}  dtype=float16
+expected  : 7168 vals   device: 7168 vals   logical shape=(8, 896)
+max_abs   : 8.762e-02
+rmse      : 1.995e-02
+rel_l2    : 9.233e-01
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-0.08051,0.08014]  dev [-0.07538,0.08704]
+tol       : atol=0.000157245 rtol=0.000157245
+FAIL

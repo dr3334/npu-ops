@@ -1,0 +1,28 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/pv_bmm3d_control_t8_fp16/model.tflite -d ops/pv_bmm3d_control_t8_fp16/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T10:21:13+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ BatchMatMulLayer<0>{BATCH_MATMUL}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     15K    14K     0     0       10K   40K
+
+Total Memory:
+  DRAM: 40K
+  L1:   16K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=23394
+SHA256=8c401c0c55b121e1f308f545b02dbd49c63cdaf2f1b9a44d93567a4d14c7d40c
