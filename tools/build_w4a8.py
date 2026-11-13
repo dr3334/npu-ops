@@ -1918,7 +1918,6 @@ def main():
         requant="tools/quant_contract.py: two integer roundings, per-channel multipliers",
         builder="tools/build_w4a8.py --w-bits %d --a-bits %d --seam %s"
                 % (W_BITS, A_BITS, SEAM))
-        builder="tools/build_w4a8.py --w-bits %d" % W_BITS)
     if meta["output"]["type"] == "float16":
         # Registered BEFORE the first board run (ticket 04e): the truncation stages
         # (--upto probs) end on the fp16 side of the seam, so the code-level contract
