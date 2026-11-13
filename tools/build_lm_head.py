@@ -27,12 +27,16 @@ WHY these choices (this is experiment design, not incidental code):
 * **weights layout**: TFLite FULLY_CONNECTED with weights_format=DEFAULT is [N,K],
   which is exactly embed.weight's [vocab, hidden] layout -> logits = x . W^T.
   No transpose is needed (and a transpose would be a silent numerical bug).
-* **input provenance**: x is 8 rows of the fixture embedding (token ids 0..7),
-  each row scaled to RMS = 1. That mimics the final RMSNorm output of the real
-  model (row RMS ~ 1) without inventing a second random stream, and puts the
-  logits at the real model's scale: ||x|| * std(embed) = sqrt(896)*0.015249 ~ 0.46.
-  The op is linear, so any x exercises the same contract; this one is reproducible
-  from the frozen fixture alone.
+* **input provenance**: x is 8 rows of a *different* fixture tensor
+  (layer0.attn.o_proj.weight, rows 0..7), each row scaled to RMS = 1. That mimics the
+  final RMSNorm output of the real model (row RMS ~ 1) without inventing a random
+  stream, and puts the logits at the real model's scale:
+  ||x|| * std(embed) = sqrt(896)*0.015249 ~ 0.456.
+  WHY NOT embed rows: x taken from embed.weight makes logits[t,t] = 896*rms_t ~ 13.68
+  (a 30-sigma self-dot product), and a max|out|-based tolerance (NOTES 10.1) would then
+  be 4*2^-11*13.68 = 2.67e-2 -- 6x looser than the bulk of the output needs, and above
+  NOTES 4's 2e-2 cap. The spike is a property of *this* input, not of the operator, so we
+  use a source decorrelated from the weights. (Measured: see docs/OP-lm-head.md 2.4.)
 * **golden independence (AGENTS.md R3)**: golden/expected.bin is plain numpy
   float32 matmul of the *stored fp16 values*, computed in vocab chunks so peak RSS
   stays ~100 MB. It shares no code with the flatbuffer construction.
@@ -58,7 +62,8 @@ import qwen25_weights as qw                 # frozen fixture loader (sha256-veri
 
 OPDIR = "ops/lm_head_t8_fp16"
 M, K, N = 8, 896, 151936                    # hidden batch x hidden size x vocab
-TOKENS = list(range(M))                     # embedding rows used as x
+INPUT_TENSOR = "layer0.attn.o_proj.weight"  # decorrelated fixture rows used as x
+INPUT_ROWS = list(range(M))                 # rows 0..7 of that tensor
 GOLDEN_CHUNK = 8192                         # vocab rows per matmul chunk (RSS bound)
 FP16_ULP_REL = 2.0 ** -11                   # 4.8828125e-4, the fp16 mantissa step
 TOL_K = 4.0                                 # NOTES 10.1: atol = rtol = k * 2^-11 * max|out|
@@ -148,15 +153,25 @@ def load_tied_weights(weights_dir=None):
     return w_embed, info
 
 
-def make_input(w_embed):
-    """8 embedding rows (token 0..7) scaled to row RMS = 1 (stand-in for final RMSNorm)."""
-    rows = np.asarray(w_embed[TOKENS, :], dtype=np.float64)        # [8,896] exact
+def make_input(weights_dir=None):
+    """8 rows of a decorrelated fixture tensor, each scaled to row RMS = 1.
+
+    Stand-in for the final RMSNorm output (row RMS ~ 1). Deliberately NOT embed rows:
+    an embed row dotted with its own row gives 896*rms ~ 13.68, which would dominate a
+    max|out|-based tolerance (see module docstring + docs/OP-lm-head.md 2.4).
+    """
+    src = INPUT_TENSOR
+    rows = np.asarray(qw.get(src, path=weights_dir)[INPUT_ROWS, :], dtype=np.float64)
+    if rows.shape != (M, K):
+        raise SystemExit("%s rows %s give %s != (%d,%d)" % (src, INPUT_ROWS, rows.shape, M, K))
     rms = np.sqrt(np.mean(rows * rows, axis=1, keepdims=True))      # per-row RMS
     x = (rows / rms).astype(np.float16)
     got = np.sqrt(np.mean(x.astype(np.float64) ** 2, axis=1))
     stats = {
-        "provenance": "embed.weight rows token_id 0..7, each row scaled to RMS=1",
-        "tokens": TOKENS,
+        "provenance": "%s rows %s, each row scaled to RMS=1" % (src, list(INPUT_ROWS)),
+        "source_tensor": src,
+        "source_sha256": qw.spec(src, path=weights_dir)["sha256"],
+        "rows": list(INPUT_ROWS),
         "row_rms": [round(float(v), 6) for v in got],
         "row_norm": [round(float(np.linalg.norm(x[i].astype(np.float64))), 4) for i in range(M)],
         "abs_max": float(np.abs(x.astype(np.float64)).max()),
@@ -296,7 +311,7 @@ def main(argv=None):
     os.makedirs(os.path.join(d, "golden"), exist_ok=True)
 
     w_embed, winfo = load_tied_weights(args.weights_dir)
-    x, xstats = make_input(w_embed)
+    x, xstats = make_input(args.weights_dir)
     exp, gstats = golden(x, w_embed)
     atol, rtol, tol = tolerance(gstats, args.noise_floor)
 

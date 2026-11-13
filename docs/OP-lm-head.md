@@ -35,7 +35,7 @@
 | A1 | 图就是**单个 FULLY_CONNECTED**（不做权重转置）：`out[m,v] = Σ_k x[m,k]·W[v,k] + b[v]`，`W` 布局 `[vocab, hidden]` 与 `embed.weight` 的 `[151936,896]` 一致 | TFLite FC 的 `weights_format=DEFAULT` 就是 `[N,K]`；`build_ops.py` 已用同一语义 |
 | A2 | **tied**：图里 `embed.weight` 只出现一次（一个常量缓冲 272,269,312 B）；`lm_head.weight` 是加载器别名，不二次物化 | `tools/qwen25_weights.py` 的 `get("lm_head.weight") is get("embed.weight")`（票 02 §6.4 第 5 条） |
 | A3 | FC **必须有第三个输入 bias**（ncc 加载期硬要求，NOTES §5 坑 1）；真实 LM head **无 bias** → 喂全零 `[151936] fp16`（303,872 B） | NOTES §5-1 |
-| A4 | 输入 `x` 取夹具 `embed.weight` 的 8 行（token 0..7）按**行 RMS 归一**：模拟 final RMSNorm 输出（行 RMS=1），确定性、不引入额外 RNG；于是 logits 尺度 = `‖x‖·std(w) ≈ sqrt(896)×0.015249 ≈ 0.456`，与真模型同量级 | 票 02 §4 实测 `embed.weight std=0.015249` |
+| A4 | 输入 `x` 取夹具 **`layer0.attn.o_proj.weight` 的 8 行**（0..7）按**行 RMS 归一**：模拟 final RMSNorm 输出（行 RMS=1），确定性、不引入额外 RNG；于是 logits 尺度 = `‖x‖·std(w) ≈ sqrt(896)×0.015249 ≈ 0.456`，与真模型同量级 | 票 02 §4 实测 `embed.weight std=0.015249`；**为什么不用 embed 行见 §2.4** |
 | A5 | 上板走厂商 runtime `./bin/neuronrt -m hw`（`tools/e2e.sh`），**不涉及**自建提交器，因此 `docs/ISSUE-const-fc.md` 的"常量权重 FC 地址异常"不适用于本票 | e2e.sh 第 4 步 |
 
 ### 2.2 预测（每条都给证伪条件）
@@ -48,7 +48,7 @@
 | P4 | **push**：272.6 MB 经 `adb push` 约 **8–30 s**（20–35 MB/s）；设备 `/data` 剩 6.4 GB，占 <5%，不是瓶颈 | 远超 30 s ⇒ 记实测值，作为"单体路线不可接受"的证据之一 |
 | P5 | **加载 + 运行**：`neuronrt` 能加载 272 MB `.dla` 并跑；单次推理 **10–100 ms**（权重从 DRAM 扫一遍：1.09 GMAC + 272 MB 搬运） | 加载期 OOM / `Fail to load` / 超时 ⇒ 单体路线失败（设备当前 `MemAvailable≈6.1 GB`，空闲 RAM 不是必然瓶颈——**这次实测与 NOTES §6 的 ~273 MB 不同，见 §5**） |
 | P6 | **输出尺寸**：`8×151936×2 = 2,430,976 B = 2.43 MB`；`adb pull` < 1 s | 尺寸不符 ⇒ 输出声明/keep_num_dims 写错 |
-| P7 | **数值**：噪声底 `max|r1-r2| = 0`（fp16 FC 在本仓库已多次逐位复现，见 `ops/fc_8x128x128_fp16/compare.txt` 的 `max_abs 0.000e+00`）；板端 vs golden `max_abs ≤ 1 ULP`（`|logit|≤3` ⇒ ULP≤9.8e-4） | 噪声底非 0 或 max_abs 超出 1 ULP ⇒ 需查明是累加精度（fp16 vs fp32 累加）还是形状映射错误 |
+| P7 | **数值**：`max\|logit\| ≈ 5σ·0.456 ≈ 2.3`；噪声底 `max\|r1-r2\| = 0`（fp16 FC 在本仓库已多次逐位复现，见 `ops/fc_8x128x128_fp16/compare.txt` 的 `max_abs 0.000e+00`）；板端 vs golden `max_abs ≤ 1 ULP`（`\|logit\|≈2.3` ⇒ ULP=9.8e-4） | 噪声底非 0 或 max_abs 超出 1 ULP ⇒ 需查明是累加精度（fp16 vs fp32 累加）还是形状映射错误 |
 | P8 | 若 P3/P5 失败，**失败点在加载期或搬运耗时**，不在数值；退路 = **4 分块 FC（N=37984）+ CONCAT(axis=1)**，总权重字节不变（仍一份）、输出仍是 `[8,151936]` | 若连分块也在 importer 期失败 ⇒ 需要报到 Lead（可能是 ncc 对大常量缓冲的硬上限） |
 
 ### 2.3 阈值登记（**先登记再测**，含 Lead 11:00 补充的 NOTES §10.1 例外规则）
@@ -68,5 +68,31 @@
   它冻结到真实权重阶段（最后一档）才启用。本票只对 logits 向量本身做 atol/rtol 对拍。
 - **§10.2 也适用**：`EXIT=0 + 单执行步 ≠ 数学正确`。本票的"编译侧结论"一律以板端对拍为准；特别地，
   FC 的 `weights_format=DEFAULT [N,K]` 若被误当 `[K,N]`，编译与单执行步都不会报警，只有板端数值会露馅。
+
+### 2.4 登记修订 #1（**跑之前**，仅依据设备无关的 golden；2026-11-13 10:5x）
+
+第一次按 A4（原版：输入 = `embed.weight` 的 8 行按行 RMS 归一）算 golden，实测
+
+```
+golden: abs_max=13.679688  min=-2.066406  max=13.679688  std=0.457509
+```
+
+`max` 与 `std` 差 **30 倍** ⇒ 这不是分布尾，而是**结构性的自点积**：
+`x_t = embed[t]/rms_t ⇒ logits[t, t] = x_t·embed[t] = 896·rms_t ≈ 896×0.01527 ≈ 13.68`。
+逐行验证：8 行对应的 8 个对角元都悬在 13.6–13.7，其余 121 万个数 `|·| ≤ 2.07`。
+
+**后果（这就是要改的原因）**：§10.1 的例外阈值是 `4·2^-11·max|out|`，一个 30σ 的结构性尖峰会把它从
+`4.5e-3` 抬到 **2.67e-2**（`> 2e-2` 上限，且相对口径 2.7% 比 fp16 的 1–2 ULP 松 6 倍）。
+**尖峰是"这个输入"的属性，不是算子的属性**，拿它当容差标尺等于自己放宽判据。
+
+**修订**：输入改为**与权重去相关**的夹具张量行 —— `layer0.attn.o_proj.weight` 的行 0..7，仍按行 RMS 归一。
+理由：(a) 仍完全来自冻结夹具、无额外 RNG；(b) 行 RMS=1 与真模型 final RMSNorm 输出同量级；
+(c) 与 `embed.weight` 无共享行 ⇒ 输出回到"1.2M 个近似独立样本"的形态，`max|out|` 由分布尾（5σ）决定。
+**预测**：`max|logit| ≈ 5×0.456 ≈ 2.3` ⇒ 阈值 `4·2^-11·2.3 ≈ 4.5e-3`（相对 1%，`< 2e-2` 上限）。
+
+> 留痕：本条修订发生在**任何编译/上板之前**，只用了 golden（设备无关）。A4/P7 已按修订更新；
+> 原 embed 输入方案的数值原样保留在上面（失败/放弃的证据也保留，仓库规矩）。
+> 附带说明：那次测量顺带证明了"tied"在数值上的可辨识性 —— 若后续要给"同一矩阵"出**板端**结构证据，
+> 把输入换回 embed 行、检查 `logits[t,t] ≈ 896·rms_t` 即可（本票不做，见 §6 剩余疑问）。
 
 ---
