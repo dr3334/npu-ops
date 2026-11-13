@@ -1,0 +1,152 @@
+{
+  "op": "MUL+ADD+SOFTMAX (masked softmax)",
+  "shape": {
+    "H": 14,
+    "T": 8,
+    "KVH": 2,
+    "HD": 64,
+    "D": 896
+  },
+  "op_shape": [
+    14,
+    8,
+    8
+  ],
+  "dtype": "float16",
+  "graph": "scores -MUL(1/8)-> -ADD(mask)-> -SOFTMAX(beta=1)-> probs",
+  "scale": 0.125,
+  "scale_exact": "1/8 = 2^-3, power of two -> the MUL is exact in fp16 (no rounding)",
+  "mask_value": -4096.0,
+  "mask_value_alt": -8192.0,
+  "mask_order": "added AFTER the 1/8 scale (see docs/OP-masked-softmax.md \u00a72)",
+  "input": {
+    "name": "scores",
+    "shape": [
+      14,
+      8,
+      8
+    ],
+    "type": "float16",
+    "bytes": 1792,
+    "means": "raw q.k (before 1/sqrt(head_dim))"
+  },
+  "input1": {
+    "name": "mask",
+    "shape": [
+      14,
+      8,
+      8
+    ],
+    "type": "float16",
+    "bytes": 1792,
+    "means": "additive causal mask, 0 / -4096"
+  },
+  "output": {
+    "name": "probs",
+    "shape": [
+      14,
+      8,
+      8
+    ],
+    "type": "float16",
+    "bytes": 1792
+  },
+  "reference": "float64 canonical softmax exp(v)/sum(exp(v)), v = fp16_input*1/8 + mask",
+  "seed": 20261113,
+  "input_source": "frozen fixture (ticket 02) q/k projections of the named layer; x = unit-RMS random direction * measured input_layernorm gamma",
+  "score_stats": {
+    "layer0": {
+      "layer": "layer0",
+      "hidden_rms": 0.10207397710178137,
+      "bq_std": 7.796318531036377,
+      "bk_std": 29.778400421142578,
+      "raw_absmax": 4110.720733866678,
+      "scaled_absmax": 513.8400917333347,
+      "per_head_offset_min": -503.7213449298166,
+      "per_head_offset_max": 458.00888644851307
+    },
+    "layer1": {
+      "layer": "layer1",
+      "hidden_rms": 0.7431404395520864,
+      "bq_std": 1.199453592300415,
+      "bk_std": 19.004737854003906,
+      "raw_absmax": 595.3427695778532,
+      "scaled_absmax": 74.41784619723165,
+      "per_head_offset_min": -45.889176847901794,
+      "per_head_offset_max": 31.387816984862983
+    }
+  },
+  "atol": 0.001,
+  "rtol": 0.005,
+  "tolerance_rationale": "registered BEFORE the board run. fp16 output magnitude ~1/(i+1) in [0.125,1]; 1 ULP at 0.125 is 1.22e-4, and a device/CPU 1-ULP difference on 1/7 is 8.5e-4 relative. atol=1e-3 = 8 ULP at 0.125 (must also cover the masked positions whose expected value is exactly 0); rtol=5e-3 = 5.9x the relative 1-ULP of 0.125. Both are far below the repo default 2e-2 and above the measured noise floor (see docs/OP-masked-softmax.md \u00a76).",
+  "prediction": [
+    "P1 compile: EXIT=0, single Execution Step on MDLA_5_0, layers = ElementWiseMulLayer + ElementWiseAddLayer + SoftMaxLayer, no bridge.",
+    "P2 masked positions: device output is EXACTLY 0.0 (all fp16 bits zero).",
+    "P3 mask magnitude -4096 vs -8192: the two board dumps are BIT-IDENTICAL (finite mask saturated => behaves like the ideal -inf mask).",
+    "P4 zero mask => plain softmax over all 8 entries; masked-run/zero-run ratio at visible positions is the per-row constant S_all/S_visible.",
+    "P5 noise floor (same .dla, same inputs, 2 runs) == 0 (deterministic hardware).",
+    "P6 layer0 scores have |s|max=513.8 with per-head offsets +-500; if the device does NOT subtract the row max, exp(468) overflows fp16 -> NaN (this run answers it)."
+  ],
+  "experiments": [
+    {
+      "name": "primary",
+      "input": "golden/input.bin",
+      "input1": "golden/input1.bin",
+      "expected": "golden/expected.bin",
+      "compare": "compare.txt",
+      "tests": "causal masked softmax, layer0 (largest measured dynamic range)"
+    },
+    {
+      "name": "noise",
+      "input": "golden/input.bin",
+      "input1": "golden/input1.bin",
+      "expected": "golden/expected.bin",
+      "compare": "compare_noise.txt",
+      "tests": "noise floor: same .dla + same inputs, second run"
+    },
+    {
+      "name": "mag2",
+      "input": "golden/input.bin",
+      "input1": "golden/input1_mag2.bin",
+      "expected": "golden/expected_mag2.bin",
+      "compare": "compare_mag2.txt",
+      "tests": "mask magnitude -4096 vs -8192 -> dump must be bit-identical to primary"
+    },
+    {
+      "name": "zero",
+      "input": "golden/input.bin",
+      "input1": "golden/input1_zero.bin",
+      "expected": "golden/expected_zero.bin",
+      "compare": "compare_zero.txt",
+      "tests": "mask == 0 -> plain softmax (\u672a\u63a9\u7801\u7248\u672c), control for judgement 2"
+    },
+    {
+      "name": "layer1",
+      "input": "golden/input_l1.bin",
+      "input1": "golden/input1_l1.bin",
+      "expected": "golden/expected_l1.bin",
+      "compare": "compare_l1.txt",
+      "tests": "second regime: per-head offsets only +-45, non-degenerate probabilities"
+    }
+  ],
+  "tflite": "model.tflite",
+  "tflite_bytes": 2600,
+  "tflite_constmask": "model_constmask.tflite",
+  "tflite_constmask_bytes": 4416,
+  "sha256": {
+    ".tflite": "060f15f9f4c5947d8add2bc4c12ce9f106fde2f575b8e1b3f2639e0a355b9479",
+    "_constmask.tflite": "73996f51d1ce9726536f7d9725e8aa7f14be5bfb0d6f35a80f91b0c6d1cef9aa"
+  },
+  "golden_sha256": {
+    "input.bin": "1bb77f98706b168c4cb75b165d51376c239a754bf83ea0f97d3a580b740963c7",
+    "input1.bin": "571423b601b1b0e0afa89e7ad21bd1c0f15ab121c62c1200e30a74482c40093c",
+    "expected.bin": "0414dc390185b108dadfd82dbd80d2b55e1f2bc8b914d3053269c39ebaa2ac26",
+    "input1_mag2.bin": "888aef5c3023e53639f85e9c86a20bb56dc71f0303501355af36198e940a41f2",
+    "expected_mag2.bin": "0414dc390185b108dadfd82dbd80d2b55e1f2bc8b914d3053269c39ebaa2ac26",
+    "input1_zero.bin": "7b4fc1a8dbe6b6121f16ada516e2ac27e02964716bacea5fb7d07cf30595948e",
+    "expected_zero.bin": "d6628d0dfa91057657507999edcabeeb9afb394e129748758a6eda4315c913b6",
+    "input_l1.bin": "2875add9c9c6f4f380f6910a7b69d751e14a7dface46885af9de51179fb746bc",
+    "input1_l1.bin": "571423b601b1b0e0afa89e7ad21bd1c0f15ab121c62c1200e30a74482c40093c",
+    "expected_l1.bin": "7a3138fabf775960f5384ef88576930a949ef6fdae4208051f3e29366a77aabc"
+  }
+}
