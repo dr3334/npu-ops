@@ -1,0 +1,7 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/qkv_k_bias_rope_t8_fp16/neg_width896/a_896wide_fc_to_kv_reshape.tflite -d ops/qkv_k_bias_rope_t8_fp16/neg_width896/a_896wide_fc_to_kv_reshape.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T10:21:51+08:00
+
+ERROR: Fail to process the given model
+EXIT=1
+SIZE=0
