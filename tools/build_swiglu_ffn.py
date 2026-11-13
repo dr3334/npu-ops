@@ -390,6 +390,20 @@ def analyze(opdir):
     d = dev.reshape(shape)
     e = exact.reshape(shape)
     print(f"{opdir}: {meta['op']} {meta['shape']} dtype=fp16  n={dev.size}")
+    # noise floor (NOTES section 4): the same .dla + same input run twice
+    r1p = os.path.join(opdir, "out_r1.bin")
+    r2p = os.path.join(opdir, "out_r2.bin")
+    if os.path.exists(r1p) and os.path.exists(r2p):
+        r1 = np.fromfile(r1p, dtype=dt).astype(np.float64)
+        r2 = np.fromfile(r2p, dtype=dt).astype(np.float64)
+        nf = float(np.abs(r1 - r2).max())
+        print(f"  noise floor         max|r1-r2|={nf:.3e}  runs_identical="
+              f"{bool(np.array_equal(r1, r2))}")
+    m = float(np.abs(e).max())
+    dev_vs_exact = np.abs(e.astype(np.float64) - d.astype(np.float64)).max()
+    print(f"  relative form       max|exp|={m:.6g}  max_abs/max|exp|="
+          f"{dev_vs_exact / max(m, 1e-30):.3e}  "
+          f"ULP16@max|exp|={2.0 ** -11 * 2.0 ** np.floor(np.log2(max(m, 1e-30))):.3e}")
     for tag, ref in (("exact(fp64)", e), ("alt(per-tensor fp16)", alt.reshape(shape))):
         r = ref.astype(np.float64)
         dd = np.abs(r - d.astype(np.float64))
