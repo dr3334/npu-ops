@@ -6,7 +6,7 @@
 
 ### Issue tracker
 
-Issue 与 spec 都在 GitHub Issues（`dr3334/npu-ops`），操作用 `gh` CLI。详见 `docs/agents/issue-tracker.md`。
+Issue 与 spec 都记在仓库内的 `.scratch/<feature>/`（本地 markdown）。公开仓库尚未用于记录计划。详见 `docs/agents/issue-tracker.md`。
 
 ### Triage labels
 

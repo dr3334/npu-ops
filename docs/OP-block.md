@@ -151,15 +151,21 @@ ERROR: Fail to process the given model     EXIT=1
 图内现在包含：`MUL→MEAN→RSQRT→MUL`（×2 RMSNorm）、`SPLIT→MUL×4→SUB/ADD→CONCAT`（×2 RoPE）、
 `FC`（含 1 个动态权重 scores）、`SoftMax`、`Transpose`、`Sigmoid`、`MUL`、`ADD` —— 全部在**同一个 execution step**。
 
-### 多 head 变体：WIP（未通过）
+### 多 head 变体：已定位为 builder bug，不是编译器限制
 
-`--heads 2` 走 `RESHAPE → BATCH_MATMUL(adj_y) → SoftMax → BATCH_MATMUL → RESHAPE` 的路径，
-当前在 importer 阶段失败：`ERROR: Fail to process the given model`（无层清单）。
-候选原因：手写 `ReshapeOptions.NewShape` 向量的构造顺序（flatbuffers 里需要逆序 Prepend），
-或 BMM 的输入 rank。**未作为结论**，下一步用 `probe/dump_tflite.py` 与 bmm-agent 生成的
-`ops/bmm_*` 模型做同款 tensor 表 diff（这条路本轮已验证有效：RMSNorm 的 bug 就是这样 10 分钟定位的）。
+`--heads 2` 的 `RESHAPE → BATCH_MATMUL(adj_y) → SoftMax → BATCH_MATMUL → RESHAPE` 确实失败，
+但**根因不是 importer**：`fc()` 按 FC 的目标宽度 `[n,k]` 声明权重张量，而 `heads>1` 时传进去的
+`Wq/Wk/Wv` 只有 `HD` 行，于是 flatbuffer 声明了一个大 14 倍的缓冲区（`heads=14` 时声明 896×896
+而数组是 64×896）。ncc 在**模型加载**阶段就退出：`ERROR: Fail to process the given model`——
+从未走到逐层校验，所以没有层清单。
+
+正确构造的 14 头 decoder 层（RMSNorm + 14Q/2KV + SwiGLU）`EXIT=0`、27 层、单个 MDLA 执行步；
+头数扫描到 1024 均通过。详见 `docs/OP-gqa.md`（E-112）。
+
+判据提示（按错误措辞分阶段）：`the given model` = 加载/解析期，`the input model` = 逐层校验期，
+`Cannot find an execution plan` / `Bridging is disallowed` = 后端期。
 
 ### 覆盖声明（不夸大）
 
 - ✅ 单 head、T=8 / T=128、fp16、RMSNorm+RoPE+attention+SwiGLU 全在 NPU；
-- ⚠️ 多 head 未通；int8 整块未做；无 KV cache；**仍是厂商编译路径**（`.dla` 由 ncc 生成）。
+- ⚠️ 多 head：**编译侧已通**（E-112，14 头 / 27 层 / 单执行步），板端数值未验；int8 整块未做；无 KV cache；**仍是厂商编译路径**（`.dla` 由 ncc 生成）。
