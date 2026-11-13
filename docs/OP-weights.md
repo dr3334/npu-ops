@@ -212,6 +212,17 @@ qw.verify_all()                              # -> {"ok": True, "checked": 25, "a
 目录解析顺序：显式参数 → 环境变量 `QWEN25_WEIGHTS_DIR` → `<repo>/weights/qwen25_frozen`。
 下游 worktree 里没有产物时，用 `QWEN25_WEIGHTS_DIR` 指向已生成的那份（**或自己跑一次生成器，sha256 相同**）。
 
+已实测的接口行为（独立进程，默认目录 + `QWEN25_WEIGHTS_DIR` 指向第二轮生成的目录，两次一致）：
+
+| 行为 | 结果 |
+|---|---|
+| `get("layer0.attn.q_proj.weight")` | `(896, 896) float16`，`writeable=False` |
+| 试图写入返回值 | `ValueError`（只读是硬约束，防止下游把夹具改脏） |
+| `get("lm_head.weight") is get("embed.weight")` | `True`（tied 别名不重复占内存） |
+| `get_fp32(...)` | `float32`、可写副本（numpy golden 用） |
+| `names()` / `alias_names()` | 25 个 / `['lm_head.weight']` |
+| 换 `QWEN25_WEIGHTS_DIR` 指向另一轮生成 | 同一张量的值完全相同（`abs_max` 一致） |
+
 ---
 
 ## 6. 结果

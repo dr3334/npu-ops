@@ -9,8 +9,8 @@
   "layout": "C order, little-endian, contiguous",
   "hash_of": "raw array bytes (C order, little-endian fp16); NOT the .npz container",
   "stats_method": "mean/std/abs_max computed over the stored fp16 values, float64 accumulation, std is population (ddof=0)",
-  "generated_at_utc": "2026-11-13T02:08:16Z",
-  "generator_command": "/usr/bin/python3 tools/gen_qwen25_weights.py",
+  "generated_at_utc": "2026-11-13T02:12:44Z",
+  "generator_command": "/usr/bin/python3 tools/gen_qwen25_weights.py --quiet",
   "environment": {
     "python": "3.10.12",
     "numpy": "2.2.6",
@@ -18,11 +18,11 @@
   },
   "generator": {
     "script": "tools/gen_qwen25_weights.py",
-    "sha256": "bf15553994a2ba631db6063565b5e1ca5dcb1dd6402ed80ffc0209ab8d0ec678"
+    "sha256": "7ceb1950660207566eb8613afd16beddbc2ce0e2297a9c008dbbb0b1d6037538"
   },
   "loader": {
     "script": "tools/qwen25_weights.py",
-    "sha256": "53f616b5bf942357b0872ba7d603c38e83976f43bb5dd4d048b7c9983a3b853b"
+    "sha256": "e9691dad5f129f90730f43e0c90e655bd2632ed19447babd4fc8cc59c81fa6bc"
   },
   "model": {
     "fixture_for": "Qwen2.5-0.5B decoder block (T=8, fp16, 14Q-2KV GQA, head_dim=64)",

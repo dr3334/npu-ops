@@ -275,7 +275,7 @@ def _command_line() -> str:
     return "%s %s" % (Path(sys.executable).as_posix(), " ".join(a.replace("\\", "/") for a in sys.argv))
 
 
-def _build_entry(name, shape, source_tensor, arr, stats, container_sha256, out_dir):
+def _build_entry(name, shape, source_tensor, stats, container_sha256):
     measured = MEASURED[name]
     entry = {
         "name": name,
@@ -312,7 +312,7 @@ def cmd_generate(out_dir: Path, seed: int, quiet: bool) -> int:
         npz_path = out_dir / ("%s.npz" % name)
         np.savez(npz_path, **{name: arr})
         container = _sha256_bytes(np.frombuffer(npz_path.read_bytes(), dtype=np.uint8))
-        entries.append(_build_entry(name, shape, source_tensor, arr, stats, container, out_dir))
+        entries.append(_build_entry(name, shape, source_tensor, stats, container))
         total_bytes += stats["bytes"]
         if not quiet:
             rel = "" if MEASURED[name][1] == 0 else " (std rel dev %+.3f%%)" % (
