@@ -14,6 +14,14 @@ Graph (chunks=C)
     CONCAT(y_0..y_{C-1}, axis=1) --> logits [8,151936]
     (same graph, same single weight copy -- just split into C constant buffers)
 
+WHY chunks=4 and not 1 (measured, ops/lm_head_t8_fp16/probe/): MDLA refuses any tensor
+dimension > 65535 ("MDLA: Dimension should be <= 65535. Operand: 1 got <151936 x 896>").
+Probe fc_65535 compiles, fc_65536 does not -> the limit is exactly 65535, so
+ceil(151936/65535) = 3 chunks is the minimum, and 3 does not divide 151936 -> 4 chunks
+of 37984 each. CONCAT(axis=1) producing [8,151936] *does* compile and land on MDLA in a
+single execution step (probe concat_151936), and so does RESHAPE to [8,151936].
+This is a *compiler* limit, not a memory limit: the 272 MB weight size is irrelevant here.
+
 WHY these choices (this is experiment design, not incidental code):
 
 * **tied**: the real model has tie_word_embeddings=true, i.e. the LM head *is*
@@ -327,7 +335,7 @@ def main(argv=None):
     tinfo = describe_tflite(args.out)
     weight_bytes = int(w_embed.nbytes)
     overhead = int(tinfo["constant_bytes"]) - weight_bytes
-    want_bias = 303872 * args.chunks
+    want_bias = N * 2                                    # zero bias: N fp16 elements total
     single_copy = (int(tinfo["constant_bytes"]) == weight_bytes + want_bias)
 
     meta = {

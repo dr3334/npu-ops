@@ -1,0 +1,113 @@
+{
+  "op": "FULLY_CONNECTED+CONCATENATION",
+  "graph": "x[8,896] --FC_i(W=embed.weight[0:37984], b=0)--> y_i[8,37984] x4, CONCAT(axis=1) --> logits[8,151936] fp16",
+  "shape": {
+    "M": 8,
+    "K": 896,
+    "N": 151936
+  },
+  "dtype": "fp16",
+  "chunks": 4,
+  "chunk_n": 37984,
+  "input": {
+    "name": "input",
+    "shape": [
+      8,
+      896
+    ],
+    "type": "float16",
+    "bytes": 14336,
+    "provenance": "layer0.attn.o_proj.weight rows [0, 1, 2, 3, 4, 5, 6, 7], each row scaled to RMS=1",
+    "row_rms": [
+      0.999992,
+      1.000008,
+      0.999998,
+      0.999992,
+      1.000004,
+      1.000007,
+      0.999991,
+      1.000005
+    ]
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      8,
+      151936
+    ],
+    "type": "float16",
+    "bytes": 2430976
+  },
+  "quant": {
+    "input": null,
+    "weights": null,
+    "bias": null,
+    "output": null
+  },
+  "weights_shape": [
+    151936,
+    896
+  ],
+  "weights_source": {
+    "tensor": "embed.weight",
+    "alias": "lm_head.weight",
+    "tied_identity_check": true,
+    "shape": [
+      151936,
+      896
+    ],
+    "dtype": "float16",
+    "bytes": 272269312,
+    "sha256": "40cdb3488dedade266d353dd674f2ed279dab6b7a4f3590bfbcb46f9bc859d7a",
+    "fixture_dir": "/mnt/d/deepseek_ workspace/mtk/wt-t08/weights/qwen25_frozen",
+    "weights_digest": "898fa3195d627a4ce055cbdb6fc762a12e74665b431e3ae09b530b4abdad18a4",
+    "load_seconds": 1.18
+  },
+  "tied_materialised_once": true,
+  "constant_bytes": 272573184,
+  "weight_overhead_bytes": 303872,
+  "bias": {
+    "value": "zeros",
+    "elements": 151936,
+    "bytes": 303872,
+    "why": "ncc requires a 3rd FULLY_CONNECTED input (NOTES 5-1); real LM head has no bias"
+  },
+  "reference": "float32",
+  "atol": 0.004291534423828125,
+  "rtol": 0.004291534423828125,
+  "tolerance_revision": {
+    "revision": 1,
+    "registered_before_run": true,
+    "policy": "NOTES 10.1 exception: atol=rtol=4.0*2^-11*max|exp|",
+    "reason": "|logits| max=2.197 > 1, so NOTES 4's absolute 2e-2 would be only 9.10e-03 relative; threshold derived from the fp16 mantissa step (2^-11) x 4 x max|exp| -- device-independent lower bound, no device data used to pick it",
+    "formula": "atol = rtol = 4 * 2^-11 * max|exp| = 0.00429153",
+    "max_abs_expected": 2.197265625,
+    "fp16_ulp_rel": 0.00048828125,
+    "rel_equivalent": "max_abs/max|exp| <= 6.245e-03",
+    "under_2e-2_cap": true,
+    "noise_floor_used": 0.0,
+    "note": "top-1/argmax is NOT a criterion (ADR 0003): under frozen random weights top-1 carries no semantics and one fp16 ULP flips near-ties. argmax is frozen until the real-weight stage (last step)."
+  },
+  "int8_tol": 0,
+  "golden": {
+    "seconds": 0.29,
+    "chunk_rows": 8192,
+    "abs_max": 2.197265625,
+    "min": -2.12109375,
+    "max": 2.197265625,
+    "std": 0.4565033155070668,
+    "bytes": 2430976
+  },
+  "tflite": "model.tflite",
+  "tflite_bytes": 272574824,
+  "tflite_tensors": 14,
+  "tflite_buffers": 15,
+  "tflite_buffer_sizes_top3": [
+    68067328,
+    68067328,
+    68067328
+  ],
+  "tflite_sha256": "327359ea38c6651ef109b773dadf54103333b46c6605676656ba4fc331ee9c2e",
+  "build_seconds": 0.54,
+  "builder": "build_lm_head.py"
+}

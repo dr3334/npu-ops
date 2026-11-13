@@ -1,0 +1,12 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/lm_head_t8_fp16/model.tflite -d ops/lm_head_t8_fp16/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T10:19:23+08:00
+
+OP[0]: FULLY_CONNECTED
+ ├ MDLA: Dimension should be <= 65535. Operand: 1 got <151936 x 896>.
+ ├ MDLA: Dimension should be <= 65535. Result : 0 got <8 x 151936>.
+ ├ EDPA: unsupported operation
+ERROR: Cannot find an execution plan because of unsupported operations
+ERROR: Fail to compile ops/lm_head_t8_fp16/model.tflite
+EXIT=1
+SIZE=0
