@@ -352,6 +352,17 @@ static int apu_alloc_map(buf_t *b, uint32_t size, uint32_t align, int do_map) {
   return 0;
 }
 
+/* 先写内容、后做 MAP（厂商 runtime 对静态常量区就是这个顺序：抓取里 MAP 之前内容已就位）。
+   用于验证"写完再映射"与"映射完再写"是否有语义差异。 */
+static int apu_map_only(buf_t *b) {
+  mem_args_t m;
+  memset(&m, 0, sizeof(m));
+  put32(&m, 0, 2); put64(&m, 16, b->handle); put32(&m, 24, b->size); put64(&m, 28, 2);
+  if (ioctl(g_fd, APU_MEM, &m) < 0) { perror("mem map"); return -1; }
+  b->iova = get64(&m, 8);
+  return 0;
+}
+
 /* 驱动不支持 MEM op=1 (FREE)，只 UNMAP（E-106B-3 的结论，避免内核刷警告）。 */
 static void apu_release(buf_t *b) {
   mem_args_t m;
@@ -424,6 +435,7 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
   static unsigned char adj[64];
   cmd_args_t cmd;
   uint32_t subcmd_size = 0;
+  int deferred_map = 0;
   unsigned hits = 0;
   int rc = NPU_BINOP_OK;
 
@@ -471,8 +483,11 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
   {
     uint32_t bsize = plan->bytes_b > plan->alloc_size ? plan->bytes_b : plan->alloc_size;
     if (getenv("NPU_B_4096")) bsize = plan->alloc_size;   /* 诊断用：强制 4 KiB */
+    deferred_map = (plan->extra_file && plan->extra_file[0]) ? 1 : 0;
     if (plan->n_inputs == 2 &&
-        apu_alloc_map(&b1, bsize, NPU_BINOP_CMDBUF_ALIGN, 1)) { rc = NPU_BINOP_EIO; goto done; }
+        apu_alloc_map(&b1, bsize, NPU_BINOP_CMDBUF_ALIGN, deferred_map ? 0 : 1)) {
+      rc = NPU_BINOP_EIO; goto done;
+    }
   }
   if (apu_alloc_map(&c,  plan->alloc_size, NPU_BINOP_CMDBUF_ALIGN, 1)) { rc = NPU_BINOP_EIO; goto done; }
   if (apu_alloc_map(&einfo, 76, 0, 1)) { rc = NPU_BINOP_EIO; goto done; }
@@ -492,6 +507,9 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
       fclose(fx);
     } else {
       memcpy(b1.host, b, plan->bytes_b ? plan->bytes_b : plan->bytes);
+    }
+    if (deferred_map) {   /* 内容写完再做 MAP（厂商对静态常量区的顺序） */
+      if (apu_map_only(&b1)) { rc = NPU_BINOP_EIO; goto done; }
     }
   }
 
@@ -514,6 +532,9 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
   {
     uint64_t newv[3] = { a1.iova, plan->n_inputs == 2 ? b1.iova : 0, c.iova };
     if (getenv("NPU_SWAP_BC")) { uint64_t t = newv[1]; newv[1] = newv[2]; newv[2] = t; }
+    /* 诊断：保留常量缓冲的抓取地址（不重定位）。若这样能过，说明 DLA 用的是抓取时的地址，
+       即命令流里还有一处我们没找到的引用。 */
+    if (getenv("NPU_KEEP_CONST")) { newv[1] = old_iova[1]; }
     int k = plan->patch_idx;
     if (k < 0 || k > 2) { rc = NPU_BINOP_EINVAL; goto done; }
     patch_addrs((unsigned char *)cb[k].host, cb_size[k], old_iova, newv, &hits);
