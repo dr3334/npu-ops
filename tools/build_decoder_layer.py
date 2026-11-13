@@ -444,8 +444,10 @@ class G:
                 bo.BuiltinOptions.FullyConnectedOptions, S.FullyConnectedOptionsEnd(self.b))
         return t
 
-    def mul(self, a, name, b=None, shape=(T, D)):
+    def mul(self, a, name, b=None, shape=None):
         S = bo.S
+        if shape is None:                    # NOT a default arg: T is re-bound by --T, and a
+            shape = (T, D)                   # default would freeze the import-time T=8 (see 3.5)
         if b is None:
             b = self.const(name + "_c", np.full(shape, 1.0, np.float16))
         t = self.act(name, shape)
@@ -455,8 +457,10 @@ class G:
                 S.MulOptionsEnd(self.b))
         return t
 
-    def add(self, a, b, name, shape=(T, D)):
+    def add(self, a, b, name, shape=None):
         S = bo.S
+        if shape is None:
+            shape = (T, D)
         t = self.act(name, shape)
         S.AddOptionsStart(self.b)
         S.AddOptionsAddFusedActivationFunction(self.b, 0)
@@ -717,6 +721,7 @@ def quantile_stats(a):
 
 
 def main():
+    global MASK
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=None, help="output dir (default ops/decoder_layer_t<T>_fp16)")
     ap.add_argument("--T", type=int, default=8,
@@ -761,7 +766,6 @@ def main():
             forward(x16, P, np.float32, False, "scores")["scores"], np.float64)).max())
         S_scaled = s_raw * SCALE
         MASK, mstatus, mlo, mhi = derive_mask(S_scaled)
-        globals()["MASK"] = MASK
         print("mask: S=max|scaled score|=%.2f -> M=%.0f (%s), interval [%.1f, %.1f]"
               % (S_scaled, MASK, mstatus, mlo, mhi))
 
