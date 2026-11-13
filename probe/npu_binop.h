@@ -55,6 +55,7 @@ typedef struct {
   const char *asset_dir;      /* 设备上的资产目录 */
   uint64_t old_iova[3];       /* 抓取那次运行里 A、B、C 三个 buffer 的 IOVA */
   uint32_t bytes;             /* 每次提交处理的元素数（int8 => 字节数） */
+  const char *extra_file;     /* 第三个数据缓冲（scratch/LUT）的资产文件名；NULL 则用调用方传入的 b */
   uint32_t bytes_b;           /* 第二个输入的字节数（FC 的动态权重是 4096）；0 => 同 bytes */
   uint32_t alloc_size;        /* A/B/C 的分配大小（抓取时 runtime 用 4 KiB，这里保持一致） */
   int cmdbuf_dir[3];          /* 三个 cmdbuf 的方向标志，顺序有语义（E-106B-3） */

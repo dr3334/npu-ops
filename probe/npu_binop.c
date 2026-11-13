@@ -200,12 +200,13 @@ static npu_binop_plan_t g_plan_softmax16 = {
     .asset_dir = "/data/local/tmp/npuops/assets/softmax16",
     .old_iova = { 0, 0, 0 },
     .bytes = 256,
-    .bytes_b = 256,
+    .extra_file = "scratch.bin",
+    .bytes_b = 4096,
     .alloc_size = NPU_BINOP_ALLOC,
-    .n_inputs = 1,
+    .n_inputs = 2,
     .cmdbuf_dir = { 1, 2, 1 },
     .patch_idx = 2,
-    .expect_patches = 2,
+    .expect_patches = 3,
     .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
 };
 static npu_binop_plan_t g_plan_bmm_qk16 = {
@@ -430,7 +431,21 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
   memset(einfo.host, 0, 76);
 
   memcpy(a1.host, a, plan->bytes);
-  if (plan->n_inputs == 2) memcpy(b1.host, b, plan->bytes_b ? plan->bytes_b : plan->bytes);
+  if (plan->n_inputs == 2) {
+    if (plan->extra_file && plan->extra_file[0]) {
+      snprintf(p, sizeof(p), "%s/%s", plan->asset_dir, plan->extra_file);
+      FILE *fx = fopen(p, "rb");
+      uint32_t want = plan->bytes_b ? plan->bytes_b : plan->bytes;
+      if (!fx || fread(b1.host, 1, want, fx) != want) {
+        if (fx) fclose(fx);
+        fprintf(stderr, "%s: cannot load extra buffer\n", p);
+        rc = NPU_BINOP_EASSET; goto done;
+      }
+      fclose(fx);
+    } else {
+      memcpy(b1.host, b, plan->bytes_b ? plan->bytes_b : plan->bytes);
+    }
+  }
 
   /* 写回主机 -> 设备前同步 A/B（START|WRITE + END|WRITE） */
   dma_buf_sync(a1.handle, (1u << 30) | 2u);

@@ -145,7 +145,18 @@ def main(log, bufdir, abin, bbin, outdir):
                 return va
         return 0
 
-    iova = [iova_of(A), iova_of(B) if B else 0, iova_of(C)]
+    # 一元算子如果有第三个 4 KiB 缓冲（scratch/LUT），也算进资产：命令流里确实有它的地址
+    scratch = None
+    if not B:
+        cands = [pth for pth in sorted(os.listdir(bufdir))
+                 if pth.startswith("map") and pth.endswith(".bin") and "_post" not in pth and "_final" not in pth
+                 and os.path.getsize(os.path.join(bufdir, pth)) == 4096]
+        used = {os.path.basename(A), os.path.basename(C)}
+        for c in cands:
+            if c not in used:
+                scratch = os.path.join(bufdir, c)
+                break
+    iova = [iova_of(A), iova_of(scratch) if scratch else 0, iova_of(C)]
     if iova[0] == 0 or iova[2] == 0 or (not unary and iova[1] == 0):
         sys.exit(f"iova not resolved: {[hex(x) for x in iova]}")
 
@@ -157,6 +168,8 @@ def main(log, bufdir, abin, bbin, outdir):
             sys.exit(f"cmdbuf[{k}] handle={handle} size={size}: no dump file found")
         shutil.copy(src, os.path.join(outdir, f"cmd{k}.bin"))
         sizes.append(size)
+    if scratch:
+        shutil.copy(scratch, os.path.join(outdir, "scratch.bin"))
     open(os.path.join(outdir, "cmdin.bin"), "wb").write(cmd_in)
     open(os.path.join(outdir, "subcmd.bin"), "wb").write(subcmd)
     with open(os.path.join(outdir, "iova.txt"), "w") as f:
