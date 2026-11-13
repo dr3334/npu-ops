@@ -1,0 +1,5 @@
+op        : SWIGLU {'T': 16, 'D': 896, 'I': 4864}  dtype=int8
+expected  : 14336 vals   device: 14336 vals   logical shape=(16, 896)
+exact     : YES   mismatched=0/14336
+contract  : int8_tol=1  max_abs_diff=0  fraction_off=0.0000%
+PASS
