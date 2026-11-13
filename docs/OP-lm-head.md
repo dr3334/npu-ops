@@ -357,3 +357,12 @@ export NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock"
 # 5) 噪声底与误差结构
 wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 ops/lm_head_t8_fp16/noise_floor.py"
 ```
+---
+
+## 后续（2026-11-13）：不再需要分块
+
+本票当初用「4×FC(N=37984) + CONCAT」绕开 `FC 的 N ≤ 65535`。后来确认 ncc 7.3.15 有解：
+**`--gno=LTS --fc-to-conv`** 可以让单体 `FC(8×896×151936)` 编过 —— 1 个执行步、3 个 `Conv2DLayer`、`.dla` 272.3 MB；
+板端 **PASS**（`max_abs 9.766e-04`、`rel_l2 1.368e-05`，与分块版同数）、**9.19 ms/inf**，层数 5 → 3。
+
+⇒ 分块版保留为「工具链不支持 LTS 时的退路」；新证据与最小组合见 `docs/OP-ncc-flags.md` §9。

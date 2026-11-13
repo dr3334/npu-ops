@@ -67,36 +67,52 @@ ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=30
 单次 A/B 足以骗出「−21%」这种假结论。这也是为什么此前所有「x ms/inf」的数字都只作量级记录、不作性能结论。
 ---
 
-## 9. `--gno=LTS` 实测（2026-11-13）：本工具链上**不解除 65535 上限**
+## 9. `--gno=LTS` 实测（2026-11-13）：**解除 65535 上限，但必须配 `--fc-to-conv`**
 
-> 背景：有人明确建议开 `--gno=LTS`，理由是「FC 输出维度 > 65535 且能被 16 整除时该路径可支持」。
-> 我们的 LM head 正好符合这个条件（N = 151936 = 16 × 9496），所以这是一个可判定的实验。
-
-**最小对照（fp16，K=896）**
-
-| N | 不加 LTS | 加 `--gno=LTS` |
-|---|---|---|
-| 65535 | EXIT=0 | EXIT=0 |
-| 65536 | **EXIT=1** | **EXIT=1**（同一条报错） |
-
-⇒ 边界仍然精确在 65535，LTS 没有移动它。
-
-**真实的单体 LM head（N=151936，可被 16 整除）**：加 LTS 仍然
+> 结论先行：**LTS 确实是解 LM head 大维度的正确开关**，但在 ncc 7.3.15 上它单独无效——
+> 必须同时给 `--fc-to-conv`（把 FC 降成 Conv2D）。最小可用组合：
 
 ```
-OP[0]: FULLY_CONNECTED
- ├ MDLA: Dimension should be <= 65535. Operand: 1 got <151936 x 896>.
- ├ MDLA: Dimension should be <= 65535. Result : 0 got <8 x 151936>.
- ├ EDPA: unsupported operation
-ERROR: Cannot find an execution plan because of unsupported operations    EXIT=1
+--gno=LTS --fc-to-conv
 ```
 
-试过的组合全部 EXIT=1：`LTS` 单独、`LTS,NDF`、`LTS,SMP`、`LTS,BMP`、`LTS,NDF,SMP,BMP`、`LTS --gno-non-4d-tiling`、`--opt=2 LTS`、`ARCH=mdla5.1`（`mdla6.0` 直接 unrecognized）。
+### 9.1 证据矩阵（K=896、M=8，`--disallow-bridge`）
 
-**LTS 这个值是被 7.3.15 认识的**：`--gno=ZZZ` 会 abort（EXIT=134），`--gno=LTS` 正常继续 ⇒ 不是拼写/传参问题，是这个版本里它不覆盖 2-D FC 的维度检查。
+| 图 | 开关 | EXIT | 结果 |
+|---|---|---|---|
+| FC N=65535 | 无 | 0 | 1 层 FullyConnected |
+| FC N=65536 | 无 | 1 | `MDLA: Dimension should be <= 65535` |
+| FC N=65536 | `--gno=LTS` | 1 | 同上（LTS 单独无效） |
+| FC N=65536 | `--fc-to-conv` | 1 | `EDPA: unsupported operation` |
+| **FC N=65536** | **`--gno=LTS --fc-to-conv`** | **0** | **1 执行步，`Conv2DLayer<0>{FULLY_CONNECTED}`** |
+| **LM head N=151936（fp16，272 MB）** | **`--gno=LTS --fc-to-conv`** | **0** | **1 执行步，3× `Conv2DLayer`，`.dla` 272.3 MB** |
+| LM head N=151936（int8，136 MB） | `--gno=LTS --fc-to-conv` | 0 | 1 执行步，`Conv2DLayer` |
 
-**环境事实**：本机两份 SDK（`mtk/neuropilot-sdk-basic-7.0.8-build20240807/neuron_sdk` 与 `/d/liteRT`）都是 **7.3.15**，`--gno` 的帮助里只列 `NDF, SMP, BMP`；per-chip 的 `neuron_sdk/mt6897/bin/ncc-tflite` 是 **aarch64 Android** 二进制，不能在 WSL 里跑。
+可选项（加了不影响结果）：`--gno-exp`、`--gno-non-4d-tiling`、`--gno=LTS,NDF,SMP,BMP`。
 
-**结论**：在这套 7.3.15 上，「LTS 支持超 65535 的 FC 输出维」这个说法**不成立**（或需要更新的 NeuroPilot / 4-D NHWC 形态 / conv 通道路径，均未验证）。要确认，需要一份支持 LTS 的 SDK 版本号或安装路径。
+### 9.2 板端（LM head N=151936，fp16，单 FC + LTS+fc2conv）
 
-**若 LTS 不可用的替代路（待验证）**：把 LM head 的输出投影从 `FULLY_CONNECTED` 改成 `BATCH_MATMUL`（BMM 目前没撞过 65535 限制，int16 与 3-D 都已在本仓库验过）。若成立，LM head 可从「4×FC + CONCAT，5 层」压回 1 层，并消除分块顺序这一类风险。
+- **PASS**：`max_abs 9.766e-04`、`rmse 6.245e-06`、`rel_l2 1.368e-05`（与既有「4×FC + CONCAT」分块版**同数**）；
+- **9.19 ms/inf**（3 次，104 FPS），与分块版的 8.29–9.66 ms 同档；
+- **层数 5 → 3**（分块版是 4×FC + CONCAT；LTS 版是 3 个 Conv2D 落在**一个**执行步里）；
+- 输出 2,430,976 B 与 golden 逐值对拍通过（tol 沿用票 08 登记的 4.29153e-3）。
+
+⇒ **LM head 不再需要分块**：不需要 `--chunks 4`、不需要 CONCAT、不需要担心分块顺序；词表更大时也只受内存限制，不受 65535 限制。
+
+### 9.3 为什么之前判成「无效」（订正说明）
+
+2026-11-13 上一轮的结论是「LTS 不解除上限」，那是**只测了 `--gno=LTS` 单独**、以及 `LTS,NDF/SMP/BMP`、`LTS + --gno-non-4d-tiling`、`LTS + --opt=2` 等组合——
+**从没配过 `--fc-to-conv`**。补上这一个开关后立刻通过。这条订正的教训：**否定结论也要扫到「图变换类」开关**，不能只在优化类开关里穷举。
+
+### 9.4 外部情报的对齐情况（MediaTek Genio 社区 + LiteRT issue）
+
+- 官方答复（2026-09-08）说「开 `gno=LTS` 后，输出维 > 65535 且能被 16 整除的 FC 可支持」——**方向正确**；我们的 N=151936 = 16×9496 正好满足。
+- 公开的 8.x/9.2 编译命令行里还带 `Inception`、`--gno-exp`、`--fc-to-conv`、`--split-16a4w-conv-oc`。
+  其中 **`Inception` 在 7.3.15 上不是合法 gno 值**：`--gno=Inception` 直接 `FATAL: No match type of Agent: INCEPTION` 并 abort（EXIT=134）——所以 8.x 的命令行不能照抄。
+- 我们复现的关键不是 `Inception`，而是 **`--fc-to-conv`**（把 FC 降成 Conv2D 之后，LTS 的大张量路径才接得上）。
+
+### 9.5 用法建议
+
+- **只对 LM head 这类超宽 FC 开**：`--gno=LTS --fc-to-conv`；不要全局加到 `tools/compile.sh`（它会把**所有** FC 改成 Conv2D 下降，改变既有 178 个 op 的层形态与数值路径，需要单独评估）。
+- 现有的 `tools/compile.sh` 已支持透传额外参数：`./tools/compile.sh model.tflite out.dla --gno=LTS --fc-to-conv`。
+- 若未来要全局启用，先做一轮 `run_all.sh` 回归（数值 + 层数 + 时间）再定。
