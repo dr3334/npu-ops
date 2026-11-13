@@ -63,6 +63,11 @@ Date: 2026-11-13
 - 执行形态：**两张图 + 一份外部共享权重**（prefill T=16 / decode T=8-padded，bin 16,674,816 B 与 T 无关），权重真常驻（dma-buf、CPU 不触页、200–400 次 Run 零重读）。
 - 不可行项（都留了最小复现）：4-bit per-channel（权重误差 14–16%，整层 ≤0.9733）、分组 scale（属性级不可表达；K 切段代价 2G−1 层/矩阵且救不了 4-bit）、**T=1 的图**（SOFTMAX command field / Input↔MDLA gap，两个不同的报错）。
 
-**待设备恢复后补测（2 项）**
+**两项已补测完成（2026-11-13）**：
+1. decode 每步 `rel_l2` ⇒ 0.00251–0.01280（门 0.05 PASS，kv1 补齐）；
+2. KV 常驻 ⇒ **RuntimeV2 每请求 IOBuffer** 可行（v1 的 `setInput` 是绑一次的快照）；host 写 12,288 B/token、端到端 19–30×。
+另：24 层 decode 的 KV 上限实测 **C=8192**（撞的是编译期内存规划，不是设备内存）。
+
+**原计划的待测项（已由上面取代）**
 1. decode 各步的 `rel_l2`：补跑 `./tools/e2e_q06.sh --steps 8`（第二次补跑时设备掉线：`adb: no devices/emulators found`，kill-server/reconnect 均未恢复）。
 2. KV 常驻（RuntimeAPI 形态）：把 per-token 的 25.2 MB 上行拷贝降到 O(256 B/层)——这是与厂商结构性差距的最后一块（厂商 decode 17.2 ms/token，我们 68.5 ms/token，其中 KV 宽度 33.4 ms）。
