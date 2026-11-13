@@ -1,0 +1,31 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/_w4a16_probe/p16_native_seam_tflite/model.tflite -d ops/_w4a16_probe/p16_native_seam_tflite/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T14:29:38+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ ElementWiseAddLayer<0>{ADD}
+   ├ ElementWiseMulLayer<1>{MUL}
+   ├ SoftMaxLayer<2>{SOFTMAX}
+   ├ ElementWiseMulLayer<3>{MUL}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     7.0K   7.0K    0     7.1K    1.9K  23K
+
+Total Memory:
+  DRAM: 23K
+  L1:   16K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=13653
+SHA256=6d549a361de8efd8a7968f54843c1191facd92dbb064af0504fe4e1f3a40aeba

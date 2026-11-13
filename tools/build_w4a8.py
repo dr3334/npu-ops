@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
-"""4W8A / 8W8A (int4 or int8 weights / int8 activations): components + the layer.
+"""4W8A / 8W8A / 4W16A / 8W16A (int4|int8 weights, int8|int16 activations).
 
-Ticket 04 (4W8A) and ticket 04c (8W8A, --w-bits 8).  ADR 0005.  The 8-bit tier is
-the same graph, same seam, same T: only the weight format and the per-channel
-weight scales change (int8 codes in [-127,127], s[n] = max|W[n,:]|/127).  Hard
+Tickets 04 (4W8A), 04c (8W8A, --w-bits 8) and 04d (4W16A, --a-bits 16).  ADR 0005.
+Two independent knobs, one code path:
+
+  --w-bits 4|8    weight format: int4 packed 2 codes/byte, or plain int8, both
+                  symmetric per-output-channel (s[n] = max|W[n,:]|/qmax).
+  --a-bits 8|16   activation format: int8 per-tensor (s = max|v|/127) or int16
+                  per-tensor (s = max|v|/32767), bias still int32 per-channel,
+                  requant still tools/quant_contract.py (two integer roundings).
+
+Everything below reads the two globals W_BITS / A_BITS, so the four tiers share the
+graph, the seam and the golden construction; only the code domains change.  Hard
 constraints encoded here (each re-confirmed in docs/OP-w4a8-layer.md):
 
   * int4 weights are packed the TFLite way: 2 codes/byte, element 2i in the LOW
@@ -45,16 +53,28 @@ import qwen25_weights as qw     # frozen fixture loader
 
 I4 = bo.S.TensorType.INT4
 I8 = bo.I8
+I16 = bo.S.TensorType.INT16
 I32 = bo.I32
 
-# Ticket 04c: the ONLY knob that separates the two precision tiers.  4 -> int4
-# weights packed 2 codes/byte (ticket 04); 8 -> plain int8 codes, per-channel.
-# Set by --w-bits before any spec is built; every weight tensor, every scale and
-# every requant ratio below follows it, so the two tiers share one code path.
+# Ticket 04c: the weight knob.  4 -> int4 packed 2 codes/byte (ticket 04);
+# 8 -> plain int8 codes, per-channel.
+# Ticket 04d: the activation knob.  8 -> int8 per-tensor (tickets 04/04c);
+# 16 -> int16 per-tensor, bias still int32 per-channel (ticket 04d).
+# Both are set by argparse before any spec is built; every tensor type, every
+# scale and every requant ratio below follows them, so all four tiers share one
+# code path.
 W_BITS = 4
+A_BITS = 8
+
+# How the masked softmax crosses dtypes in the LAYER graph (ticket 04d asks
+# whether int16 activations still need the fp16 seam that int8 needed):
+#   "f16"    -- int16 scores -> DEQUANTIZE fp16 -> x1/sqrt(d) -> +mask -> SOFTMAX
+#               -> QUANTIZE int16   (the ticket 04 seam, dtype-parameterised)
+#   "native" -- int16 scores -> +int16 mask (own scale) -> SOFTMAX int16
+SEAM = "f16"
 
 
-FORM = "w4a8"      # "w4a8" | "w8a8"; kept in sync with W_BITS by --w-bits
+FORM = "w4a8"      # "w4a8" | "w8a8" | "w4a16" | "w8a16"; --w-bits / --a-bits
 
 
 def wq_max(bits=None):
@@ -62,15 +82,42 @@ def wq_max(bits=None):
     return 7 if (bits or W_BITS) == 4 else 127
 
 
+def aq_max():
+    """Largest magnitude a symmetric ACTIVATION code may take (127 or 32767)."""
+    return 127 if A_BITS == 8 else 32767
+
+
+def a_dtype():
+    return np.int8 if A_BITS == 8 else np.int16
+
+
+def a_name():
+    """model.json / graph-description name of the activation storage type."""
+    return "int%d" % A_BITS
+
+
+def a_type():
+    """Flatbuffer TensorType of every activation tensor in this tier."""
+    return I8 if A_BITS == 8 else I16
+
+
+def clip_codes(x):
+    """Clip integer codes into this tier's storage domain and cast to it."""
+    lo = -128 if A_BITS == 8 else -32768
+    hi = 127 if A_BITS == 8 else 32767
+    return np.clip(x, lo, hi).astype(a_dtype())
+
+
 def form_tag():
     """Tier tag used in graph descriptions / default op dirs / model.json."""
     return FORM
 
 
-def set_tier(bits):
-    global W_BITS, FORM
-    W_BITS = int(bits)
-    FORM = "w4a8" if W_BITS == 4 else "w8a8"
+def set_tier(w_bits, a_bits=8):
+    global W_BITS, A_BITS, FORM
+    W_BITS = int(w_bits)
+    A_BITS = int(a_bits)
+    FORM = "w%da%d" % (W_BITS, A_BITS)
 
 T = 16
 D = 896
@@ -100,7 +147,19 @@ TOL8 = ("ADR 0005 (2026-11-13 revision): the operator criterion applies to 8-bit
         "the exact counts, so 0 codes is reported as 0/14336, never inferred from PASS.")
 
 
+TOL16 = ("ADR 0005 (2026-11-13, second revision) + ticket 04d: this is the 16-bit "
+         "ACTIVATION tier (4W16A). Operator criterion: device == quantised golden, "
+         "|delta| <= int8_tol codes, AND |cos(device) - cos(golden)| <= 0.003 (device "
+         "fidelity); quality is judged by cosine vs the independent fp64 chain. "
+         "int8_tol=1 is registered before the first board run for components; the "
+         "layer registers 2 for the int8 RMSNorm/int8 seam chain (see LAYER_TOL) or 1 "
+         "when the graph is fully int16 (registered before the run, no adjustment "
+         "afterwards).")
+
+
 def tol_text():
+    if A_BITS == 16:
+        return TOL16
     return TOL8 if W_BITS == 8 else ADR_TOL
 
 
@@ -114,11 +173,24 @@ def pack_i4(codes):
 
 
 def s8(x):
-    """Symmetric per-tensor int8 quantisation: (codes, scale)."""
+    """Symmetric per-tensor activation quantisation at the active width: (codes, scale).
+
+    Named s8 for historical reasons (tickets 04/04c); at --a-bits 16 it returns
+    int16 codes in [-32767, 32767] with s = max|v|/32767.
+    """
     x = np.asarray(x, np.float64)
     m = float(np.abs(x).max())
-    scale = m / 127.0 if m > 0 else 1.0
-    return np.clip(np.round(x / scale), -127, 127).astype(np.int8), scale
+    q = aq_max()
+    scale = m / float(q) if m > 0 else 1.0
+    return np.clip(np.round(x / scale), -q, q).astype(a_dtype()), scale
+
+
+def s16(x):
+    """Explicit int16 activation codes regardless of the tier (probes only)."""
+    x = np.asarray(x, np.float64)
+    m = float(np.abs(x).max())
+    scale = m / 32767.0 if m > 0 else 1.0
+    return np.clip(np.round(x / scale), -32767, 32767).astype(np.int16), scale
 
 
 def sw_weights(W, bits=None):
@@ -162,6 +234,8 @@ def requant_pc(acc, ratios):
     acc = np.asarray(acc, np.int64)
     out = np.zeros_like(acc)
     for sh, items in ratio_groups(ratios):
+        cols = [n for n, _ in items]
+        _requant_check(acc[:, cols], items[0][1], sh, "per-channel")
         for n, m0 in items:
             out[:, n] = qc.multiply_by_quantized_multiplier(acc[:, n], m0, sh)
     return out
@@ -235,9 +309,10 @@ class GQ:
         return self.idx[name]
 
     def const_i8(self, name, codes, scale, zp=0):
-        a = np.ascontiguousarray(np.asarray(codes, np.int8))
+        """Constant activation in the ACTIVE activation format (int8 or int16)."""
+        a = np.ascontiguousarray(np.asarray(codes, a_dtype()))
         self.buffers.append(bo.buf_data(self.b, a))
-        return self._t(name, a.shape, I8, len(self.buffers) - 1, scale, zp)
+        return self._t(name, a.shape, a_type(), len(self.buffers) - 1, scale, zp)
 
     def const_i32(self, name, vals):
         a = np.ascontiguousarray(np.asarray(vals, np.int32))
@@ -261,8 +336,8 @@ class GQ:
         return self._t(name, shp, I8, len(self.buffers) - 1,
                        list(np.asarray(scales, np.float32)), zps, axis=axis)
 
-    def act(self, name, shape, scale, zp=0, ttype=I8):
-        return self._t(name, shape, ttype, 0, scale, zp)
+    def act(self, name, shape, scale, zp=0, ttype=None):
+        return self._t(name, shape, ttype or a_type(), 0, scale, zp)
 
     def _op(self, builtin, ins, outs, opt_type=None, opt=None, version=1):
         self.opcodes.append(bo.opcode(self.b, builtin, version=version))
@@ -300,7 +375,7 @@ def w4a8_fc_tables(a_f64, W_f64, b_f64):
     b_q = np.round(b_f64 / bs).astype(np.int32)
     acc = a_i8.astype(np.int64) @ w_q.astype(np.int64).T + b_q[None, :]
     o_ref = (a_i8.astype(np.float64) * s_a) @ (w_q.astype(np.float64) * s_w[:, None]).T + b_f64
-    s_o = float(np.abs(o_ref).max()) / 127.0
+    s_o = float(np.abs(o_ref).max()) / float(aq_max())
     ratios = bs / s_o
     return dict(a_i8=a_i8, s_a=s_a, w_q=w_q, s_w=s_w, b_q=b_q, bs=bs,
                 s_o=s_o, ratios=ratios, acc=acc, o_ref=o_ref)
@@ -312,16 +387,16 @@ def build_fc_proj(P):
     x = input_hidden(T).astype(np.float64)
     n1 = rmsnorm_f32(x, P["g1"].astype(np.float64))
     tb = w4a8_fc_tables(n1, P["Wq"].astype(np.float64), P["bq"].astype(np.float64))
-    out_q = np.clip(requant_pc(tb["acc"], tb["ratios"]), -128, 127).astype(np.int8)
+    out_q = clip_codes(requant_pc(tb["acc"], tb["ratios"]))
 
     g = GQ()
     ta = g.act("input", (T, D), tb["s_a"])
     t = g.fc_i4(ta, "out", tb["w_q"], tb["s_w"], tb["b_q"], tb["s_a"], tb["s_o"], D)
     blob = g.finish([ta], [t], form_tag() + " q_proj T=%d" % T)
     meta = dict(op="FULLY_CONNECTED", form=FORM, shape={"T": T, "K": D, "N": D},
-                dtype="int8", weights_dtype="int%d" % W_BITS, ops_version=9,
-                input={"name": "input", "shape": [T, D], "type": "int8"},
-                output={"name": "out", "shape": [T, D], "type": "int8"},
+                dtype=a_name(), weights_dtype="int%d" % W_BITS, ops_version=9,
+                input={"name": "input", "shape": [T, D], "type": a_name()},
+                output={"name": "out", "shape": [T, D], "type": a_name()},
                 quant={"input": tb["s_a"], "output": tb["s_o"],
                        "weights_pc_min": float(tb["s_w"].min()),
                        "weights_pc_max": float(tb["s_w"].max()),
@@ -437,7 +512,7 @@ def _add_f16_methods():
         return TF(t, np.asarray(softmax_last(a.v), np.float16).astype(np.float64))
 
     def f16_quantize(self, a, scale, name):
-        codes = np.clip(np.round(a.v / scale), -127, 127).astype(np.int8)
+        codes = clip_codes(np.round(a.v / scale))
         t = self.act(name, a.v.shape, scale)
         self._op(bo.BuiltinOperator.QUANTIZE, [a.i], [t])
         return TS(t, codes, scale)
@@ -536,15 +611,58 @@ class TS:
         return (self.c.astype(np.float64) - self.zp) * self.s
 
 
+def clip_sym(real):
+    """Codes of a value in [0,1] stored in the SYMMETRIC 1/aq_max domain (P*V operand)."""
+    q = aq_max()
+    return np.clip(np.round(np.asarray(real, np.float64) * q), -q, q).astype(a_dtype())
+
+
+def lsm_scale():
+    """LOGISTIC / SOFTMAX output scale, TFLite's convention for the active width."""
+    return 1.0 / 256.0 if A_BITS == 8 else 1.0 / 65536.0
+
+
+def lsm_zp():
+    """LOGISTIC / SOFTMAX output zero point, TFLite's convention for the active width."""
+    return -128 if A_BITS == 8 else -32768
+
+
+def lsm_codes(real):
+    """Fixed-point codes of a [0,1]-valued op output (logistic/softmax) at this width."""
+    return clip_codes(np.round(np.asarray(real, np.float64) / lsm_scale()) + lsm_zp())
+
+
+def _requant_check(acc, m0, shift, what=""):
+    """Refuse a requant whose gemmlowp left shift overflows int64 at BUILD time.
+
+    Ticket 04d found this the hard way.  At int16 the accumulator of a MUL or FC is
+    ~1e8..1e9, and a scale ratio like 3e-4 comes back as shift=+12, so the kernel's
+    x = acc << 12 times m0 wraps int64.  The golden wrapped (numpy int64 wraps too)
+    and the DEVICE WRAPPED IDENTICALLY -- device vs golden matched to 1 code while
+    both were numerically wrong (ops/_w4a16_probe/p16_native_seam, cosine 0.39).
+    So "device == golden" is not enough: every requant in this file now proves it
+    stays inside int64 before it is allowed to build.
+    """
+    left = shift if shift > 0 else 0
+    peak = int(np.abs(np.asarray(acc, np.int64)).max()) if np.size(acc) else 0
+    if peak and (peak << left) > ((1 << 62) // int(m0)):
+        raise SystemExit(
+            "requant overflow%s: |acc|max=%d shift=%d m0=%d -- acc<<%d must stay "
+            "below 2^62/m0. Choose the output scale so the ratio does not need a "
+            "large left shift (see _seam_native / _to_symmetric)."
+            % ((" (%s)" % what) if what else "", peak, shift, m0, left))
+
+
 def requant_scalar(acc, ratio):
     m0, sh = qc.quantize_multiplier(ratio)
+    _requant_check(acc, m0, sh)
     return qc.multiply_by_quantized_multiplier(np.asarray(acc, np.int64), m0, sh)
 
 
 def pick_scale(real):
-    """Per-tensor symmetric scale for a real-valued array (as an int8 code domain)."""
+    """Per-tensor symmetric scale for a real-valued array, in this tier's code domain."""
     m = float(np.abs(np.asarray(real, np.float64)).max())
-    return (m / 127.0) if m > 0 else 1.0
+    return (m / float(aq_max())) if m > 0 else 1.0
 
 
 class QL(GQ):
@@ -552,20 +670,19 @@ class QL(GQ):
     the flatbuffer operator, so the golden and the graph cannot drift apart."""
 
     def mk_in(self, name, shape, codes, scale, zp=0):
-        return TS(self.act(name, shape, scale, zp), np.asarray(codes, np.int8), scale, zp)
+        return TS(self.act(name, shape, scale, zp), np.asarray(codes, a_dtype()), scale, zp)
 
     def q_requant(self, a, so, name, zp_o=0, factor=1.0):
         """Re-quantise into a new scale; factor scales the REAL value on the way (the
         1/sqrt(d) of the softmax input is folded here, not into a separate MUL)."""
-        codes = np.clip(requant_scalar(a.c.astype(np.int64) - a.zp, a.s * factor / so) + zp_o,
-                        -128, 127).astype(np.int8)
+        codes = clip_codes(requant_scalar(a.c.astype(np.int64) - a.zp, a.s * factor / so) + zp_o)
         t = self.act(name, a.c.shape, so, zp_o)
         self._op(bo.BuiltinOperator.QUANTIZE, [a.i], [t])
         return TS(t, codes, so, zp_o)
 
     def q_mul(self, a, b, so, name):
         acc = (a.c.astype(np.int64) - a.zp) * (b.c.astype(np.int64) - b.zp)
-        codes = np.clip(requant_scalar(acc, a.s * b.s / so), -128, 127).astype(np.int8)
+        codes = clip_codes(requant_scalar(acc, a.s * b.s / so))
         t = self.act(name, codes.shape, so)
         S = bo.S
         S.MulOptionsStart(self.b)
@@ -577,7 +694,7 @@ class QL(GQ):
     def q_addsub(self, a, b, so, name, minus=False):
         """Different scales allowed (ncc inserts the requant; probes/_w4a8_probe_add)."""
         real = a.real - b.real if minus else a.real + b.real
-        codes = np.clip(np.round(real / so), -128, 127).astype(np.int8)
+        codes = clip_codes(np.round(real / so))
         t = self.act(name, codes.shape, so)
         S = bo.S
         if minus:
@@ -595,8 +712,7 @@ class QL(GQ):
     def q_add_const(self, a, const_codes, so, name):
         """ADD a constant tensor that shares a's scale (exact code addition)."""
         tc = self.const_i8(name + "_c", const_codes, a.s, a.zp)
-        codes = np.clip(a.c.astype(np.int64) + np.asarray(const_codes, np.int64), -128, 127
-                        ).astype(np.int8)
+        codes = clip_codes(a.c.astype(np.int64) + np.asarray(const_codes, np.int64))
         t = self.act(name, a.c.shape, so)
         S = bo.S
         S.AddOptionsStart(self.b)
@@ -607,7 +723,7 @@ class QL(GQ):
 
     def q_mean(self, a, so, name):
         real = a.real.mean(axis=1, keepdims=True)
-        codes = np.clip(np.round(real / so), -128, 127).astype(np.int8)
+        codes = clip_codes(np.round(real / so))
         ta = self.const_i32(name + "_axis", [1])
         t = self.act(name, codes.shape, so)
         S = bo.S
@@ -619,33 +735,36 @@ class QL(GQ):
 
     def q_rsqrt(self, a, so, name):
         real = 1.0 / np.sqrt(a.real)
-        codes = np.clip(np.round(real / so), -128, 127).astype(np.int8)
+        codes = clip_codes(np.round(real / so))
         t = self.act(name, codes.shape, so)
         self._op(bo.BuiltinOperator.RSQRT, [a.i], [t])
         return TS(t, codes, so)
 
     def q_logistic(self, a, name):
         real = 1.0 / (1.0 + np.exp(-a.real))
-        codes = np.clip(np.round(real * 256.0) - 128, -128, 127).astype(np.int8)
-        t = self.act(name, codes.shape, 1.0 / 256.0, -128)
+        codes = lsm_codes(real)
+        t = self.act(name, codes.shape, lsm_scale(), lsm_zp())
         self._op(bo.BuiltinOperator.LOGISTIC, [a.i], [t])
-        return TS(t, codes, 1.0 / 256.0, -128)
+        return TS(t, codes, lsm_scale(), lsm_zp())
 
-    def q_softmax(self, a, name):
+    def q_softmax(self, a, name, scale=None, zp=None):
+        """SOFTMAX with the tier's fixed-point output convention (overridable)."""
         real = softmax_last(a.real)
-        codes = np.clip(np.round(real * 256.0) - 128, -128, 127).astype(np.int8)
-        t = self.act(name, codes.shape, 1.0 / 256.0, -128)
+        sc = lsm_scale() if scale is None else scale
+        z = lsm_zp() if zp is None else zp
+        codes = clip_codes(np.round(real / sc) + z)
+        t = self.act(name, codes.shape, sc, z)
         S = bo.S
         S.SoftmaxOptionsStart(self.b)
         S.SoftmaxOptionsAddBeta(self.b, 1.0)
         self._op(bo.BuiltinOperator.SOFTMAX, [a.i], [t], bo.BuiltinOptions.SoftmaxOptions,
                  S.SoftmaxOptionsEnd(self.b))
-        return TS(t, codes, 1.0 / 256.0, -128)
+        return TS(t, codes, sc, z)
 
     def q_bmm(self, a, b, so, name, adj_y=False):
         av, bv = a.c.astype(np.int64) - a.zp, b.c.astype(np.int64) - b.zp
         acc = av @ np.swapaxes(bv, -1, -2) if adj_y else av @ bv
-        codes = np.clip(requant_scalar(acc, a.s * b.s / so), -128, 127).astype(np.int8)
+        codes = clip_codes(requant_scalar(acc, a.s * b.s / so))
         t = self.act(name, codes.shape, so)
         S = bo.S
         S.BatchMatMulOptionsStart(self.b)
@@ -705,7 +824,7 @@ class QL(GQ):
                      (np.asarray(s_w, np.float64) * a.s).tolist(), [0] * len(b_q), axis=0)
         acc = a.c.astype(np.int64) @ W_i4.astype(np.int64).T + np.asarray(b_q, np.int64)[None, :]
         ratios = (a.s * np.asarray(s_w, np.float64)) / so
-        codes = np.clip(requant_pc(acc, ratios), -128, 127).astype(np.int8)
+        codes = clip_codes(requant_pc(acc, ratios))
         t = self.act(name, (a.c.shape[0], n), so)
         S = bo.S
         S.FullyConnectedOptionsStart(self.b)
@@ -731,6 +850,45 @@ def q_fc_tables(a_codes, a_scale, W_f64, b_f64):
 
 
 # ----------------------------------------------------------------- components
+def _to_symmetric(g, p, name):
+    """Rescale a [0,1] fixed-point tensor (zp = -2^k) into the symmetric 1/aq_max domain.
+
+    MUL by the exact constant 1.0: the device requants into the declared output scale,
+    which is the same two-step path every other MUL in this graph uses.
+    """
+    one = np.full(p.c.shape, 1, a_dtype())      # code 1, scale 1.0: ratio ~0.5, no
+    t = TS(g.const_i8(name + "_one", one, 1.0), one, 1.0)   # left shift
+    return g.q_mul(p, t, 1.0 / float(aq_max()), name)
+
+
+def _seam_native(g, scores, sym):
+    """int16 masked softmax in three (or four) native layers, no fp16 seam.
+
+    Order matters: the causal mask (-4096) is only representable in the RAW score
+    domain (codes -4096/s_s = -28500 of +-32767); after the 1/sqrt(d) the same mask
+    would need 8x the code range.  So: mask first (exact code add), then multiply by
+    1/sqrt(HD) = 1/8 (the MUL requant is bit-exact on device: ops/_w4a16_probe/p16_mul),
+    then SOFTMAX.  sym=True declares the SOFTMAX output symmetric (1/aq_max, zp 0) so
+    P*V can consume it directly; sym=False uses TFLite's (1/65536, zp -32768) and pays
+    one exact rescale MUL (ops/_w4a16_probe/p16_mul_one).
+    """
+    # the causal pattern, as int16 codes in the raw score domain (-4096 / s_s = -28500)
+    mask_codes = np.round(causal_mask() / scores.s).astype(np.int64)
+    masked = g.q_add_const(scores, mask_codes, scores.s, "masked")
+    # code 1 with scale 1/8 (NOT code 4096 with scale 1/32768): the MUL accumulator
+    # then stays at int16 magnitude and the ratio is ~1.34, i.e. a right shift.  With
+    # full-scale codes the ratio becomes 3.3e-4, shift=+12 and the requant wraps int64
+    # (ops/_w4a16_probe/p16_native_seam was the first casualty of this).
+    e = np.full(masked.c.shape, 1, a_dtype())
+    ec = TS(g.const_i8("eighth", e, 0.125), e, 0.125)
+    scaled = g.q_mul(masked, ec, pick_scale(masked.real / 8.0), "scaled")
+    if sym:
+        p = g.q_softmax(scaled, "probs", scale=1.0 / float(aq_max()), zp=0)
+        return p, p
+    p = g.q_softmax(scaled, "probs")
+    return p, _to_symmetric(g, p, "p_sym")
+
+
 def _rmsnorm5(g, a, gamma, tag):
     """int8 RMSNorm, 5 layers: MUL(x,x) MEAN RSQRT MUL(x,r) MUL(gamma).
 
@@ -755,10 +913,11 @@ def build_rmsnorm(P):
     a = g.mk_in("input", (T, D), x_c, s_x)
     y = _rmsnorm5(g, a, P["g1"], "n1")
     blob = g.finish([a.i], [y.i], form_tag() + " int8 rmsnorm T=%d" % T)
-    meta = dict(op="RMSNORM", form=FORM, shape={"T": T, "D": D}, dtype="int8",
-                layers_expected=5, eps_register="dropped (constant-folded at int8), see ADR 0005",
-                input={"name": "input", "shape": [T, D], "type": "int8"},
-                output={"name": "out", "shape": [T, D], "type": "int8"},
+    meta = dict(op="RMSNORM", form=FORM, shape={"T": T, "D": D}, dtype=a_name(),
+                layers_expected=5,
+                eps_register="dropped (constant-folded at int8 resolution), see ADR 0005",
+                input={"name": "input", "shape": [T, D], "type": a_name()},
+                output={"name": "out", "shape": [T, D], "type": a_name()},
                 quant={"input": s_x, "output": y.s}, int8_tol=1,
                 tolerance_rationale=tol_text())
     return blob, meta, x_c, y.c, dict(fp32=ch["n1"])
@@ -781,9 +940,9 @@ def build_swiglu(P):
     down = g.q_fc(y, wd, swd, bqd, s_down, D, "down")
     blob = g.finish([a.i], [down.i], form_tag() + " swiglu T=%d" % T)
     meta = dict(op="SWIGLU", form=FORM, shape={"T": T, "D": D, "I": INTER},
-                dtype="int8", weights_dtype="int%d" % W_BITS,
-                input={"name": "input", "shape": [T, D], "type": "int8"},
-                output={"name": "out", "shape": [T, D], "type": "int8"},
+                dtype=a_name(), weights_dtype="int%d" % W_BITS,
+                input={"name": "input", "shape": [T, D], "type": a_name()},
+                output={"name": "out", "shape": [T, D], "type": a_name()},
                 quant={"input": s_a, "gate": s_gate, "up": s_up, "mlp_y": y.s,
                        "output": down.s}, int8_tol=1, tolerance_rationale=tol_text())
     return blob, meta, a_c, down.c, dict(fp32=ch["down"], y=y.c, s_y=y.s)
@@ -802,10 +961,10 @@ def build_bmm_qk(P):
     sc = g.q_bmm(a, b, s_s, "scores", adj_y=True)
     blob = g.finish([a.i, b.i], [sc.i], form_tag() + " int8 bmm qk T=%d" % T)
     meta = dict(op="BATCH_MATMUL", form=FORM, matmul="Q.K^T",
-                shape={"H": H, "T": T, "HD": HD, "adj_y": 1}, dtype="int8",
-                inputs=[{"name": "a", "shape": [H, T, HD], "type": "int8"},
-                        {"name": "b", "shape": [H, T, HD], "type": "int8"}],
-                output={"name": "scores", "shape": [H, T, T], "type": "int8"},
+                shape={"H": H, "T": T, "HD": HD, "adj_y": 1}, dtype=a_name(),
+                inputs=[{"name": "a", "shape": [H, T, HD], "type": a_name()},
+                        {"name": "b", "shape": [H, T, HD], "type": a_name()}],
+                output={"name": "scores", "shape": [H, T, T], "type": a_name()},
                 quant={"a": s_q, "b": s_k, "output": s_s}, int8_tol=1,
                 tolerance_rationale=tol_text())
     return blob, meta, q_c, sc.c, dict(second=k_c, fp32=ch["scores"])
@@ -815,21 +974,21 @@ def build_bmm_pv(P):
     ch = chain_f32(P)
     p = ch["probs"]
     vt = np.transpose(ch["v14"], (1, 0, 2))
-    p_c = np.clip(np.round(p * 127.0), -127, 127).astype(np.int8)   # symmetric 1/127 domain
+    p_c = clip_sym(p)   # symmetric 1/aq_max domain
     v_c, s_v = s8(vt)
     a3 = np.transpose(ch["probs"], (0, 1, 2)) @ vt
     s_o = pick_scale(a3)
     g = QL()
-    a = g.mk_in("a", (H, T, T), p_c, 1.0 / 127.0)
+    a = g.mk_in("a", (H, T, T), p_c, 1.0 / float(aq_max()))
     b = g.mk_in("b", (H, T, HD), v_c, s_v)
     o = g.q_bmm(a, b, s_o, "attn")
     blob = g.finish([a.i, b.i], [o.i], form_tag() + " int8 bmm pv T=%d" % T)
     meta = dict(op="BATCH_MATMUL", form=FORM, matmul="P.V",
-                shape={"H": H, "T": T, "HD": HD}, dtype="int8",
-                inputs=[{"name": "a", "shape": [H, T, T], "type": "int8"},
-                        {"name": "b", "shape": [H, T, HD], "type": "int8"}],
-                output={"name": "attn", "shape": [H, T, HD], "type": "int8"},
-                quant={"a": 1.0 / 127.0, "b": s_v, "output": s_o}, int8_tol=1,
+                shape={"H": H, "T": T, "HD": HD}, dtype=a_name(),
+                inputs=[{"name": "a", "shape": [H, T, T], "type": a_name()},
+                        {"name": "b", "shape": [H, T, HD], "type": a_name()}],
+                output={"name": "attn", "shape": [H, T, HD], "type": a_name()},
+                quant={"a": 1.0 / float(aq_max()), "b": s_v, "output": s_o}, int8_tol=1,
                 tolerance_rationale=tol_text())
     return blob, meta, p_c, o.c, dict(second=v_c, fp32=a3)
 
@@ -891,24 +1050,33 @@ def build_layer(P, upto="out"):
     scores = g.q_bmm(qt, kt, pick_scale(ch["scores"]), "scores", adj_y=True)
     if upto == "scores":
         return finish_layer(g, x, scores, ch, "scores")
-    # Two independent reasons the masked softmax is NOT int8 here:
+    # The masked softmax seam.  Ticket 04 (int8 activations) had to cross into fp16:
     #  1. the causal mask (-4096) is not representable in an int8 score domain (codes span
     #     +-127 * s, s = 37 here), so an int8 mask ADD cannot be exact;
     #  2. an int8 SOFTMAX over these scores does not compile at all (ncc: "Large scale
     #     quant Softmax may have accuracy issue", EDPA unsupported -> no execution plan).
-    # The layer therefore crosses an explicit dtype seam, the ADR 0005 sanctioned form for
-    # a mixed graph: DEQUANTIZE -> fp16 MUL(1/sqrt(d)) + mask + softmax -> QUANTIZE.
-    # (The int8->int8 QUANTIZE requant that would have folded the 1/sqrt(d) is NOT usable:
-    #  it compiles to RequantizeLayer but computes the wrong thing -- see
-    #  ops/_w4a8_probe_seam vs ops/_w4a8_probe_seam_noreq in docs/OP-w4a8-layer.md.)
-    f16 = g.f16_dequant(scores, "scores_f16")
-    f16 = g.f16_mul_scalar(f16, SCALE, "scaled")
-    tmask = g.const_f16("mask", causal_mask())
-    masked = g.f16_add(f16, tmask, "masked", causal_mask())
-    p = g.f16_softmax(masked, "probs")
-    if upto == "probs":
-        return finish_layer(g, x, p, ch, "probs")
-    p_sym = g.f16_quantize(p, 1.0 / 127.0, "p_sym")
+    # Ticket 04d asks whether int16 activations still need that seam; SEAM decides and
+    # both branches are built from the same golden machinery:
+    #  "f16"    : DEQUANTIZE int16->fp16, x1/sqrt(d), +mask(-4096), SOFTMAX, QUANTIZE back
+    #             (the ticket 04 graph, dtype-parameterised -- 2 extra layers per seam).
+    #  "native" : the int16 score domain has 256x the int8 resolution, so the SAME -4096
+    #             mask is representable in codes (-4096 / 0.1437 = -28500) and can be added
+    #             as an exact constant; SOFTMAX stays int16.  No fp16 seam at all.
+    #  "native_sym": as native, but the SOFTMAX output is declared symmetric (1/aq_max, zp 0)
+    #             so P*V takes it without a rescale MUL.
+    if SEAM in ("native", "native_sym"):
+        p, p_sym = _seam_native(g, scores, SEAM == "native_sym")
+        if upto == "probs":
+            return finish_layer(g, x, p, ch, "probs")
+    else:
+        f16 = g.f16_dequant(scores, "scores_f16")
+        f16 = g.f16_mul_scalar(f16, SCALE, "scaled")
+        tmask = g.const_f16("mask", causal_mask())
+        masked = g.f16_add(f16, tmask, "masked", causal_mask())
+        p = g.f16_softmax(masked, "probs")
+        if upto == "probs":
+            return finish_layer(g, x, p, ch, "probs")
+        p_sym = g.f16_quantize(p, 1.0 / float(aq_max()), "p_sym")
     a3 = g.q_bmm(p_sym, vt, pick_scale(np.transpose(ch["probs"], (0, 1, 2)) @ np.transpose(ch["v14"], (1, 0, 2))),
                  "a3")
     at = g.q_transpose(a3, "at", [1, 0, 2])
@@ -949,11 +1117,11 @@ def finish_layer(g, x, t, ch, stage):
         otype = "float16"
     else:
         shape, codes, s_o = list(t.c.shape), t.c, t.s
-        otype = "int8"
+        otype = a_name()
     meta = dict(op="DECODER_LAYER", form=FORM, stage=stage,
                 shape=dict(T=T, D=D, H=H, KV=KV, HD=HD, I=INTER),
-                dtype="int8", weights_dtype="int%d" % W_BITS,
-                input={"name": "x", "shape": [T, D], "type": "int8"},
+                dtype=a_name(), weights_dtype="int%d" % W_BITS,
+                input={"name": "x", "shape": [T, D], "type": a_name()},
                 output={"name": "out", "shape": shape, "type": otype},
                 quant={"input": x.s, "output": s_o}, int8_tol=2,
                 tolerance_rationale=LAYER_TOL)
@@ -991,7 +1159,8 @@ def diag(opdir):
     device-vs-golden half is tools/compare.py's job.
     """
     meta = json.load(open(os.path.join(opdir, "model.json")))
-    dev = np.fromfile(os.path.join(opdir, "out_device.bin"), np.int8)
+    dev = np.fromfile(os.path.join(opdir, "out_device.bin"),
+                      {"int8": np.int8, "int16": np.int16}[meta["output"]["type"]])
     shape = tuple(meta["output"]["shape"])
     dev = dev.reshape(shape)
     s = float(meta["quant"]["output"])
@@ -1144,6 +1313,271 @@ def build_probe_pv_t8(P):
     return blob, meta, a, o.c, dict(second=b)
 
 
+
+# ------------------------------------------------------- int16 acceptance probes
+# Ticket 04d: before building a whole 4W16A layer, which operators does ncc accept
+# with int16 activations, and does the device compute them the way the quantised
+# golden says?  Each probe is a small graph with a real (non-trivial) golden.
+def _need16():
+    if A_BITS != 16:
+        raise SystemExit("p16_* probes need --a-bits 16")
+
+
+def _pmeta(op, xname, xshape, yshape, s_in, s_out, note="", tol=1, ytype="int16",
+           extra=None):
+    m = dict(op=op, form="probe16", shape={"in": list(xshape), "out": list(yshape)},
+             dtype="int16", input={"name": xname, "shape": list(xshape), "type": "int16"},
+             output={"name": "out", "shape": list(yshape), "type": ytype},
+             quant={"input": s_in, "output": s_out}, int8_tol=tol,
+             tolerance_rationale=TOL16, note=note)
+    if extra:
+        m.update(extra)
+    return m
+
+
+def build_p16_fc(P):
+    """FULLY_CONNECTED with int16 activations, per-channel int4/int8 weights, int32 bias."""
+    _need16()
+    rng = np.random.default_rng(31)
+    M, K, N = T, 64, 64
+    a_i, s_a = s16(rng.standard_normal((M, K)) * 3.0)
+    W = rng.standard_normal((N, K)) * 0.05
+    b = rng.standard_normal(N) * 0.1
+    wq, s_w = sw_weights(W)
+    bs = s_a * s_w.astype(np.float64)
+    b_q = np.round(b / bs).astype(np.int32)
+    o_ref = (a_i.astype(np.float64) * s_a) @ (wq.astype(np.float64) * s_w[:, None]).T + b
+    s_o = pick_scale(o_ref)
+    g = QL()
+    ta = g.mk_in("input", (M, K), a_i, s_a)
+    out = g.q_fc(ta, wq, s_w, b_q, s_o, N, "out", version=9)
+    blob = g.finish([ta.i], [out.i], "probe int16 FC v9 int%d W" % W_BITS)
+    return blob, _pmeta("FULLY_CONNECTED", "input", (M, K), (M, N), s_a, s_o,
+                        note="op version 9, bias int32 per-channel"), a_i, out.c, \
+        dict(fp32=o_ref)
+
+
+def build_p16_bmm_pv(P):
+    """BATCH_MATMUL P*V shape with int16 activations: [2,16,16] x [2,16,64]."""
+    _need16()
+    rng = np.random.default_rng(32)
+    a_i, s_a = s16(rng.random((2, T, T)))
+    b_i, s_b = s16(rng.standard_normal((2, T, HD)))
+    s_o = pick_scale(np.einsum("hij,hjk->hik", a_i.astype(np.float64) * s_a,
+                               b_i.astype(np.float64) * s_b))
+    g = QL()
+    ta = g.mk_in("a", (2, T, T), a_i, s_a)
+    tb = g.mk_in("b", (2, T, HD), b_i, s_b)
+    out = g.q_bmm(ta, tb, s_o, "out")
+    blob = g.finish([ta.i, tb.i], [out.i], "probe int16 BMM P*V")
+    return blob, _pmeta("BATCH_MATMUL", "a", (2, T, T), (2, T, HD), s_a, s_o,
+                        note="P*V shape", extra=dict(second=dict(name="b",
+                        shape=[2, T, HD], scale=s_b))), a_i, out.c, \
+        dict(second=b_i, fp32=None)
+
+
+def build_p16_bmm_qk(P):
+    """BATCH_MATMUL Q*K^T shape with int16 activations: [2,16,64] x [2,16,64] adj_y."""
+    _need16()
+    rng = np.random.default_rng(33)
+    a_i, s_a = s16(rng.standard_normal((2, T, HD)))
+    b_i, s_b = s16(rng.standard_normal((2, T, HD)))
+    prod = np.einsum("hid,hjd->hij", a_i.astype(np.float64) * s_a,
+                     b_i.astype(np.float64) * s_b)
+    s_o = pick_scale(prod)
+    g = QL()
+    ta = g.mk_in("a", (2, T, HD), a_i, s_a)
+    tb = g.mk_in("b", (2, T, HD), b_i, s_b)
+    out = g.q_bmm(ta, tb, s_o, "out", adj_y=True)
+    blob = g.finish([ta.i, tb.i], [out.i], "probe int16 BMM Q*K^T adj_y")
+    return blob, _pmeta("BATCH_MATMUL", "a", (2, T, HD), (2, T, T), s_a, s_o,
+                        note="Q*K^T shape, adj_y", extra=dict(second=dict(name="b",
+                        shape=[2, T, HD], scale=s_b))), a_i, out.c, \
+        dict(second=b_i, fp32=None)
+
+
+def build_p16_mul(P):
+    """MUL of two int16 tensors into int16 (RMSNorm / RoPE / SwiGLU elementwise)."""
+    _need16()
+    rng = np.random.default_rng(34)
+    a_i, s_a = s16(rng.standard_normal((T, 64)))
+    b_i, s_b = s16(rng.standard_normal((T, 64)))
+    real = a_i.astype(np.float64) * s_a * (b_i.astype(np.float64) * s_b)
+    g = QL()
+    ta = g.mk_in("a", (T, 64), a_i, s_a)
+    tb = g.mk_in("b", (T, 64), b_i, s_b)
+    out = g.q_mul(ta, tb, pick_scale(real), "out")
+    blob = g.finish([ta.i, tb.i], [out.i], "probe int16 MUL")
+    return blob, _pmeta("MUL", "a", (T, 64), (T, 64), s_a, out.s,
+                        extra=dict(second=dict(name="b", shape=[T, 64], scale=s_b))), \
+        a_i, out.c, dict(second=b_i, fp32=real)
+
+
+def _p16_addsub(P, minus):
+    _need16()
+    rng = np.random.default_rng(35 if minus else 36)
+    a_i, s_a = s16(rng.standard_normal((T, 64)))
+    b_i, s_b = s16(rng.standard_normal((T, 64)) * 2.0)      # deliberately != s_a
+    real = (a_i.astype(np.float64) * s_a - b_i.astype(np.float64) * s_b) if minus else \
+           (a_i.astype(np.float64) * s_a + b_i.astype(np.float64) * s_b)
+    g = QL()
+    ta = g.mk_in("a", (T, 64), a_i, s_a)
+    tb = g.mk_in("b", (T, 64), b_i, s_b)
+    out = g.q_addsub(ta, tb, pick_scale(real), "out", minus=minus)
+    blob = g.finish([ta.i, tb.i], [out.i], "probe int16 %s (different scales)"
+                    % ("SUB" if minus else "ADD"))
+    return blob, _pmeta("SUB" if minus else "ADD", "a", (T, 64), (T, 64), s_a, out.s,
+                        note="operands have different per-tensor scales",
+                        extra=dict(second=dict(name="b", shape=[T, 64], scale=s_b))), \
+        a_i, out.c, dict(second=b_i, fp32=real)
+
+
+def build_p16_add(P):
+    return _p16_addsub(P, False)
+
+
+def build_p16_sub(P):
+    return _p16_addsub(P, True)
+
+
+def build_p16_mean(P):
+    """MEAN(axis=1) of int16 (RMSNorm chain: the second layer)."""
+    _need16()
+    rng = np.random.default_rng(37)
+    a_i, s_a = s16(rng.random((T, 64)))
+    real = (a_i.astype(np.float64) * s_a).mean(axis=1, keepdims=True)
+    g = QL()
+    ta = g.mk_in("input", (T, 64), a_i, s_a)
+    out = g.q_mean(ta, pick_scale(real), "out")
+    blob = g.finish([ta.i], [out.i], "probe int16 MEAN axis=1")
+    return blob, _pmeta("MEAN", "input", (T, 64), (T, 1), s_a, out.s), a_i, out.c, \
+        dict(fp32=real)
+
+
+def build_p16_rsqrt(P):
+    """RSQRT of int16 (RMSNorm chain: the third layer)."""
+    _need16()
+    rng = np.random.default_rng(38)
+    a_i, s_a = s16(rng.random((T, 64)) + 0.05)
+    real = 1.0 / np.sqrt(a_i.astype(np.float64) * s_a)
+    g = QL()
+    ta = g.mk_in("input", (T, 64), a_i, s_a)
+    out = g.q_rsqrt(ta, pick_scale(real), "out")
+    blob = g.finish([ta.i], [out.i], "probe int16 RSQRT")
+    return blob, _pmeta("RSQRT", "input", (T, 64), (T, 64), s_a, out.s), a_i, out.c, \
+        dict(fp32=real)
+
+
+def build_p16_logistic(P):
+    """LOGISTIC of int16 with the int16 fixed-point output convention (1/65536, zp -32768)."""
+    _need16()
+    rng = np.random.default_rng(39)
+    a_i, s_a = s16(rng.standard_normal((T, 64)) * 4.0)
+    real = 1.0 / (1.0 + np.exp(-(a_i.astype(np.float64) * s_a)))
+    g = QL()
+    ta = g.mk_in("input", (T, 64), a_i, s_a)
+    out = g.q_logistic(ta, "out")
+    blob = g.finish([ta.i], [out.i], "probe int16 LOGISTIC")
+    return blob, _pmeta("LOGISTIC", "input", (T, 64), (T, 64), s_a, out.s,
+                        note="output scale 1/65536 zp -32768"), a_i, out.c, \
+        dict(fp32=real)
+
+
+def _p16_native_seam(sym):
+    """The native int16 seam exactly as the layer builds it (mask -> x1/8 -> softmax)."""
+    P = fixture()
+    ch = chain_f32(P)
+    c16, s_s = s16(ch["scores"])
+    g = QL()
+    ta = g.mk_in("scores", (H, T, T), c16, s_s)
+    p, p_sym = _seam_native(g, ta, sym)
+    blob = g.finish([ta.i], [p_sym.i], "probe int16 native seam (%s)"
+                    % ("sym" if sym else "tflite"))
+    return blob, _pmeta("SEAM_NATIVE", "scores", (H, T, T), (H, T, T), s_s, p_sym.s,
+                        note="ADD(mask -4096 in raw domain) -> MUL(1/8) -> SOFTMAX int16 "
+                             + ("(1/32767 zp 0)" if sym else "(1/65536 zp -32768) -> x1.0")),         c16, p_sym.c, dict(fp32=ch["probs"])
+
+
+def build_p16_native_seam(P):
+    return _p16_native_seam(True)
+
+
+def build_p16_native_seam_tflite(P):
+    return _p16_native_seam(False)
+
+
+def build_p16_shapeops(P):
+    """RESHAPE / SPLIT / CONCAT / TRANSPOSE with int16 activations."""
+    _need16()
+    rng = np.random.default_rng(41)
+    a_i, s_a = s16(rng.standard_normal((T, 64)))
+    g = QL()
+    ta = g.mk_in("input", (T, 64), a_i, s_a)
+    y = g.q_shape(ta, "r3d", (T, 2, 32))
+    p0, p1 = g.q_split(y, "sp", 2, 2, (T, 2, 16))
+    cc = g.q_concat([p0, p1], "cc", 2, (T, 2, 32))
+    tt = g.q_transpose(cc, "tt", [1, 0, 2])
+    out = g.q_shape(tt, "out", (2, T, 32))
+    blob = g.finish([ta.i], [out.i], "probe int16 reshape/split/concat/transpose")
+    return blob, _pmeta("SHAPEOPS", "input", (T, 64), (2, T, 32), s_a, s_a,
+                        note="RESHAPE->SPLIT->CONCAT->TRANSPOSE->RESHAPE"), a_i, out.c, \
+        dict(fp32=None)
+
+
+def build_p16_seam(P):
+    """The ticket 04 fp16 seam, dtype-parameterised: int16 -> fp16 -> ... -> int16."""
+    _need16()
+    P_ = fixture()
+    ch = chain_f32(P_)
+    mask = causal_mask()
+    c16, s_s = s16(ch["scores"])
+    g = QL()
+    ta = g.mk_in("scores", (H, T, T), c16, s_s)
+    f = g.f16_dequant(ta, "deq")
+    f = g.f16_mul_scalar(f, SCALE, "scaled")
+    tm = g.const_f16("mask", mask)
+    f = g.f16_add(f, tm, "masked", mask)
+    p = g.f16_softmax(f, "probs")
+    out = g.f16_quantize(p, 1.0 / 32767.0, "out")
+    blob = g.finish([ta.i], [out.i], "probe int16 -> fp16 softmax -> int16")
+    return blob, _pmeta("SEAM16", "scores", (H, T, T), (H, T, T), s_s, out.s,
+                        note="DEQUANTIZE->MUL->ADD->SOFTMAX->QUANTIZE (int16 both ends)"), \
+        c16, out.c, dict(fp32=None)
+
+
+def build_p16_dequant(P):
+    """DEQUANTIZE int16 -> fp16 alone (first layer of the 04 seam)."""
+    _need16()
+    rng = np.random.default_rng(43)
+    a_i, s_a = s16(rng.standard_normal((T, 64)) * 100.0)
+    g = QL()
+    ta = g.mk_in("input", (T, 64), a_i, s_a)
+    f = g.f16_dequant(ta, "out")
+    blob = g.finish([ta.i], [f.i], "probe int16 -> fp16 DEQUANTIZE")
+    return blob, _pmeta("DEQUANTIZE", "input", (T, 64), (T, 64), s_a, None,
+                        ytype="float16"), a_i, np.asarray(f.v, np.float16), \
+        dict(fp32=a_i.astype(np.float64) * s_a)
+
+
+def build_p16_mul_one(P):
+    """MUL by the constant 1.0 with a new output scale: the symmetric rescale of probs."""
+    _need16()
+    rng = np.random.default_rng(44)
+    p_real = rng.random((T, 64))
+    c_i = np.clip(np.round(p_real * 65536.0) - 32768, -32768, 32767).astype(np.int16)
+    s_p = 1.0 / 65536.0
+    g = QL()
+    ta = g.mk_in("p", (T, 64), c_i, s_p, -32768)
+    one = np.full((T, 64), 32767, np.int16)
+    t1 = TS(g.const_i8("one", one, 1.0 / 32767.0), one, 1.0 / 32767.0)
+    out = g.q_mul(ta, t1, 1.0 / 32767.0, "out")
+    blob = g.finish([ta.i], [out.i], "probe int16 MUL by 1.0 (rescale to sym domain)")
+    return blob, _pmeta("MUL", "p", (T, 64), (T, 64), s_p, out.s,
+                        note="1/65536 zp -32768 -> 1/32767 zp 0"), c_i, out.c, \
+        dict(fp32=p_real)
+
+
+
 SPECS = {"fc_proj": build_fc_proj, "rmsnorm": build_rmsnorm, "swiglu": build_swiglu,
          "bmm_qk": build_bmm_qk, "bmm_pv": build_bmm_pv, "layer": build_layer,
          "probe_add_scales": build_probe_add_scales, "probe_quantize": build_probe_quantize,
@@ -1151,7 +1585,18 @@ SPECS = {"fc_proj": build_fc_proj, "rmsnorm": build_rmsnorm, "swiglu": build_swi
          "probe_seam": build_probe_seam, "probe_seam_alt": build_probe_seam_alt,
          "probe_seam_noreq": build_probe_seam_noreq,
          "probe_seam_noreq_2d": build_probe_seam_noreq_2d,
-         "probe_pv_t8": build_probe_pv_t8}
+         "probe_pv_t8": build_probe_pv_t8,
+         # ticket 04d: int16 activation acceptance probes
+         "p16_fc": build_p16_fc, "p16_bmm_pv": build_p16_bmm_pv,
+         "p16_bmm_qk": build_p16_bmm_qk, "p16_mul": build_p16_mul,
+         "p16_add": build_p16_add, "p16_sub": build_p16_sub,
+         "p16_mean": build_p16_mean, "p16_rsqrt": build_p16_rsqrt,
+         "p16_logistic": build_p16_logistic,
+         "p16_softmax": build_p16_native_seam,
+         "p16_native_seam": build_p16_native_seam,
+         "p16_native_seam_tflite": build_p16_native_seam_tflite,
+         "p16_shapeops": build_p16_shapeops, "p16_seam": build_p16_seam,
+         "p16_dequant": build_p16_dequant, "p16_mul_one": build_p16_mul_one}
 
 
 def wq_chain():
@@ -1169,7 +1614,7 @@ def wq_chain():
         q, s = sw_weights(Wf)
         Pq[name] = q.astype(np.float64) * s[:, None].astype(np.float64)
     for bits in (4, 8):
-        set_tier(bits)
+        set_tier(bits, 8)
         Pq = dict(P)
         for name in ("Wq", "Wk", "Wv", "Wo", "Wg", "Wu", "Wd"):
             Wf = np.asarray(P[name], np.float64)
@@ -1221,13 +1666,21 @@ def main():
     ap.add_argument("--w-bits", type=int, default=4, choices=(4, 8),
                     help="weight precision tier: 4 = ticket 04 (int4 packed), "
                          "8 = ticket 04c (int8 per-channel)")
+    ap.add_argument("--a-bits", type=int, default=8, choices=(8, 16),
+                    help="activation precision tier: 8 = tickets 04/04c (int8 "
+                         "per-tensor), 16 = ticket 04d (int16 per-tensor)")
+    ap.add_argument("--seam", default="f16", choices=("f16", "native", "native_sym"),
+                    help="how the LAYER crosses the masked softmax: f16 = the ticket 04 "
+                         "fp16 seam; native/native_sym = int16 masked SOFTMAX")
     ap.add_argument("--weights-report", action="store_true",
                     help="print the per-matrix weight quantisation error, both tiers")
     ap.add_argument("--wq-chain", action="store_true",
                     help="cosine of the fp64 chain run on quantised weights only")
     ap.add_argument("--diag", action="store_true", help="compare out_device.bin to the fp32 chain")
     a = ap.parse_args()
-    set_tier(a.w_bits)
+    global SEAM
+    SEAM = a.seam
+    set_tier(a.w_bits, a.a_bits)
     if a.weights_report:
         return weight_error_table()
     if a.wq_chain:
@@ -1252,10 +1705,12 @@ def main():
     meta["tflite_bytes"] = len(blob)
     meta["precision_tier"] = dict(
         weights="int%d, symmetric per-output-channel" % W_BITS,
-        activations="int8, symmetric per-tensor (s = max|v|/127)",
+        activations=("int%d, symmetric per-tensor (s = max|v|/%d)"
+                     % (A_BITS, aq_max())),
         bias="int32 per-channel (s[n] = s_a * s_w[n])",
         requant="tools/quant_contract.py: two integer roundings, per-channel multipliers",
-        builder="tools/build_w4a8.py --w-bits %d" % W_BITS)
+        builder="tools/build_w4a8.py --w-bits %d --a-bits %d --seam %s"
+                % (W_BITS, A_BITS, SEAM))
     if a.spec == "layer":
         meta["fp32_ref"] = STAGE_KEY[a.upto]
     elif a.spec in REF_KEY:
@@ -1263,7 +1718,7 @@ def main():
     meta["quality_criterion"] = dict(
         cosine_min=0.9999, source="ADR 0005 (operator-level)",
         code_criterion="device vs quantised golden: |delta| <= int8_tol codes")
-    if "fp32" in extra:
+    if extra.get("fp32") is not None:
         ref = np.asarray(extra["fp32"], np.float64)
         if meta["quant"]["output"] is None:
             dq = np.asarray(y, np.float64)

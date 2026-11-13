@@ -1,0 +1,28 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/_w4a16_probe/p16_dequant/model.tflite -d ops/_w4a16_probe/p16_dequant/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T14:22:48+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ DequantizeLayer<0>{DEQUANTIZE}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     2.0K   2.0K    0     128     368   4.5K
+
+Total Memory:
+  DRAM: 4.5K
+  L1:   0
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=2997
+SHA256=b1dba69a1f9f811974e30fa0afbff1b3ef4f30be61ec2a4dbcae0bd81778af33

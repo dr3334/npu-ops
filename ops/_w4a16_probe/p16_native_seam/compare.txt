@@ -1,0 +1,7 @@
+op        : SEAM_NATIVE {'in': [14, 16, 16], 'out': [14, 16, 16]}  dtype=int16
+expected  : 3584 vals   device: 3584 vals   logical shape=(14, 16, 16)
+exact     : NO   mismatched=173/3584
+contract  : int8_tol=1  max_abs_diff=151  fraction_off=4.8270%
+codes     : exact=3411  <=1=3451  <=2=3473  <=3=3482  <=5=3495  <=10=3520
+distribution: mean=1.04 median=0 p99=16 max=151
+FAIL

@@ -1,0 +1,7 @@
+op        : SEAM16 {'in': [14, 16, 16], 'out': [14, 16, 16]}  dtype=int16
+expected  : 3584 vals   device: 3584 vals   logical shape=(14, 16, 16)
+exact     : NO   mismatched=83/3584
+contract  : int8_tol=1  max_abs_diff=2000  fraction_off=2.3158%
+codes     : exact=3501  <=1=3508  <=2=3510  <=3=3511  <=5=3517  <=10=3522
+distribution: mean=2.83 median=0 p99=16 max=2000
+FAIL
