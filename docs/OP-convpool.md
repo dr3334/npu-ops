@@ -416,3 +416,15 @@ NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock" ./tools/devlock.sh run -- 
    two candidate formulas in §3.4; (b) fp16 conv/pool to see whether the int8-only limits in
    §4 are dtype-dependent; (c) per-channel weight scales (the common case in real models);
    (d) an `[1,H,W,K]` matmul-as-conv with W>1 to see whether the C≥32 split disappears.
+---
+
+## 订正（2026-11-13）：三份历史 rational 目录不重建
+
+`ops/conv_1x8x8x4_f3_{full,relu6,div3}_int8` 的 golden 用的是 **旧 rational 规则（float64 单次取整）**，与设备的两次舍入契约差 1 码（`div3` 的 `compare.txt` 里 167/512 就是这个）。
+
+处理：**保留为历史证据，不重建、不删除**；权威结果看同名的 `*_devrule` 目录（那批生来就用设备规则，0/512）。理由：
+1. 仓库规则是「失败与旧结论都保留」，删掉会丢掉「当时我们以为规则是什么」的记录；
+2. 重建这三份要 3 次板端运行，而 `*_devrule` 已经覆盖了同样的形状与结论；
+3. 它们的 `int8_tol` 仍是 1，不会被误读成「逐位通过」。
+
+同一批订正见 `reports/Q02-int8-bitexact.md`（FC/BMM 的 requant 契约修复，35 个 op / 145,296 值，新 golden 0 失配）。

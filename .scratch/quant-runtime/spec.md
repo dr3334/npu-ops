@@ -51,4 +51,4 @@ Date: 2026-11-13
 
 - 厂商文档：`llm_sdk_document.txt:951-957`（精度菜单与推荐）、`:958,989`（允许 attention 4W16A + MLP 4W8A 混用）、`:1265-1266,1350-1351`（device 4W16A 不是 bit-true）。
 - 本地实测矩阵：`skills/mtk-llm-pipeline/references/02-quantization-matrix.md:23-34`（4W16A 11.6–14.5 ms / 4W8A 5.94 ms / 8W8A 8.09 ms / W8A16F 15.08 ms）。
-- 探针产物（仓库外）：`.qwen25-impl/probe-w4a8/RESULTS.md`、`.qwen25-impl/probe-int16/RESULTS.md`、`.qwen25-impl/probe-precision/RESULTS.md`。
+- 探针产物：`.qwen25-impl/probe-int16/RESULTS.md`、`.qwen25-impl/probe-precision/RESULTS.md` 是完整的；int4 那一档的结论文档在仓库内 `reports/Q02-int8-bitexact.md` 与 `docs/OP-shared-weights.md`（`.qwen25-impl/probe-w4a8/` 只有脚本与编译日志，没有 RESULTS.md）。

@@ -1,1 +1,1 @@
-{"op":"bmm_pv_t16_int8_full","repeat":3,"compare_exit":0,"ts":"2026-11-13T13:32:28+08:00"}
+{"op":"bmm_pv_t16_int8_full","repeat":3,"compare_exit":1,"ts":"2026-11-13T13:37:06+08:00"}

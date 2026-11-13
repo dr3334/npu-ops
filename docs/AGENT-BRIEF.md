@@ -25,7 +25,7 @@
 ## 4. 硬规则（来自 AGENTS.md）
 - `--disallow-bridge` 恒开；bridge = 没上 NPU = 失败。
 - 先写预测再跑；没有预测的观察不算实验。
-- 数值：整数档优先 `codes=small`（逐位），全量程 requant 允许 `int8_tol=1`；浮点先登记容差。
+- 数值：整数档优先 `codes=small`（逐位）；全量程 requant 自 2026-11-13 起按**量化契约**逐位（`round_half_up(acc·M0/2^31)` → `RoundingDivideByPOT(shift)`，M0 用整乘子），默认 `int8_tol=0`。仍保留 `int8_tol=1` 的只有：avgpool（另一条规则）、conv 的历史 rational 目录（已被 `*_devrule` 取代）、以及没有板端 dump 的少数 op —— 理由必须写在那张票或报告里。浮点先登记容差。
 - 失败保留，不许删；不猜寄存器、不 fuzz。
 - 每完成一个算子就 `git add -A && git commit`（消息前缀：`feat(<范围>):`）。
 
