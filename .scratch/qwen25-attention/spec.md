@@ -1,6 +1,6 @@
 # Spec — Qwen2.5-0.5B 的自建 decoder 整块（T=8 / fp16 / 14Q-2KV GQA）
 
-Status: ready-for-agent
+Status: implemented (2026-11-13)
 Feature: qwen25-attention
 Date: 2026-11-13
 

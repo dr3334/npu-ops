@@ -1,6 +1,6 @@
 # cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/gqa_scores_t8_fp16/model.tflite -d ops/gqa_scores_t8_fp16/model.dla
 # version: Version: 7.3.15
-# date: 2026-11-13T10:19:02+08:00
+# date: 2026-11-13T10:59:51+08:00
 
 ===Graph[0] has 1 Execution Step(s)===
 Graph[0] Step[0]
@@ -31,5 +31,5 @@ TargetExecutionOrder:
  └ MDLA_5_0
 
 EXIT=0
-SIZE=14906
-SHA256=77fd2387d4de462ae2d791bbaab1d9eadb86765ed9db33b3069b0c430a5a2bc6
+SIZE=14907
+SHA256=e39d2109c6df647db931588300760c4a3d6ad40c54f886b52297237a412e8a07
