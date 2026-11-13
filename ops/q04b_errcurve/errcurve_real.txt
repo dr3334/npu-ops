@@ -1,0 +1,35 @@
+real weights: /mnt/d/ai/Qwen2.5-0.5B-Instruct/model.safetensors
+=== distribution (int4 cares about the tail, not the std) ===
+  matrix      shape          std      max/std   kurtosis   int4 per-channel rel_l2
+  Wq        896x896          0.0667    18.38      22.8   0.1865
+  Wk        128x896          0.0806    12.70      14.0   0.1499
+  Wv        128x896          0.0115    10.56       4.6   0.1795
+  Wo        896x896          0.0131    42.84      15.9   0.2047
+  Wg        4864x896         0.0230    21.36       4.2   0.1533
+  Wu        4864x896         0.0183    15.30       3.4   0.1549
+  Wd        896x4864         0.0182    16.78       4.6   0.2049
+
+=== int4 group-wise error on REAL weights (rel_l2 per matrix) ===
+  G=1    group=K/1  Wq 0.1865  Wk 0.1499  Wv 0.1795  Wo 0.2047  Wg 0.1533  Wu 0.1549  Wd 0.2049   | mean 0.1762
+  G=2    group=K/2  Wq 0.1689  Wk 0.1392  Wv 0.1623  Wo 0.1769  Wg 0.1425  Wu 0.1440  Wd 0.1906   | mean 0.1606
+  G=4    group=K/4  Wq 0.1530  Wk 0.1300  Wv 0.1467  Wo 0.1504  Wg 0.1314  Wu 0.1328  Wd 0.1760   | mean 0.1458
+  G=8    group=K/8  Wq 0.1366  Wk 0.1186  Wv 0.1319  Wo 0.1324  Wg 0.1202  Wu 0.1213  Wd 0.1624   | mean 0.1319
+  G=16   group=K/16 Wq 0.1202  Wk 0.1072  Wv 0.1167  Wo 0.1163  Wg 0.1087  Wu 0.1096  Wd 0.1487   | mean 0.1182
+  G=32   group=K/32 Wq 0.1042  Wk 0.0952  Wv 0.1023  Wo 0.1006  Wg 0.0968  Wu 0.0974  Wd 0.1349   | mean 0.1045
+  G=64   group=K/64 Wq 0.0884  Wk 0.0833  Wv 0.0875  Wo 0.0858  Wg 0.0838  Wu 0.0843  Wd 0.1213   | mean 0.0906
+  G=128  group=K/128 Wq 0.0717  Wk 0.0694  Wv 0.0716  Wo 0.0703  Wg 0.0694  Wu 0.0697  Wd 0.1074   | mean 0.0756
+
+=== whole layer with REAL weights: only weights group-quantised, rest float64 ===
+  G   group(K=896)  out cosine   out rel_l2   probs cosine
+  1    896          0.9733031  2.3160e-01  0.9988756
+  2    448          0.9779598  2.0964e-01  0.9984820
+  4    224          0.9818308  1.9153e-01  0.9992397
+  8    112          0.9847469  1.7593e-01  0.9992224
+  16   56           0.9869180  1.6211e-01  0.9993636
+  32   28           0.9894719  1.4576e-01  0.9996100
+  64   14           0.9921940  1.2607e-01  0.9995797
+  128  7            0.9942992  1.0745e-01  0.9997717
+
+  int8 per-channel weights for comparison (04c territory):
+    int8 G=1 : out cosine 0.9999157  rel_l2 1.3003e-02  probs cosine 0.9999960
+  -> ops/q04b_errcurve/errcurve_real.json
