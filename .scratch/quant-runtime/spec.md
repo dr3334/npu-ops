@@ -38,6 +38,7 @@ Date: 2026-11-13
 
 - 每个 op 目录仍然是「一个图 + 一份 `compare.txt`」这条缝；量化档在 `model.json` 里登记 `precision_tier`、`int8_tol`/`atol`/`rtol` 与依据。
 - 逐位判据只在「同一档、同一量化参数、同一输入」的比较里使用；跨档比较一律用码级/余弦。
+- **判据分两层**（ADR 0005 第六次订正）：实现门 = device == 量化 golden（码级）+ `|Δcos(device, golden)| ≤ 0.003`；质量期望 = fp16/16-bit 权重 ≥0.9999、**int8 权重 ≥0.9998**、int4 ≈0.97（固有上限）。**最终质量门在整网**（24 层 logits cosine / token 命中率），不用单层 cosine 的 1e-4 差当硬门。
 - 共享权重的可复现性用「bin 的 sha256 + 图的 sha256 + 一次运行输出」三联记录。
 
 ## Out of Scope
