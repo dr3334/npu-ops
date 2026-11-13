@@ -1,0 +1,361 @@
+{
+  "op": "DECODER_LAYER_T8_FP16",
+  "variant": "full",
+  "stage": "out",
+  "shape": {
+    "T": 8,
+    "D": 896,
+    "Hq": 14,
+    "Hkv": 2,
+    "HD": 64,
+    "I": 4864,
+    "in": [
+      8,
+      896
+    ],
+    "out": [
+      8,
+      896
+    ]
+  },
+  "dtype": "fp16",
+  "inputs": [
+    {
+      "name": "x",
+      "shape": [
+        8,
+        896
+      ],
+      "type": "float16",
+      "bytes": 14336,
+      "what": "layer input hidden state (embed rows for fixed token ids)"
+    }
+  ],
+  "output": {
+    "name": "out",
+    "shape": [
+      8,
+      896
+    ],
+    "type": "float16",
+    "bytes": 14336
+  },
+  "quant": {},
+  "reference": "numpy_float32_from_stored_fp16_one_final_rounding",
+  "reference_note": "golden/expected.bin is an independent numpy float32 forward pass over the stored fp16 weights/inputs/tables; it shares no code with the flatbuffer writer (which contains no maths).  A float64 rerun gives 7078/7168 identical fp16 codes (max|f32-f64| = 1.218e-04), so the reference is not precision-limited.",
+  "atol": 0.0090332031,
+  "rtol": 0.0090332031,
+  "tolerance_basis": "max|out| = 0.4836; fp16 ULP at that magnitude = 0.0002441 (5.05e-04 relative). Device-independent floor (numpy chain with a fp16 rounding at every tensor boundary, i.e. what MDLA does -- docs/OP-qkv.md 5.2: 7167/7168 bit-identical) = 2.2583e-03 abs = 9.25 ULP = 4.67e-03 relative. Registered atol = rtol = max(4*2^-11*max|out|, 4*floor) = 0.0090332. The 4*floor term dominates. NOTES 4's flat 2e-2 would be 4.14e-02 relative here, i.e. looser than the measured floor (usable but weak).",
+  "tolerance_revision": "registered before the first board run of this op; derived only from the frozen fixture + a device-independent fp16 rounding simulation (NOTES 4 / 10.1).  Not adjusted after any run.",
+  "fp16_floor": {
+    "abs": 0.00225830078125,
+    "rel": 0.004669358909641595,
+    "ulp_at_max": 0.000244140625,
+    "max_abs_out": 0.483642578125,
+    "sim_vs_golden_identical_codes": 804,
+    "codes": 7168,
+    "note": "numpy chain with a fp16 rounding at every tensor boundary vs the single-rounding golden; device-independent"
+  },
+  "threshold_at_max": 0.013402044773101807,
+  "eps_register": {
+    "graph_eps": 1e-06,
+    "eps_stored_fp16": 1.0132789611816406e-06,
+    "eps_shape": [
+      8,
+      1
+    ],
+    "toy_block_eps": 0,
+    "note": "Qwen2.5 rms_norm_eps = 1e-6 (transformers), NOT the earlier toy block's 0 (docs/OP-block.md).  The mean(x^2) of a real hidden is ~1e-4..1, so eps moves the output by << 1 ULP: the two conventions are numerically indistinguishable here and are NOT discriminated by this comparison.  The graph carries the real 1e-6 anyway (it is what the model means)."
+  },
+  "mask": {
+    "value": -4096.0,
+    "position": "ADD after MUL(1/sqrt(HD))",
+    "causal": "0 at j<=i, MASK at j>i",
+    "form": "const [H,T,T] baked in graph",
+    "max_abs_scaled_score_S": 578.52001953125,
+    "S_limit": 1996.0,
+    "S_ok": true,
+    "derivation": "M in [2S+104, 65504-S] (docs/OP-masked-softmax.md 3.4); M=4096 = 2^12 is exact in fp16",
+    "note": "re-measured for THIS layer before reuse, as ticket 05 11.2 requires"
+  },
+  "rope": {
+    "convention": "qwen2_split_half",
+    "theta": 1000000.0,
+    "head_dim": 64,
+    "positions": "0..7",
+    "table": "const cos/sin fp16, duplicated over heads (no broadcast)",
+    "static_note": "T must be static because the tables are data"
+  },
+  "kv_replication": {
+    "from": 2,
+    "to": 14,
+    "mapping": "query head h -> kv head h//7",
+    "form": "SPLIT(axis=1) + one 14-input CONCAT per tensor",
+    "layers": 3,
+    "why": "docs/OP-gqa-scores.md 4.6: nary14 compiles to 3 layers and is bit-exact on the board; the 3-CONCAT form costs 5"
+  },
+  "predicted_layers": {
+    "items": [
+      {
+        "name": "RMSNorm #1 (input_layernorm)",
+        "layers": 6,
+        "note": "MUL, MEAN, ADD(eps), RSQRT, MUL(x), MUL(gamma)"
+      },
+      {
+        "name": "q projection + RoPE",
+        "layers": 11,
+        "note": "FC, RESHAPE, SPLIT(2 Slice), MUL x4, SUB, ADD, CONCAT"
+      },
+      {
+        "name": "k projection + RoPE",
+        "layers": 11,
+        "note": "same as q with H=2"
+      },
+      {
+        "name": "v projection",
+        "layers": 2,
+        "note": "FC, RESHAPE (no RoPE)"
+      },
+      {
+        "name": "KV replication k (2->14)",
+        "layers": 3,
+        "note": "SPLIT(2 Slice) + one 14-input CONCAT"
+      },
+      {
+        "name": "KV replication v (2->14)",
+        "layers": 3,
+        "note": "SPLIT(2 Slice) + one 14-input CONCAT"
+      },
+      {
+        "name": "TRANSPOSE q, k14, v14",
+        "layers": 3,
+        "note": "one per tensor [T,H,HD]->[H,T,HD]"
+      },
+      {
+        "name": "scores BMM (3-D, adj_y)",
+        "layers": 1,
+        "note": "one native BatchMatMul"
+      },
+      {
+        "name": "MUL(1/8) + ADD(mask) + SoftMax",
+        "layers": 3,
+        "note": "3 native layers (docs/OP-masked-softmax.md)"
+      },
+      {
+        "name": "PV BMM (3-D)",
+        "layers": 1,
+        "note": "one native BatchMatMul"
+      },
+      {
+        "name": "TRANSPOSE + RESHAPE back to [8,896]",
+        "layers": 2,
+        "note": ""
+      },
+      {
+        "name": "o_proj FC (no bias) + residual ADD",
+        "layers": 2,
+        "note": ""
+      },
+      {
+        "name": "RMSNorm #2 (post_attention_layernorm)",
+        "layers": 6,
+        "note": "same 6-layer chain"
+      },
+      {
+        "name": "SwiGLU FFN",
+        "layers": 6,
+        "note": "FC, FC, LOGISTIC, MUL, MUL, FC (silu is not fused)"
+      },
+      {
+        "name": "residual ADD #2",
+        "layers": 1,
+        "note": ""
+      }
+    ],
+    "total": 61,
+    "note": "counted from the component tickets' measured layer counts; the briefing's 40-50 estimate predates the nary14 CONCAT measurement and the 11-layer q/k RoPE"
+  },
+  "weight_inventory": {
+    "rows": [
+      {
+        "tensor": "q_proj",
+        "fixture": "layer0.attn.q_proj",
+        "shape": [
+          896,
+          896
+        ],
+        "bytes": 1605632,
+        "mib": 1.5312
+      },
+      {
+        "tensor": "k_proj",
+        "fixture": "layer0.attn.k_proj",
+        "shape": [
+          128,
+          896
+        ],
+        "bytes": 229376,
+        "mib": 0.2188
+      },
+      {
+        "tensor": "v_proj",
+        "fixture": "layer0.attn.v_proj",
+        "shape": [
+          128,
+          896
+        ],
+        "bytes": 229376,
+        "mib": 0.2188
+      },
+      {
+        "tensor": "o_proj",
+        "fixture": "layer0.attn.o_proj",
+        "shape": [
+          896,
+          896
+        ],
+        "bytes": 1605632,
+        "mib": 1.5312
+      },
+      {
+        "tensor": "gate_proj",
+        "fixture": "layer0.mlp.gate_proj",
+        "shape": [
+          4864,
+          896
+        ],
+        "bytes": 8716288,
+        "mib": 8.3125
+      },
+      {
+        "tensor": "up_proj",
+        "fixture": "layer0.mlp.up_proj",
+        "shape": [
+          4864,
+          896
+        ],
+        "bytes": 8716288,
+        "mib": 8.3125
+      },
+      {
+        "tensor": "down_proj",
+        "fixture": "layer0.mlp.down_proj",
+        "shape": [
+          896,
+          4864
+        ],
+        "bytes": 8716288,
+        "mib": 8.3125
+      },
+      {
+        "tensor": "norm gammas + qkv biases + zero FC biases",
+        "bytes": 28928,
+        "mib": 0.0276
+      },
+      {
+        "tensor": "rope cos/sin tables (q+k) + causal mask",
+        "bytes": 34560,
+        "mib": 0.033
+      }
+    ],
+    "total_bytes": 29882368,
+    "total_mib": 28.498
+  },
+  "stats": {
+    "input": {
+      "min": -0.0704345703125,
+      "max": 0.0623779296875,
+      "abs_max": 0.0704345703125,
+      "rms": 0.01519273778921251
+    },
+    "output": {
+      "min": -0.462646484375,
+      "max": 0.483642578125,
+      "abs_max": 0.483642578125,
+      "rms": 0.1300876776943163
+    },
+    "traces": {
+      "x": {
+        "min": -0.0704345703125,
+        "max": 0.0623779296875,
+        "abs_max": 0.0704345703125,
+        "rms": 0.01519273778921251
+      },
+      "n1": {
+        "min": -1.0510295629501343,
+        "max": 0.82221519947052,
+        "abs_max": 1.0510295629501343,
+        "rms": 0.0989159446250361
+      },
+      "q3": {
+        "min": -25.40296173095703,
+        "max": 22.271635055541992,
+        "abs_max": 25.40296173095703,
+        "rms": 7.803684931299486
+      },
+      "k14": {
+        "min": -75.93484497070312,
+        "max": 77.55803680419922,
+        "abs_max": 77.55803680419922,
+        "rms": 30.41052232568392
+      },
+      "v14": {
+        "min": -0.12532280385494232,
+        "max": 0.12067419290542603,
+        "abs_max": 0.12532280385494232,
+        "rms": 0.03702139649399689
+      },
+      "scores": {
+        "min": -4628.16015625,
+        "max": 4176.13330078125,
+        "abs_max": 4628.16015625,
+        "rms": 2305.502588219562
+      },
+      "probs": {
+        "min": 0.0,
+        "max": 1.0,
+        "abs_max": 1.0,
+        "rms": 0.34762924817850394
+      },
+      "attn": {
+        "min": -0.12532280385494232,
+        "max": 0.12067419290542603,
+        "abs_max": 0.12532280385494232,
+        "rms": 0.03512543706819698
+      },
+      "r1": {
+        "min": -0.0820758193731308,
+        "max": 0.07805564254522324,
+        "abs_max": 0.0820758193731308,
+        "rms": 0.020447264168769727
+      },
+      "n2": {
+        "min": -3.0526950359344482,
+        "max": 3.3542869091033936,
+        "abs_max": 3.3542869091033936,
+        "rms": 0.7030791211110033
+      },
+      "mlp_y": {
+        "min": -1.128578543663025,
+        "max": 1.0575594902038574,
+        "abs_max": 1.128578543663025,
+        "rms": 0.10067814995916043
+      },
+      "down": {
+        "min": -0.45987236499786377,
+        "max": 0.47085464000701904,
+        "abs_max": 0.47085464000701904,
+        "rms": 0.12800155028655397
+      },
+      "out": {
+        "min": -0.4625571668148041,
+        "max": 0.48356184363365173,
+        "abs_max": 0.48356184363365173,
+        "rms": 0.13008733843595988
+      }
+    }
+  },
+  "generator": "tools/build_decoder_layer.py",
+  "tflite": "model.tflite",
+  "tflite_bytes": 29906972
+}
