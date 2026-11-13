@@ -1,0 +1,137 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/kvmax_1l_t8_c65528/model.tflite -d ops/kvmax_1l_t8_c65528/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T16:52:50+08:00
+
+OP[31]: CONCATENATION
+ ├ MDLA: Dimension should be <= 65535. Result : 0 got <2 x 65536 x 64>.
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<0>{SPLIT}:0 TensorId: 54874189]
+            Int16-Symmetric<2 x 65528 x 64> scale:0.00237472 offset:0 (name: k_in_split0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of output tensor [ConcatLayer<31>{CONCATENATION}:0 TensorId: 54872695]
+            Int16-Symmetric<2 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_k_all) should be in range [0, 65535]
+OP[32]: CONCATENATION
+ ├ MDLA: Dimension should be <= 65535. Result : 0 got <2 x 65536 x 64>.
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<1>{SPLIT}:0 TensorId: 54874265]
+            Int16-Symmetric<2 x 65528 x 64> scale:4.48189e-06 offset:0 (name: v_in_split0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of output tensor [ConcatLayer<32>{CONCATENATION}:0 TensorId: 54872735]
+            Int16-Symmetric<2 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_v_all) should be in range [0, 65535]
+OP[34]: CONCATENATION
+ ├ MDLA: Dimension should be <= 65535. Operand: 0 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 1 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 2 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 3 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 4 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 5 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 6 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 7 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 8 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 9 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 10 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 11 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 12 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 13 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Result : 0 got <14 x 65536 x 64>.
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<33>{SPLIT}:0 TensorId: 54879497]
+            Int16-Symmetric<1 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_kt_sp0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<33>{SPLIT}:0 TensorId: 54879497]
+            Int16-Symmetric<1 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_kt_sp0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<33>{SPLIT}:0 TensorId: 54879497]
+            Int16-Symmetric<1 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_kt_sp0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<33>{SPLIT}:0 TensorId: 54879497]
+            Int16-Symmetric<1 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_kt_sp0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<33>{SPLIT}:0 TensorId: 54879497]
+            Int16-Symmetric<1 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_kt_sp0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<33>{SPLIT}:0 TensorId: 54879497]
+            Int16-Symmetric<1 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_kt_sp0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<33>{SPLIT}:0 TensorId: 54879497]
+            Int16-Symmetric<1 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_kt_sp0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<33>{SPLIT}:0 TensorId: 54879573]
+            Int16-Symmetric<1 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_kt_sp1) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<33>{SPLIT}:0 TensorId: 54879573]
+            Int16-Symmetric<1 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_kt_sp1) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<33>{SPLIT}:0 TensorId: 54879573]
+            Int16-Symmetric<1 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_kt_sp1) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<33>{SPLIT}:0 TensorId: 54879573]
+            Int16-Symmetric<1 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_kt_sp1) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<33>{SPLIT}:0 TensorId: 54879573]
+            Int16-Symmetric<1 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_kt_sp1) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<33>{SPLIT}:0 TensorId: 54879573]
+            Int16-Symmetric<1 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_kt_sp1) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<33>{SPLIT}:0 TensorId: 54879573]
+            Int16-Symmetric<1 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_kt_sp1) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of output tensor [ConcatLayer<34>{CONCATENATION}:0 TensorId: 54872833]
+            Int16-Symmetric<14 x 65536 x 64> scale:0.00237472 offset:0 (name: L00_kt) should be in range [0, 65535]
+OP[36]: CONCATENATION
+ ├ MDLA: Dimension should be <= 65535. Operand: 0 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 1 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 2 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 3 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 4 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 5 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 6 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 7 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 8 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 9 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 10 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 11 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 12 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 13 got <1 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Result : 0 got <14 x 65536 x 64>.
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<35>{SPLIT}:0 TensorId: 54879649]
+            Int16-Symmetric<1 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_vt_sp0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<35>{SPLIT}:0 TensorId: 54879649]
+            Int16-Symmetric<1 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_vt_sp0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<35>{SPLIT}:0 TensorId: 54879649]
+            Int16-Symmetric<1 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_vt_sp0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<35>{SPLIT}:0 TensorId: 54879649]
+            Int16-Symmetric<1 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_vt_sp0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<35>{SPLIT}:0 TensorId: 54879649]
+            Int16-Symmetric<1 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_vt_sp0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<35>{SPLIT}:0 TensorId: 54879649]
+            Int16-Symmetric<1 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_vt_sp0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<35>{SPLIT}:0 TensorId: 54879649]
+            Int16-Symmetric<1 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_vt_sp0) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<35>{SPLIT}:0 TensorId: 54879725]
+            Int16-Symmetric<1 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_vt_sp1) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<35>{SPLIT}:0 TensorId: 54879725]
+            Int16-Symmetric<1 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_vt_sp1) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<35>{SPLIT}:0 TensorId: 54879725]
+            Int16-Symmetric<1 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_vt_sp1) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<35>{SPLIT}:0 TensorId: 54879725]
+            Int16-Symmetric<1 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_vt_sp1) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<35>{SPLIT}:0 TensorId: 54879725]
+            Int16-Symmetric<1 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_vt_sp1) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<35>{SPLIT}:0 TensorId: 54879725]
+            Int16-Symmetric<1 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_vt_sp1) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of input tensor [SliceLayer<35>{SPLIT}:0 TensorId: 54879725]
+            Int16-Symmetric<1 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_vt_sp1) should be in range [0, 65535]
+ ├ EDPA: supported Dimensions (in bytes) of output tensor [ConcatLayer<36>{CONCATENATION}:0 TensorId: 54872979]
+            Int16-Symmetric<14 x 65536 x 64> scale:4.48189e-06 offset:0 (name: L00_vt) should be in range [0, 65535]
+OP[38]: BATCH_MATMUL
+ ├ MDLA: Dimension should be <= 65535. Operand: 1 got <14 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Result : 0 got <14 x 8 x 65536>.
+ ├ EDPA: unsupported operation
+OP[39]: ADD
+ ├ MDLA: Dimension should be <= 65535. Operand: 0 got <14 x 8 x 65536>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 1 got <14 x 8 x 65536>.
+ ├ MDLA: Dimension should be <= 65535. Result : 0 got <14 x 8 x 65536>.
+ ├ EDPA: unsupported operation
+OP[40]: MUL
+ ├ MDLA: Dimension should be <= 65535. Operand: 0 got <14 x 8 x 65536>.
+ ├ MDLA: Dimension should be <= 65535. Result : 0 got <14 x 8 x 65536>.
+ ├ EDPA: unsupported operation
+OP[41]: SOFTMAX
+ ├ MDLA: Dimension should be <= 65535. Operand: 0 got <14 x 8 x 65536>.
+ ├ MDLA: Dimension should be <= 65535. Result : 0 got <14 x 8 x 65536>.
+ ├ EDPA: unsupported operation
+OP[42]: MUL
+ ├ MDLA: Dimension should be <= 65535. Operand: 0 got <14 x 8 x 65536>.
+ ├ MDLA: Dimension should be <= 65535. Result : 0 got <14 x 8 x 65536>.
+ ├ EDPA: unsupported operation
+OP[43]: BATCH_MATMUL
+ ├ MDLA: Dimension should be <= 65535. Operand: 1 got <14 x 65536 x 64>.
+ ├ MDLA: Dimension should be <= 65535. Operand: 0 got <14 x 8 x 65536>.
+ ├ EDPA: unsupported operation
+ERROR: Cannot find an execution plan because of unsupported operations
+ERROR: Fail to compile ops/kvmax_1l_t8_c65528/model.tflite
+EXIT=1
+SIZE=0

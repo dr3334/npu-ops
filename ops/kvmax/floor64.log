@@ -1,0 +1,10 @@
+== build C=64 2026-11-13T17:01:16+08:00
+ops/kvmax_decode_t8_c64_24l        367519904 B  decode l=24 T=8 C=64  in=['x', 'mask', 'cos14', 'sin14', 'cos2', 'sin2', 'k_in', 'v_in']
+  saturation: {'L00_gate': 1, 'L00_k_fc': 1, 'L00_masked': 194, 'L00_n1_mean': 1, 'L00_n1_norm': 1, 'L00_n2_mean': 2, 'L00_o_proj': 1, 'L00_p_sym': 105}
+== compile C=64 2026-11-13T17:02:02+08:00
+model.dla                                            exit=0  size=18118150  sha256=6c3ddc55874b172b
+ [ 0]: MDLA 5.0     813K   110K    117K  15M     849K  17M
+
+== prepare chk 64 2026-11-13T17:03:20+08:00
+prepare C=64 t=8 n=24 valid=16 s_h=2.691436e-04  k_in=393216 B  sat=[('L00_n1_mean', 1), ('L00_n1_norm', 1), ('L00_q_as', 1), ('L00_k_fc', 1)]
+== done 2026-11-13T17:04:50+08:00

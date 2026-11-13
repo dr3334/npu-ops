@@ -13,8 +13,13 @@ import sys
 
 P = sys.argv[1] if len(sys.argv) > 1 else "ops/kvmax/timing.jsonl"
 recs = [json.loads(l) for l in open(P) if l.strip()]
-ok = [r for r in recs if r.get("per_invoke_ms") not in (None, "null") and r.get("rc1") == "0"
-      and r.get("rcN") == "0"]
+def _ok(v):
+    """rc fields are '0' (bench v1) or 'rc=0' (bench v2) -- accept both."""
+    return v is None or str(v).endswith("0")
+
+
+ok = [r for r in recs if r.get("per_invoke_ms") not in (None, "null")
+      and _ok(r.get("rc1")) and _ok(r.get("rcN"))]
 cs = sorted({r["C"] for r in ok})
 print("%8s %10s %s" % ("C", "per_ms", "per-round per-invoke ms (magnitude only)"))
 cur = {}
