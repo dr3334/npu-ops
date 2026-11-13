@@ -119,6 +119,195 @@ def crosscheck(scores16, mask16):
     return float(np.abs(p - softmax_ref(scores16, mask16)).max())
 
 
+# --------------------------------------------------------------- analysis (post-board)
+DT = np.float16
+
+
+def _load(path):
+    return np.fromfile(path, dtype=DT).reshape(H, T, T)
+
+
+def _cmp(a, b):
+    af, bf = a.astype(np.float64), b.astype(np.float64)
+    d = np.abs(af - bf)
+    i = int(np.argmax(d))
+    w = tuple(int(x) for x in np.unravel_index(i, d.shape))
+    return dict(max_abs=float(d.max()), n_diff=int((d != 0).sum()),
+                where=w, a=float(np.ravel(af)[i]), b=float(np.ravel(bf)[i]))
+
+
+def analyze(out):
+    g = os.path.join(out, "golden")
+    vis = np.broadcast_to(CAUSAL[None], (H, T, T))
+    res = {}
+
+    def rd(name):
+        p = os.path.join(out, name)
+        return _load(p) if os.path.exists(p) else None
+
+    prim = rd("out_primary.bin")
+    noise = rd("out_noise.bin")
+    mag2 = rd("out_mag2.bin")
+    zero = rd("out_zero.bin")
+    l1 = rd("out_l1.bin")
+    if prim is None:
+        raise SystemExit("out_primary.bin missing — run the board step first")
+
+    exp = _load(os.path.join(g, "expected.bin"))
+    print("=== judgements on ops/%s ===" % os.path.basename(out))
+
+    # 1) noise floor (NOTES §4: same .dla, same input, two runs)
+    if noise is not None:
+        c = _cmp(prim, noise)
+        print("noise floor      : max|r1-r2| = %.3e (fp16 codes differing: %d/%d) at %s"
+              % (c["max_abs"], c["n_diff"], prim.size, c["where"]))
+        res["noise"] = c["max_abs"]
+    # 2) judgement 1: masked positions are exactly 0
+    m = prim[~vis]
+    print("J1 masked == 0   : %d/%d masked outputs are exactly 0.0 ; max |masked out| = %.3e"
+          % (int((m == 0).sum()), m.size, float(np.abs(m.astype(np.float64)).max())))
+    res["masked_nonzero"] = int((m != 0).sum())
+    # 3) visible positions vs the exact-exclusion golden (= ideal -inf mask)
+    c = _cmp(np.where(vis, prim, exp), exp)
+    codes = np.abs(prim.view(np.int16).astype(np.int64) - exp.view(np.int16).astype(np.int64))
+    print("J2 visible vs    : golden(visible-only softmax) max_abs = %.3e at %s  (dev=%.6f exp=%.6f)"
+          " ; rel = %.2e" % (c["max_abs"], c["where"], c["a"], c["b"],
+                             c["max_abs"] / abs(c["b"])))
+    print("                   visible positions: %d/%d bit-exact, max fp16 code distance = %d, "
+          "mean |dev| = %.2e" % (int((codes[vis] == 0).sum()), int(vis.sum()), int(codes[vis].max()),
+                                 float(np.abs(prim.astype(np.float64) - exp.astype(np.float64))[vis].mean())))
+    res["visible_max_abs"] = c["max_abs"]
+    res["visible_codes"] = int(codes[vis].max())
+    # 4) mask magnitude saturation: -4096 vs -8192 must be bit-identical
+    if mag2 is not None:
+        c = _cmp(prim, mag2)
+        print("J2 mask magnitude: -4096 vs -8192 dump  max_abs = %.3e ; differing fp16 codes %d/%d"
+              % (c["max_abs"], c["n_diff"], prim.size))
+        res["mag2_max_abs"] = c["max_abs"]
+        res["mag2_n_diff"] = c["n_diff"]
+    # 5) zero-mask run: plain softmax + the exact per-row ratio law
+    if zero is not None:
+        expz = _load(os.path.join(g, "expected_zero.bin"))
+        c = _cmp(zero, expz)
+        print("zero-mask run    : vs plain-softmax golden max_abs = %.3e ; masked-run/zero-run ratio"
+              % c["max_abs"])
+        s = _load(os.path.join(g, "input.bin")).astype(np.float64) * SCALE
+        pred = np.exp(s).sum(axis=-1) / np.where(vis, np.exp(s), 0.0).sum(axis=-1)
+        ratio = prim.astype(np.float64) / zero.astype(np.float64)
+        dev = np.abs(ratio / pred[..., None] - 1.0)
+        print("                   per-row S_all/S_vis prediction: max rel dev = %.3e (visible positions);"
+              " predicted ratio range [%.4f, %.4f]" % (float(dev[vis].max()), pred.min(), pred.max()))
+        print("                   literal 'primary == zero at visible positions' would need ratio==1:"
+              " measured ratio range [%.4f, %.4f] -> not equal by construction (softmax denominator)"
+              % (ratio[vis].min(), ratio[vis].max()))
+        res["zero_max_abs"] = c["max_abs"]
+        res["ratio_rel_dev"] = float(dev[vis].max())
+    # 5b) negative control: the naive exp chain
+    ec = rd("out_expchain.bin")
+    if ec is not None:
+        ge = _load(os.path.join(g, "expected_exp.bin")).astype(np.float64)
+        print("exp-chain probe  : NEGATIVE CONTROL, exp(s*1/8) with no max-subtraction -> "
+              "golden %d/896 inf, device %d/896 inf (fp16 exp saturates above 11.09)"
+              % (int(np.isinf(ge).sum()), int(np.isinf(ec.astype(np.float64)).sum())))
+        res["exp_inf"] = int(np.isinf(ec.astype(np.float64)).sum())
+    # 6) layer1 regime
+    if l1 is not None:
+        expl = _load(os.path.join(g, "expected_l1.bin"))
+        c = _cmp(l1[vis], expl[vis])
+        ml = l1[~vis]
+        codes = np.abs(l1.view(np.int16).astype(np.int64) - expl.view(np.int16).astype(np.int64))
+        print("layer1 regime    : visible max_abs = %.3e ; masked exactly 0: %d/%d (max %.3e) ; "
+              "visible bit-exact %d/%d, max code distance %d"
+              % (c["max_abs"], int((ml == 0).sum()), ml.size,
+                 float(np.abs(ml.astype(np.float64)).max()), int((codes[vis] == 0).sum()),
+                 int(vis.sum()), int(codes[vis].max())))
+        if rd("out_constmask.bin") is not None:
+            cm = rd("out_constmask.bin")
+            cc = _cmp(np.where(vis, cm, prim), prim)
+            ccode = np.abs(cm.view(np.int16).astype(np.int64) - prim.view(np.int16).astype(np.int64))
+            print("const-mask run   : vs runtime-mask dump max_abs = %.3e (fp16 codes differing %d/%d)"
+                  " -> production form (mask baked as constant) is the same op" %
+                  (cc["max_abs"], int((ccode != 0).sum()), prim.size))
+            res["constmask_max_abs"] = cc["max_abs"]
+        res["l1_visible_max_abs"] = c["max_abs"]
+        res["l1_masked_nonzero"] = int((ml != 0).sum())
+    return res
+
+
+# --------------------------------------- probe: which unary ops exist on the DLA path?
+# ticket 05 的前提是"推理路径里没有 EXP 算子"，所以手写 exp 链这条路不存在。这里把这句话
+# 变成可复现的证据：同一个 shape / dtype / 单算子图，只换 opcode。RSQRT/RELU 当**对照**
+# （仓库里已验证能编译），EXP/COS 是被怀疑不可用的一元算子。
+UNARY = {
+    # no-options unary ops (this schema version has no LogOptions/LogisticOptions tables)
+    "LOG":      None,
+    "LOGISTIC": None,                # control: known to land on MDLA (logistic_*_fp16)
+    "RSQRT":    None,                # control: known to land on MDLA (rmsnorm_*_fp16)
+    # ops with an options table
+    "EXP":      "ExpOptions",
+    "COS":      "CosOptions",
+    "SOFTMAX":  "SoftmaxOptions",    # control: known to land on MDLA (this very op dir)
+}
+
+
+def probe_unary(kind, out_path):
+    b = bo.flatbuffers.Builder(1 << 12)
+    S = bo.S
+    buffers = [bo.buf_empty(b), bo.buf_empty(b)]      # input -> buf 0, output -> buf 1
+    t_in = bo.tensor(b, "input", [H, T, T], bo.F16, 0)
+    t_out = bo.tensor(b, "output", [H, T, T], bo.F16, 1)
+    # NOTE: bo.operator()'s first argument is the *index* into OperatorCodes, not the table
+    # offset that bo.opcode() returns. Passing the offset silently produces
+    # "opcode_index = <garbage>" and ncc then rejects the model at load time with
+    # "Fail to process the given model" — which looks exactly like "operator unsupported".
+    # That trap is why every probe below is paired with a positive control.
+    oc_table = bo.opcode(b, getattr(bo.BuiltinOperator, kind))
+    opt_name = UNARY[kind]
+    opt = type_opt = None
+    if opt_name:
+        getattr(S, opt_name + "Start")(b)
+        if opt_name == "SoftmaxOptions":
+            S.SoftmaxOptionsAddBeta(b, 1.0)
+        opt = getattr(S, opt_name + "End")(b)
+        type_opt = getattr(bo.BuiltinOptions, opt_name)
+    op = bo.operator(b, 0, [0], [1], type_opt, opt)          # 0 = index of the opcode above
+    blob = bo.finish(b, buffers, [oc_table], [t_in, t_out], [op], [0], [1],
+                     f"probe {kind} [H,T,T] fp16")
+    open(out_path, "wb").write(blob)
+    print("%s probe: %s (%d B)" % (kind, out_path, len(blob)))
+    return out_path
+
+
+def build_expchain(out_path):
+    """Negative control: the "hand-written exp chain" the ticket claims does not exist.
+
+    scores --MUL(1/8)--> EXP  ==>  exp(v).  Same input file as the real op, so the only
+    difference from the real graph is ADD(mask)+SOFTMAX  vs  bare EXP.  Used to show
+    *why* the design converges to the native softmax: exp(v) at the fixture's real
+    magnitudes overflows fp16 (fp16 exp saturates at v > 11.09 = ln 65504).
+    """
+    b = bo.flatbuffers.Builder(1 << 13)
+    S = bo.S
+    buffers = [bo.buf_empty(b), bo.buf_empty(b)]
+    t_in = bo.tensor(b, "scores", [H, T, T], bo.F16, 0)
+    a = np.full((H, T, T), SCALE, np.float16)
+    buffers.append(bo.buf_data(b, a))
+    t_scale = bo.tensor(b, "scale", [H, T, T], bo.F16, 2)
+    t_scaled = bo.tensor(b, "scaled", [H, T, T], bo.F16, 0)
+    t_out = bo.tensor(b, "expout", [H, T, T], bo.F16, 1)
+    oc_mul = bo.opcode(b, bo.BuiltinOperator.MUL)
+    oc_exp = bo.opcode(b, bo.BuiltinOperator.EXP)
+    S.MulOptionsStart(b); S.MulOptionsAddFusedActivationFunction(b, 0); mopt = S.MulOptionsEnd(b)
+    S.ExpOptionsStart(b); eopt = S.ExpOptionsEnd(b)
+    op0 = bo.operator(b, 0, [0, 1], [2], bo.BuiltinOptions.MulOptions, mopt)
+    op1 = bo.operator(b, 1, [2], [3], bo.BuiltinOptions.ExpOptions, eopt)
+    blob = bo.finish(b, buffers, [oc_mul, oc_exp], [t_in, t_scale, t_scaled, t_out],
+                     [op0, op1], [0], [3], "exp chain MUL+EXP [H,T,T] fp16")
+    open(out_path, "wb").write(blob)
+    print("exp-chain probe: %s (%d B)" % (out_path, len(blob)))
+    return out_path
+
+
 # --------------------------------------------------------------------- builder
 def build_model(const_mask=None, desc="masked softmax"):
     """MUL(scale) -> ADD(mask) -> SOFTMAX(beta=1).
@@ -195,7 +384,20 @@ def sha256_file(path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="ops/masked_softmax_t8_fp16")
+    ap.add_argument("--probe", choices=sorted(UNARY) + ["EXPCHAIN"],
+                    help="build a single unary-op probe model (EXP/LOG/SIN/COS) to /tmp")
+    ap.add_argument("--analyze", action="store_true",
+                    help="skip building; analyse the board dumps (out_*.bin) in --out")
     args = ap.parse_args()
+    if args.probe:
+        if args.probe == "EXPCHAIN":
+            build_expchain(os.path.join(args.out, "probe_expchain.tflite"))
+        else:
+            probe_unary(args.probe, os.path.join(args.out, "probe_%s.tflite" % args.probe.lower()))
+        return
+    if args.analyze:
+        analyze(args.out)
+        return
     out = args.out
     gdir = os.path.join(out, "golden")
     os.makedirs(gdir, exist_ok=True)
@@ -225,6 +427,8 @@ def main():
         "input_l1.bin": s1,              # layer1 scores (smaller per-head offset)
         "input1_l1.bin": mask,
         "expected_l1.bin": softmax_ref(s1, mask),
+        # negative control (naive exp chain): golden = exp(scores*1/8), fp16 -> inf on overflow
+        "expected_exp.bin": np.exp(s0.astype(np.float64) * SCALE),
     }
     for name, arr in files.items():
         np.ascontiguousarray(arr).astype(np.float16).tofile(os.path.join(gdir, name))
@@ -275,8 +479,13 @@ def main():
             "P4 zero mask => plain softmax over all 8 entries; masked-run/zero-run ratio at "
             "visible positions is the per-row constant S_all/S_visible.",
             "P5 noise floor (same .dla, same inputs, 2 runs) == 0 (deterministic hardware).",
-            "P6 layer0 scores have |s|max=513.8 with per-head offsets +-500; if the device "
-            "does NOT subtract the row max, exp(468) overflows fp16 -> NaN (this run answers it).",
+            "P6 layer0 scores have |v|max=513.8 with per-head offsets +-500; if the device "
+            "does NOT stabilise the softmax internally, exp(467) overflows fp16 -> NaN/inf "
+            "(the zero-mask run answers this: it must stay finite and PASS).",
+            "P7 the ticket's premise 'the inference path has no EXP operator' is FALSE as stated: "
+            "I expect EXP to compile to a native ExpLayer (paired positive control), and LOG/COS "
+            "to be rejected at backend stage. The design is pinned by fp16's exp range + layer "
+            "budget instead of by availability.",
         ],
         "experiments": [
             {"name": "primary", "input": "golden/input.bin", "input1": "golden/input1.bin",
@@ -294,7 +503,25 @@ def main():
             {"name": "layer1", "input": "golden/input_l1.bin", "input1": "golden/input1_l1.bin",
              "expected": "golden/expected_l1.bin", "compare": "compare_l1.txt",
              "tests": "second regime: per-head offsets only +-45, non-degenerate probabilities"},
+            {"name": "constmask", "input": "golden/input.bin", "input1": None,
+             "expected": "golden/expected.bin", "compare": "compare_constmask.txt",
+             "model": "model_constmask.tflite (mask baked as a constant, 1 runtime input)",
+             "tests": "production form for ticket 09: same numbers as the runtime-mask form"},
+            {"name": "expchain", "input": "golden/input.bin", "input1": None,
+             "expected": "golden/expected_exp.bin", "compare": "compare_expchain.txt",
+             "model": "probe_expchain.tflite (MUL(1/8)+EXP, NOT the deliverable)",
+             "tests": "NEGATIVE CONTROL: the hand-written exp chain overflows fp16 (expected FAIL)"},
         ],
+        "probe_ops": {
+            "why": "the ticket's premise is 'no EXP in the inference path'; every probe is paired "
+                   "with a positive control so a malformed flatbuffer cannot masquerade as "
+                   "'operator unsupported' (that trap cost one round here: bo.operator() takes an "
+                   "opcode *index*, not the offset bo.opcode() returns)",
+            "EXP": "ExpLayer<0> on MDLA_5_0, 1 step, EXIT=0 (probe_exp.compile.log)",
+            "LOG": "unsupported on MDLA and EDPA (probe_log.compile.log)",
+            "COS": "unsupported on MDLA and EDPA (probe_cos.compile.log)",
+            "controls": "SOFTMAX / RSQRT / LOGISTIC all EXIT=0, 1 step",
+        },
         "tflite": "model.tflite",
         "tflite_bytes": len(blob),
         "tflite_constmask": "model_constmask.tflite",
@@ -328,6 +555,9 @@ def main():
           (int((files["expected.bin"][~vis] == 0).sum()), int((~vis).sum())))
     print("  golden visible range: [%.6f, %.6f]" % (files["expected.bin"][vis].min(),
                                                    files["expected.bin"][vis].max()))
+    vsc = s0.astype(np.float64) * SCALE        # the naive chain sees the scaled scores, no mask
+    print("  naive exp chain exp(s*1/8): %d/%d entries overflow fp16 (s*1/8 > ln 65504 = 11.09); "
+          "max exp = %.3e" % (int((vsc > 11.09).sum()), vsc.size, float(np.exp(vsc.max()))))
     sall = np.exp(s0.astype(np.float64) * SCALE).sum(axis=-1)
     svis = np.where(vis, np.exp(s0.astype(np.float64) * SCALE), 0.0).sum(axis=-1)
     print("  predicted primary/zero per-row ratio S_all/S_vis: [%.6f, %.6f]" %

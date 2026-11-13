@@ -85,7 +85,8 @@
     "P3 mask magnitude -4096 vs -8192: the two board dumps are BIT-IDENTICAL (finite mask saturated => behaves like the ideal -inf mask).",
     "P4 zero mask => plain softmax over all 8 entries; masked-run/zero-run ratio at visible positions is the per-row constant S_all/S_visible.",
     "P5 noise floor (same .dla, same inputs, 2 runs) == 0 (deterministic hardware).",
-    "P6 layer0 scores have |s|max=513.8 with per-head offsets +-500; if the device does NOT subtract the row max, exp(468) overflows fp16 -> NaN (this run answers it)."
+    "P6 layer0 scores have |v|max=513.8 with per-head offsets +-500; if the device does NOT stabilise the softmax internally, exp(467) overflows fp16 -> NaN/inf (the zero-mask run answers this: it must stay finite and PASS).",
+    "P7 the ticket's premise 'the inference path has no EXP operator' is FALSE as stated: I expect EXP to compile to a native ExpLayer (paired positive control), and LOG/COS to be rejected at backend stage. The design is pinned by fp16's exp range + layer budget instead of by availability."
   ],
   "experiments": [
     {
@@ -127,8 +128,33 @@
       "expected": "golden/expected_l1.bin",
       "compare": "compare_l1.txt",
       "tests": "second regime: per-head offsets only +-45, non-degenerate probabilities"
+    },
+    {
+      "name": "constmask",
+      "input": "golden/input.bin",
+      "input1": null,
+      "expected": "golden/expected.bin",
+      "compare": "compare_constmask.txt",
+      "model": "model_constmask.tflite (mask baked as a constant, 1 runtime input)",
+      "tests": "production form for ticket 09: same numbers as the runtime-mask form"
+    },
+    {
+      "name": "expchain",
+      "input": "golden/input.bin",
+      "input1": null,
+      "expected": "golden/expected_exp.bin",
+      "compare": "compare_expchain.txt",
+      "model": "probe_expchain.tflite (MUL(1/8)+EXP, NOT the deliverable)",
+      "tests": "NEGATIVE CONTROL: the hand-written exp chain overflows fp16 (expected FAIL)"
     }
   ],
+  "probe_ops": {
+    "why": "the ticket's premise is 'no EXP in the inference path'; every probe is paired with a positive control so a malformed flatbuffer cannot masquerade as 'operator unsupported' (that trap cost one round here: bo.operator() takes an opcode *index*, not the offset bo.opcode() returns)",
+    "EXP": "ExpLayer<0> on MDLA_5_0, 1 step, EXIT=0 (probe_exp.compile.log)",
+    "LOG": "unsupported on MDLA and EDPA (probe_log.compile.log)",
+    "COS": "unsupported on MDLA and EDPA (probe_cos.compile.log)",
+    "controls": "SOFTMAX / RSQRT / LOGISTIC all EXIT=0, 1 step"
+  },
   "tflite": "model.tflite",
   "tflite_bytes": 2600,
   "tflite_constmask": "model_constmask.tflite",
@@ -147,6 +173,7 @@
     "expected_zero.bin": "d6628d0dfa91057657507999edcabeeb9afb394e129748758a6eda4315c913b6",
     "input_l1.bin": "2875add9c9c6f4f380f6910a7b69d751e14a7dface46885af9de51179fb746bc",
     "input1_l1.bin": "571423b601b1b0e0afa89e7ad21bd1c0f15ab121c62c1200e30a74482c40093c",
-    "expected_l1.bin": "7a3138fabf775960f5384ef88576930a949ef6fdae4208051f3e29366a77aabc"
+    "expected_l1.bin": "7a3138fabf775960f5384ef88576930a949ef6fdae4208051f3e29366a77aabc",
+    "expected_exp.bin": "daaae84fcfce2acaaacfd5d907bed8670810a060b8e1b6d53bc4336595a2b795"
   }
 }

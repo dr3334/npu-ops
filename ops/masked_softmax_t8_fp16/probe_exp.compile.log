@@ -1,0 +1,28 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/masked_softmax_t8_fp16/probe_exp.tflite -d ops/masked_softmax_t8_fp16/probe_exp.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T10:24:58+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ ExpLayer<0>{EXP}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     1.8K   1.8K    0     0       336   3.8K
+
+Total Memory:
+  DRAM: 3.8K
+  L1:   0
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=2602
+SHA256=e08d630a6b9fb3a9fed0fd42b731542d6d523605d7636c361e41d497fcc4bce4
