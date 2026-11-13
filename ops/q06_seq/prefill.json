@@ -1,0 +1,32 @@
+{
+  "prefill_hidden": {
+    "codes_max": 411,
+    "codes_mean": 38.80482700892857,
+    "exact": 171,
+    "n": 14336,
+    "cos": 0.9999775897904074
+  },
+  "prefill_logits": {
+    "cos": 0.9954812118226618,
+    "dcos": 0.0045187881773381955,
+    "argmax_a": 93638,
+    "argmax_b": 118998,
+    "hit": 0,
+    "top10": 0.8
+  },
+  "prefill_hidden_vs_fp64": 0.9961479579640647,
+  "prefill_kv_k": {
+    "codes_max": 4,
+    "codes_mean": 0.31695556640625,
+    "exact": 35209,
+    "n": 49152,
+    "cos": 0.9999999988030484
+  },
+  "prefill_kv_v": {
+    "codes_max": 279,
+    "codes_mean": 23.518595377604168,
+    "exact": 1629,
+    "n": 49152,
+    "cos": 0.9999909404654184
+  }
+}
