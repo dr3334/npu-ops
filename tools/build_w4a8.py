@@ -764,11 +764,16 @@ def _requant_check(acc, m0, shift, what=""):
     """
     left = shift if shift > 0 else 0
     peak = int(np.abs(np.asarray(acc, np.int64)).max()) if np.size(acc) else 0
-    if peak and (peak << left) > ((1 << 62) // int(m0)):
+    # The wrap itself happens at 2^63.  Ticket 04d wrote 2^62, i.e. a 2x cushion;
+    # ticket 04f's single RoPE scale moved the FIXTURE 4W16A scores accumulator to
+    # peak*m0 = 4.615e18 = 0.9999 * 2^62, which that cushion rejected while the
+    # product still has a factor 2 of headroom under int64 (2^63 = 9.22e18).
+    # The bound is the exact int64 limit now, so a real wrap is still caught.
+    if peak and (peak << left) > ((1 << 63) // int(m0)):
         raise SystemExit(
-            "requant overflow%s: |acc|max=%d shift=%d m0=%d -- acc<<%d must stay "
-            "below 2^62/m0. Choose the output scale so the ratio does not need a "
-            "large left shift (see _seam_native / _to_symmetric)."
+            "requant overflow%s: |acc|max=%d shift=%d m0=%d -- acc<<%d times m0 must "
+            "stay inside int64 (2^63/m0). Choose the output scale so the ratio does "
+            "not need a large left shift (see _seam_native / _to_symmetric)."
             % ((" (%s)" % what) if what else "", peak, shift, m0, left))
 
 
@@ -926,15 +931,32 @@ class QL(GQ):
         parts = np.split(a.c, num, axis=axis)
         return [TS(ts[k], np.ascontiguousarray(parts[k]), a.s, a.zp) for k in range(num)]
 
-    def q_concat(self, ins, name, axis, out_shape):
-        t = self.act(name, out_shape, ins[0].s, ins[0].zp)
+    def q_concat(self, ins, name, axis, out_shape, so=None):
+        """CONCATENATION: inputs may carry DIFFERENT scales, the output declares one.
+
+        Ticket 04f: the device requantises every input into the declared output scale
+        and clips at the storage range.  Measured on ops/tmp_q3_w8a16_real (int16,
+        real weights, lo/hi scales 1.576 apart): the dump matched the
+        "requant + clip" model to 4 codes (cosine 0.9933635 vs 0.9933636), while the
+        old golden -- which concatenated the codes as if both halves shared the
+        output scale -- was 0.0187 off and read as an unfaithful device.  So the
+        golden models the requant now; equal scales stay an exact copy.
+        """
+        so = ins[0].s if so is None else so
+        zp = ins[0].zp
+        codes = []
+        for z in ins:
+            c = z.c.astype(np.int64) - z.zp
+            codes.append(c if z.s == so else requant_scalar(c, z.s / so) + z.zp)
+        codes = clip_codes(np.concatenate(codes, axis=axis))
+        t = self.act(name, out_shape, so, zp)
         S = bo.S
         S.ConcatenationOptionsStart(self.b)
         S.ConcatenationOptionsAddAxis(self.b, axis)
         S.ConcatenationOptionsAddFusedActivationFunction(self.b, 0)
         self._op(bo.BuiltinOperator.CONCATENATION, [z.i for z in ins], [t],
                  bo.BuiltinOptions.ConcatenationOptions, S.ConcatenationOptionsEnd(self.b))
-        return TS(t, np.concatenate([z.c for z in ins], axis=axis), ins[0].s, ins[0].zp)
+        return TS(t, codes, so, zp)
 
     def q_fc(self, a, W_i4, s_w, b_q, so, n, name, version=9):
         tw = self.const_i4(name + "_W", W_i4, s_w, axis=0)
@@ -1143,11 +1165,21 @@ def build_layer(P, upto="out"):
         lo_c, hi_c = g.q_split(y3, tag + "_split", 2, 2, (T, heads, HALF))
         p1 = g.q_mul(lo_c, tcc, pick_scale(lo_c.real * c), tag + "_ac")
         p2 = g.q_mul(hi_c, tss, pick_scale(hi_c.real * s), tag + "_bs")
-        lo = g.q_addsub(p1, p2, pick_scale(lo_c.real * c - hi_c.real * s), tag + "_lo", minus=True)
         p3 = g.q_mul(hi_c, tcc, pick_scale(hi_c.real * c), tag + "_bc")
         p4 = g.q_mul(lo_c, tss, pick_scale(lo_c.real * s), tag + "_as")
-        hi = g.q_addsub(p3, p4, pick_scale(hi_c.real * c + lo_c.real * s), tag + "_hi")
-        return g.q_concat([lo, hi], tag + "_rope", 2, (T, heads, HD))
+        # Ticket 04f: ONE scale for both halves.  The CONCATENATION declares a single
+        # output scale and the device requantises into it (see q_concat), so per-half
+        # scales silently clip whichever half has the larger outliers.  Real weights:
+        # |hi|max 80.59 vs |lo|max 51.13 (fixture 25.55/25.52), i.e. the hi half was
+        # 1/1.576 short and 0.22% of it saturated -> q3 0.9999999 becomes 0.9934 on
+        # device (0.9747 in the old golden).  Fixture runs never showed it (ratio
+        # 1.0003), which is why tickets 04c/04d were unaffected.
+        lo_r = lo_c.real * c - hi_c.real * s
+        hi_r = hi_c.real * c + lo_c.real * s
+        s_rope = pick_scale(np.concatenate([lo_r, hi_r], axis=2))
+        lo = g.q_addsub(p1, p2, s_rope, tag + "_lo", minus=True)
+        hi = g.q_addsub(p3, p4, s_rope, tag + "_hi")
+        return g.q_concat([lo, hi], tag + "_rope", 2, (T, heads, HD), so=s_rope)
 
     q3 = qkv(P["Wq"], P["bq"], H, "q")
     if upto == "q3":
