@@ -1,0 +1,30 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/masked_softmax_t8_fp16/model_constmask.tflite -d ops/masked_softmax_t8_fp16/model_constmask.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T10:20:16+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ ElementWiseMulLayer<0>{MUL}
+   ├ ElementWiseAddLayer<1>{ADD}
+   ├ SoftMaxLayer<2>{SOFTMAX}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     1.8K   1.8K    0     1.8K    1.4K  6.7K
+
+Total Memory:
+  DRAM: 6.7K
+  L1:   4.0K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=6868
+SHA256=58d5c8f69dd2ca71584946d7cd5522e5ab7a851c7162882e342da91b483191e5
