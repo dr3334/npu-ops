@@ -40,8 +40,8 @@
     ],
     "type": "float16"
   },
-  "atol": 0.01,
-  "rtol": 0.03,
+  "compile_only": true,
+  "compile_only_note": "compile-only control: no board run and no device conclusion, so a tolerance does not apply - the numpy reference above was never compared against the device (the atol/rtol that used to be here had no measurement behind it)",
   "p_source": "same fixed attention pass as the main model (temperature 1.0)",
   "reference": "numpy float64 einsum on logical tensors",
   "seed": 20261112,

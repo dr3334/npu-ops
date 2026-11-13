@@ -32,6 +32,5 @@
   "note": "multi-head attention in graph (RESHAPE->BATCH_MATMUL adj_y->SoftMax->BATCH_MATMUL->RESHAPE, 3-D [heads,T,HD]); q/k/v/o weight tensors are [896,896]/[H,896] (flattened per-head layout); RMSNorm variant=fctile; RoPE is NOT in the multi-head path (the single-head block covers RoPE)",
   "tflite_bytes": 7230736,
   "tolerance_revision": "re-registered after an independent measurement of the fp16-storage floor (sim_report.txt: layer-boundary fp16 vs float32 golden) instead of the 1e-2 first registration, which the device run exceeded at 25/7168 elements (cancellation in the final residual add, |out| up to 8.46 -> 1 ULP = 7.8e-3). See docs/OP-block.md 10.5.",
-  "tolerance_rationale": "registered before the device run: same fp16 storage path as the single-head block (9.77e-04 = 1 ULP); the extra RESHAPE/BMM/SoftMax layers add no new quantisation, so 1e-2 = ~10 ULP @1.0 headroom, strictly < 2e-2",
-  "multihead_noise_floor": "measure with two consecutive e2e runs (NOTES \u00a74)"
+  "multihead_noise_floor": "0.000e+00, measured (ticket 01; docs/OP-block.md 10.5): two consecutive e2e runs on the same .dla and the same input produced byte-identical out_device.bin, 7168/7168 fp16 codes equal -> hardware determinism, no run-to-run jitter (NOTES 4 protocol)"
 }
