@@ -1,0 +1,69 @@
+{
+  "op": "DECODER_LAYER",
+  "form": "w4a8_group",
+  "stage": "out",
+  "shape": {
+    "T": 16,
+    "D": 896,
+    "H": 14,
+    "KV": 2,
+    "HD": 64,
+    "I": 4864,
+    "G": 4
+  },
+  "dtype": "int8",
+  "weights_dtype": "int4",
+  "input": {
+    "name": "x",
+    "shape": [
+      16,
+      896
+    ],
+    "type": "int8"
+  },
+  "output": {
+    "name": "out",
+    "shape": [
+      16,
+      896
+    ],
+    "type": "int8"
+  },
+  "quant": {
+    "input": 0.0005546029158464567,
+    "output": 0.003991259129909217
+  },
+  "int8_tol": 2,
+  "tolerance_rationale": "Register-before-run, before the first board run of this graph. Code level: int8_tol=2 because the layer contains the int8 RMSNorm chain (its RSQRT is a fixed-point LUT: docs/OP-rmsnorm.md 2.3 registers 4 codes for that chain, and the component run here measured max 2 codes on 6% of the values) plus one fp16<->int8 seam. Quality level: ADR 0005 cosine >= 0.9999 -- registered as the criterion, NOT adjusted afterwards.",
+  "group": 4,
+  "weight_rel_l2": {
+    "Wq": 0.1247885968055704,
+    "Wk": 0.12445978647894508,
+    "Wv": 0.12599046689789134,
+    "Wo": 0.12438603289717115,
+    "Wg": 0.12457941089634574,
+    "Wu": 0.1245703615271275,
+    "Wd": 0.1441367403904725
+  },
+  "weight_rel_l2_mean": 0.12755877084193196,
+  "layers_note": "1 K-split per distinct input tensor (n1, n2) + per matrix G FC + (G-1) ADD",
+  "fp32_ref": "out",
+  "tflite": "model.tflite",
+  "tflite_bytes": 8932560,
+  "quality_criterion": {
+    "cosine_min": 0.9999,
+    "source": "ADR 0005 (operator level, 8-bit and wider)",
+    "code_criterion": "device vs quantised golden: |delta| <= int8_tol codes",
+    "four_bit_criterion": "device == golden (0/1 code) + cosine(device,golden) - cosine(golden,fp64) <= 0.003"
+  },
+  "accuracy_vs_fp32": {
+    "reference": "independent float64 chain (tools/build_w4a8.py chain_f32)",
+    "cosine": 0.901324616638423,
+    "rel_l2": 0.45100985932539356,
+    "max_abs": 0.2792091686598997,
+    "max_abs_over_maxabs_out": 0.5508280268118894,
+    "out_scale": 0.003991259129909217,
+    "one_code_real": 0.003991259129909217,
+    "note": "quantisation error of the whole path, no device involved"
+  }
+}

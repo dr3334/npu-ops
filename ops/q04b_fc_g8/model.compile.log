@@ -1,0 +1,50 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/q04b_fc_g8/model.tflite -d ops/q04b_fc_g8/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T14:09:11+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ SliceLayer<0>{SPLIT}
+   ├ FullyConnectedLayer<1>{FULLY_CONNECTED}
+   ├ SliceLayer<0>{SPLIT}
+   ├ FullyConnectedLayer<2>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<3>{ADD}
+   ├ SliceLayer<0>{SPLIT}
+   ├ FullyConnectedLayer<4>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<5>{ADD}
+   ├ SliceLayer<0>{SPLIT}
+   ├ FullyConnectedLayer<6>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<7>{ADD}
+   ├ SliceLayer<0>{SPLIT}
+   ├ FullyConnectedLayer<8>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<9>{ADD}
+   ├ SliceLayer<0>{SPLIT}
+   ├ FullyConnectedLayer<10>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<11>{ADD}
+   ├ SliceLayer<0>{SPLIT}
+   ├ FullyConnectedLayer<12>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<13>{ADD}
+   ├ SliceLayer<0>{SPLIT}
+   ├ FullyConnectedLayer<14>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<15>{ADD}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     14K    14K     0     493K    5.7K  527K
+
+Total Memory:
+  DRAM: 527K
+  L1:   128K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=526475
+SHA256=ca19faacbc520585a15ba287564e79bd99670f3405e2088acb39cfe225b24928
