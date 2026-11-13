@@ -39,15 +39,35 @@ def main(variant, T, out_dir):
         return len(buffers) - 1
 
     def const(arr, ttype=F16, shape=None, name=None):
+        """常量张量。常量**不登记进 idx**（只有 act() 登记），所以不可能有名字指到常量上。"""
         bi = const_buf(arr)
         a = np.asarray(arr)
-        tensors.append(bo.tensor(b, name or f"c{bi}", list(shape if shape else a.shape), ttype, bi))
+        return push_t(bo.tensor(b, name or f"c{bi}", list(shape if shape else a.shape), ttype, bi))
+
+    def push_t(t):
+        """唯一一处 `len(tensors) - 1`：把张量塞进表并返回它的索引。"""
+        tensors.append(t)
         return len(tensors) - 1
 
     def act(name, shape):
-        tensors.append(bo.tensor(b, name, list(shape), F16, 0))
-        idx[name] = len(tensors) - 1
-        return idx[name]
+        t = push_t(bo.tensor(b, name, list(shape), F16, 0))
+        if name in idx:
+            # 同名张量重复登记会静默改掉已有索引，随后所有"按名字取输入"的算子都会拿错张量。
+            raise KeyError(f"张量名 {name!r} 已登记（索引 {idx[name]}），拒绝覆盖")
+        idx[name] = t
+        return t
+
+    def op(kind, ins, outs, options_type=None, options=None):
+        """建一条 operator。ins/outs 写张量名（查 idx）或写张量索引（const()/act() 的返回值）。
+
+        旧代码在 act()/const() 之后手写 `idx[name] = len(tensors) - 1`：只要中间又追加了
+        一个张量，这个名字就指到那个新张量上——D=896 变体 A 的 RSQRT 吃到 int32 axis、
+        ADD 吃到 eps 常量，都是这一处造成的。现在索引只来自 act()/const() 的返回值。
+        """
+        def resolve(v):
+            return idx[v] if isinstance(v, str) else int(v)
+        operators.append(bo.operator(b, kind, [resolve(v) for v in ins],
+                                     [resolve(v) for v in outs], options_type, options))
 
     def oc(kind, version=1):
         opcodes.append(bo.opcode(b, kind, version))
@@ -65,18 +85,14 @@ def main(variant, T, out_dir):
     def mul(a, bb, out, shape):
         t = act(out, shape)
         S.MulOptionsStart(b); S.MulOptionsAddFusedActivationFunction(b, 0); o = S.MulOptionsEnd(b)
-        operators.append(bo.operator(b, OC_MUL, [idx[a], idx[bb]], [t], bo.BuiltinOptions.MulOptions, o))
+        op(OC_MUL, [a, bb], [out], bo.BuiltinOptions.MulOptions, o)
         return t
 
     def fc(inp, out, w, n, k):
-        t_w = bo.tensor(b, f"W_{out}", [n, k], F16, const_buf(np.asarray(w, np.float16)))
-        tensors.append(t_w)
-        ti_w = len(tensors) - 1
+        ti_w = push_t(bo.tensor(b, f"W_{out}", [n, k], F16, const_buf(np.asarray(w, np.float16))))
         # TFLite FULLY_CONNECTED 必须有第三个输入 bias（可以为空张量）：之前漏了它，
         # importer 直接拒（"Fail to process the given model"）。
-        t_b = bo.tensor(b, f"B_{out}", [n], F16, const_buf(np.zeros(n, np.float16)))
-        tensors.append(t_b)
-        ti_b = len(tensors) - 1
+        ti_b = push_t(bo.tensor(b, f"B_{out}", [n], F16, const_buf(np.zeros(n, np.float16))))
         t = act(out, (T, n))
         S.FullyConnectedOptionsStart(b)
         S.FullyConnectedOptionsAddFusedActivationFunction(b, 0)
@@ -84,61 +100,51 @@ def main(variant, T, out_dir):
         S.FullyConnectedOptionsAddKeepNumDims(b, True)
         S.FullyConnectedOptionsAddAsymmetricQuantizeInputs(b, False)
         o = S.FullyConnectedOptionsEnd(b)
-        operators.append(bo.operator(b, OC_FC, [idx[inp], ti_w, ti_b], [t],
-                                    bo.BuiltinOptions.FullyConnectedOptions, o))
+        op(OC_FC, [inp, ti_w, ti_b], [out], bo.BuiltinOptions.FullyConnectedOptions, o)
         return t
 
     # x^2
     mul("x", "x", "sq", (T, D))
 
     if variant == "A0":   # A 去掉 eps（诊断：ADD 报 type 不兼容）
-        t_m = act("mean", (T, 1))
+        act("mean", (T, 1))
         S.ReducerOptionsStart(b); S.ReducerOptionsAddKeepDims(b, True); ro = S.ReducerOptionsEnd(b)
         ax = const(np.asarray([1], np.int32), I32, [1])
-        operators.append(bo.operator(b, OC_MEAN, [idx["sq"], ax], [t_m], bo.BuiltinOptions.ReducerOptions, ro))
-        idx["mean"] = len(tensors) - 1
-        t_r = act("rsqrt", (T, 1))
-        operators.append(bo.operator(b, OC_RSQRT, [idx["mean"]], [t_r]))
-        idx["rsqrt"] = len(tensors) - 1
+        op(OC_MEAN, ["sq", ax], ["mean"], bo.BuiltinOptions.ReducerOptions, ro)
+        act("rsqrt", (T, 1))
+        op(OC_RSQRT, ["mean"], ["rsqrt"])
     elif variant == "B0":  # 只到统计 tile：[T,32]
         tile_w = np.full((32, D), np.float32(1.0 / D), np.float32)
         fc("sq", "tile", tile_w, 32, D)
     elif variant == "A":
-        t_m = act("mean", (T, 1))
+        act("mean", (T, 1))
         S.ReducerOptionsStart(b); S.ReducerOptionsAddKeepDims(b, True); ro = S.ReducerOptionsEnd(b)
         ax = const(np.asarray([1], np.int32), I32, [1])
-        operators.append(bo.operator(b, OC_MEAN, [idx["sq"], ax], [t_m], bo.BuiltinOptions.ReducerOptions, ro))
-        idx["mean"] = len(tensors) - 1
-        t_e = act("mean_eps", (T, 1))
+        op(OC_MEAN, ["sq", ax], ["mean"], bo.BuiltinOptions.ReducerOptions, ro)
+        act("mean_eps", (T, 1))
         eps = const(np.full((T, 1), EPS, np.float16))
         S.AddOptionsStart(b); S.AddOptionsAddFusedActivationFunction(b, 0); ao = S.AddOptionsEnd(b)
-        operators.append(bo.operator(b, OC_ADD, [idx["mean"], eps], [t_e], bo.BuiltinOptions.AddOptions, ao))
-        idx["mean_eps"] = len(tensors) - 1
-        t_r = act("rsqrt", (T, 1))
-        operators.append(bo.operator(b, OC_RSQRT, [idx["mean_eps"]], [t_r]))
-        idx["rsqrt"] = len(tensors) - 1
+        op(OC_ADD, ["mean", eps], ["mean_eps"], bo.BuiltinOptions.AddOptions, ao)
+        act("rsqrt", (T, 1))
+        op(OC_RSQRT, ["mean_eps"], ["rsqrt"])
     else:
         tile_w = np.full((32, D), np.float32(1.0 / D), np.float32)
         fc("sq", "tile", tile_w, 32, D)
         if variant == "B":
             copies = D // 32            # 896 = 28 * 32，正好整除
-            t_c = act("tile_exp", (T, D))
+            act("tile_exp", (T, D))
             S.ConcatenationOptionsStart(b)
             S.ConcatenationOptionsAddAxis(b, 1)
             S.ConcatenationOptionsAddFusedActivationFunction(b, 0)
             co = S.ConcatenationOptionsEnd(b)
-            operators.append(bo.operator(b, OC_CONCAT, [idx["tile"]] * copies, [t_c],
-                                        bo.BuiltinOptions.ConcatenationOptions, co))
-            idx["tile_exp"] = len(tensors) - 1
-            t_r = act("rsqrt", (T, D))
-            operators.append(bo.operator(b, OC_RSQRT, [idx["tile_exp"]], [t_r]))
-            idx["rsqrt"] = len(tensors) - 1
+            op(OC_CONCAT, ["tile"] * copies, ["tile_exp"], bo.BuiltinOptions.ConcatenationOptions, co)
+            act("rsqrt", (T, D))
+            op(OC_RSQRT, ["tile_exp"], ["rsqrt"])
         else:  # C: 扩张 FC（负对照）
             exp_w = np.full((D, 32), np.float32(1.0), np.float32)
             fc("tile", "tile_exp", exp_w, D, 32)
-            t_r = act("rsqrt", (T, D))
-            operators.append(bo.operator(b, OC_RSQRT, [idx["tile_exp"]], [t_r]))
-            idx["rsqrt"] = len(tensors) - 1
+            act("rsqrt", (T, D))
+            op(OC_RSQRT, ["tile_exp"], ["rsqrt"])
 
     if variant in ("B0",):
         blob = bo.finish(b, buffers, opcodes, tensors, operators, [idx["x"]], [idx["tile"]],
@@ -158,10 +164,9 @@ def main(variant, T, out_dir):
 
     mul("x", "rsqrt", "scaled", (T, D))
     gam = const(np.asarray(gamma, np.float16), F16, [D])
-    t_o = act("out", (T, D))
+    act("out", (T, D))
     S.MulOptionsStart(b); S.MulOptionsAddFusedActivationFunction(b, 0); mo = S.MulOptionsEnd(b)
-    operators.append(bo.operator(b, OC_MUL, [idx["scaled"], gam], [t_o], bo.BuiltinOptions.MulOptions, mo))
-    idx["out"] = len(tensors) - 1
+    op(OC_MUL, ["scaled", gam], ["out"], bo.BuiltinOptions.MulOptions, mo)
 
     blob = bo.finish(b, buffers, opcodes, tensors, operators, [idx["x"]], [idx["out"]],
                      f"rmsnorm D={D} variant {variant} T={T} fp16")
