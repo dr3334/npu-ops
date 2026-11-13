@@ -43,3 +43,8 @@ probe/apusctl
 
 # kv1：aarch64 runner 的构建产物（tools/build_kv1.sh 可复现）
 out/
+
+# npu_lib 的运行产物（全部可由 tools/run_npu_lib_matrix.sh 重建；
+# 证据以 reports/npu-lib-matrix.{md,json} 入库）
+artifacts/
+probe/npu_run

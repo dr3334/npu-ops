@@ -1,5 +1,9 @@
 # OWN-SUBMITTER —— 不经过厂商 runtime 的算子覆盖
 
+> **库化版本**：把下面这套东西做成可调用库（`Graph`/`DType`，定义 -> 编译 -> 运行 -> 两道验收，
+> plan 驱动、换算子/换形状不重编 C）见 **[docs/OWN-SUBMITTER-LIB.md](OWN-SUBMITTER-LIB.md)**
+> 与 `tools/npu_lib/`。本文记录的是提交器本身逐项实测的历史与细节。
+
 目标（用户口径）：**"跑通"= 用我们自己的库在 NPU 上算出结果并对拍**，不是"用 `.dla` + 厂商 runtime 跑通"。
 本文件只记录**已经用自建提交器实测通过**的算子；其余算子的"能跑"是厂商路径，另见 `docs/OP-MATRIX.md`。
 
