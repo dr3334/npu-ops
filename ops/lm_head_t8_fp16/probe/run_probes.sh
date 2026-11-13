@@ -1,7 +1,20 @@
 #!/usr/bin/env bash
+# Rebuild + compile the ticket-08 LM-head dimension probes (compile-only, no board).
+# Run it from anywhere: the repo root comes from this script's own location, never from a
+# hardcoded worktree path (AGENT-BRIEF 1).
 set -uo pipefail
 export PATH=/usr/bin:/bin:/usr/local/bin:$PATH
-cd "/mnt/d/deepseek_ workspace/mtk/wt-t08"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)" || exit 2
+# ncc / python live in WSL, so pass a /mnt/<drive>/... path even when this was started from
+# Git Bash (same derivation as tools/rebuild_qwen25.sh).
+_win="$(cd "$ROOT" && pwd -W 2>/dev/null || true)"
+if [ -n "${_win:-}" ] && [ "${ROOT#/mnt/}" = "$ROOT" ]; then
+  _drv="$(printf %s "${_win:0:1}" | tr "A-Z" "a-z")"
+  WSLROOT="/mnt/$_drv${_win:2}"
+else
+  WSLROOT="$ROOT"
+fi
+cd "$WSLROOT" || exit 2
 /usr/bin/python3 ops/lm_head_t8_fp16/probe/make_probes.py || exit 3
 echo "=================== compile ==================="
 for d in ops/lm_head_t8_fp16/probe/*/; do
