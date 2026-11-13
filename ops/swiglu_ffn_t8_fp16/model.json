@@ -1,0 +1,198 @@
+{
+  "op": "SWIGLU_FFN",
+  "graph": [
+    "FULLY_CONNECTED",
+    "FULLY_CONNECTED",
+    "LOGISTIC",
+    "MUL",
+    "MUL",
+    "FULLY_CONNECTED"
+  ],
+  "shape": {
+    "T": 8,
+    "H": 896,
+    "I": 4864
+  },
+  "op_shape": [
+    8,
+    896
+  ],
+  "dtype": "fp16",
+  "input": {
+    "name": "input",
+    "shape": [
+      8,
+      896
+    ],
+    "type": "float16",
+    "bytes": 14336
+  },
+  "inputs": [
+    {
+      "name": "input",
+      "shape": [
+        8,
+        896
+      ],
+      "type": "float16"
+    }
+  ],
+  "output": {
+    "name": "output",
+    "shape": [
+      8,
+      896
+    ],
+    "type": "float16",
+    "bytes": 14336
+  },
+  "quant": {},
+  "weights": [
+    {
+      "tensor": "gate_proj",
+      "fixture_name": "layer0.mlp.gate_proj.weight",
+      "shape": [
+        4864,
+        896
+      ],
+      "dtype": "float16",
+      "bytes": 8716288,
+      "mib": 8.3125
+    },
+    {
+      "tensor": "up_proj",
+      "fixture_name": "layer0.mlp.up_proj.weight",
+      "shape": [
+        4864,
+        896
+      ],
+      "dtype": "float16",
+      "bytes": 8716288,
+      "mib": 8.3125
+    },
+    {
+      "tensor": "down_proj",
+      "fixture_name": "layer0.mlp.down_proj.weight",
+      "shape": [
+        896,
+        4864
+      ],
+      "dtype": "float16",
+      "bytes": 8716288,
+      "mib": 8.3125
+    },
+    {
+      "tensor": "total_3_projections",
+      "shape": null,
+      "dtype": "float16",
+      "bytes": 26148864,
+      "mib": 24.9375
+    }
+  ],
+  "weights_source": "QWEN25_WEIGHTS_DIR / weights/qwen25_frozen (frozen fixture, layer0.mlp.*, sha256-verified by tools/qwen25_weights.get)",
+  "seed": 20261113,
+  "prediction": "6 MDLA layers: FC(gate), FC(up), Sigmoid, Mul, Mul, FC(down).  silu is NOT fused into the preceding FC (TFLite FC fused_activation has no SILU slot; OP-silu s5).  One execution step, no bridge.  Static weights ~24.9 MiB must reside in DRAM; Temp expected 0 because the [8,4864] fp16 intermediates (77.8 KB each) fit in L1=3 MB.",
+  "generator": "tools/build_swiglu_ffn.py",
+  "tflite": "model.tflite",
+  "tflite_bytes": 26171640,
+  "reference": "float64_exact_then_store",
+  "alt_reference": "per_tensor_fp16_rounding (TFLite reference kernel semantics)",
+  "fp16_layer_boundary_lower_bound": {
+    "max_abs": 0.000244140625,
+    "rel": 0.00046382189239332097,
+    "how": "numpy chain where every tensor boundary is rounded to fp16 (golden/expected_alt.bin vs golden/expected.bin); device-independent"
+  },
+  "stats": {
+    "spec": "swiglu_ffn_t8_fp16",
+    "T": 8,
+    "H": 896,
+    "I": 4864,
+    "input": {
+      "min": -6.0,
+      "max": 6.0,
+      "abs_max": 6.0,
+      "rms": 0.7088387653381716
+    },
+    "output": {
+      "min": -0.482666015625,
+      "max": 0.5263671875,
+      "abs_max": 0.5263671875,
+      "rms": 0.1283821947940231
+    },
+    "intermediates": {
+      "gate": {
+        "min": -2.238913331427284,
+        "max": 1.9276409835620143,
+        "abs_max": 2.238913331427284,
+        "rms": 0.48733647571869937
+      },
+      "up": {
+        "min": -1.5945275945050525,
+        "max": 1.4108597632903184,
+        "abs_max": 1.5945275945050525,
+        "rms": 0.3893225667147292
+      },
+      "y": {
+        "min": -1.1596400149705421,
+        "max": 1.2970117064826021,
+        "abs_max": 1.2970117064826021,
+        "rms": 0.10160775617865614
+      }
+    },
+    "fp16_layer_boundary_lower_bound_max_abs": 0.000244140625,
+    "fp16_layer_boundary_lower_bound_rel": 0.00046382189239332097,
+    "tolerance": {
+      "atol": 0.002,
+      "rtol": 0.01,
+      "tolerance_revision": "repo-fp16-default",
+      "tolerance_rationale": "max|expected|<=1, so the repo's registered fp16 contract (atol=2e-3, rtol=1e-2; OP-actreduce s1.3, reused by OP-silu) is already looser than 4 fp16 ULP at this magnitude (4*2^-11*0.526 = 0.00103), and it bounds the fp16-layer-boundary lower bound measured by the numpy simulation (--sim).  No NOTES section 10.1 exception needed."
+    },
+    "weights": [
+      {
+        "tensor": "gate_proj",
+        "fixture_name": "layer0.mlp.gate_proj.weight",
+        "shape": [
+          4864,
+          896
+        ],
+        "dtype": "float16",
+        "bytes": 8716288,
+        "mib": 8.3125
+      },
+      {
+        "tensor": "up_proj",
+        "fixture_name": "layer0.mlp.up_proj.weight",
+        "shape": [
+          4864,
+          896
+        ],
+        "dtype": "float16",
+        "bytes": 8716288,
+        "mib": 8.3125
+      },
+      {
+        "tensor": "down_proj",
+        "fixture_name": "layer0.mlp.down_proj.weight",
+        "shape": [
+          896,
+          4864
+        ],
+        "dtype": "float16",
+        "bytes": 8716288,
+        "mib": 8.3125
+      },
+      {
+        "tensor": "total_3_projections",
+        "shape": null,
+        "dtype": "float16",
+        "bytes": 26148864,
+        "mib": 24.9375
+      }
+    ]
+  },
+  "dryrun_control": false,
+  "atol": 0.002,
+  "rtol": 0.01,
+  "tolerance_revision": "repo-fp16-default",
+  "tolerance_rationale": "max|expected|<=1, so the repo's registered fp16 contract (atol=2e-3, rtol=1e-2; OP-actreduce s1.3, reused by OP-silu) is already looser than 4 fp16 ULP at this magnitude (4*2^-11*0.526 = 0.00103), and it bounds the fp16-layer-boundary lower bound measured by the numpy simulation (--sim).  No NOTES section 10.1 exception needed."
+}
