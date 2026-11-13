@@ -36,6 +36,14 @@
   "tolerance_rationale": "Register-before-run, before the first board run of this graph. Code level: (unchanged from ticket 04 for both weight tiers: this layer contains the same int8 RMSNorm chain and the same fp16<->int8 seam either way) int8_tol=2 because the layer contains the int8 RMSNorm chain (its RSQRT is a fixed-point LUT: docs/OP-rmsnorm.md 2.3 registers 4 codes for that chain, and the component run here measured max 2 codes on 6% of the values) plus one fp16<->int8 seam. Quality level: ADR 0005 cosine >= 0.9999 -- registered as the criterion, NOT adjusted afterwards.",
   "tflite": "model.tflite",
   "tflite_bytes": 15309888,
+  "weights_source": {
+    "source": "fixture",
+    "layer": 0,
+    "fixture": "weights/qwen25_frozen (ticket 02 frozen fixture)",
+    "safetensors": null,
+    "safetensors_dtype": null,
+    "input_rows": "embedding rows of token ids [9707, 11, 1879, 828, 11780, 13, 220, 16, 41, 1144, 2247, 3350, 4453, 5556, 6659, 7762]"
+  },
   "precision_tier": {
     "weights": "int8, symmetric per-output-channel",
     "activations": "int8, symmetric per-tensor (s = max|v|/127)",
