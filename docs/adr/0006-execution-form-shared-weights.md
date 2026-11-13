@@ -39,23 +39,22 @@
 
 结论：本 ADR 的形态判断被证实——**「两张图 + 一份 bin」可行、KV 是 host 侧状态、权重可以真正常驻**；剩余差距是**工程**（KV 常驻、T=1 的绕法、padding 成本），不是形态问题。
 
-## 订正（2026-11-13，票 kv1 之后）：KV 常驻这一块砖不成立
+## 订正（2026-11-13，票 kv1 之后）：KV 常驻要换 RuntimeV2，且每 token 多一次 24 MiB 拷贝
 
 上一节结尾断言「用 RuntimeAPI 把缓存指针常驻，per-token 拷贝可以从 25 MB 降到 O(256 B/层)」。
-实测否掉了它（docs/OP-kv1-resident-kv.md）：
+半对半错，位置很具体（docs/OP-kv1-resident-kv.md）：
 
-- `NeuronRuntime_setInput(handle, ptr, len, {ionFd})` 确实能把**用户自己的 dma-buf** 绑成图输入
-  （rc=0，图正常跑，第一次推理结果与 CLI 逐字节相同）；
-- 但绑上之后**图输入不再被读**：host 就地写新行（读回 buffer 证明正好落下 6,144 B）、
-  甚至另分配一块 dma-buf 重新 `setInput`，下一次 invoke 的输出**都逐字节不变**
-  （毒化 0 vs 20000 的 step1 输出 sha256 相同；ping-pong 换 fd 也相同）；
-- 控制实验排除了"我们写错行"：把同一份 cache 预先写进**文件**再起进程，runner 与 CLI 的 step 1
-  逐字节一致。=> 行映射、mask、比较链都对，**只有进程内更新不成立**。
+- **v1 的 `NeuronRuntime_setInput(handle, ptr, len, {ionFd})` 不行**：用户 dma-buf 能绑上（rc=0），
+  但图输入在第一次推理后就不再被读——host 就地写新行（读回 buffer 证明正好落下 6,144 B）、
+  甚至另分配一块 dma-buf 重新绑，下一次 invoke 的输出**都逐字节不变**。控制实验（把同一份 cache
+  预先写进种子文件）逐字节复现 CLI，所以不是行映射写错，是"绑一次 = 快照"。
+- **v2 的 `NeuronRuntimeV2_run(runtime, SyncInferenceRequest)` 行**：每请求重送
+  `IOBuffer{ptr,len,fd,offset}`，8 个 token 的 hidden/k/v **24/24 张量逐字节等于** CLI 路径。
+  KV 缓冲因此可以一次分配、进程内反复用，host 每 token 只写 12,288 B（CLI 形态是 25.6 MB）。
+- **但 v2 每请求把 24 MiB 拷进自己的 staging**：`/proc/self/stat` 的 CPU 差 12.95 ms/invoke
+  （≈25.2 MB @1.9 GB/s）。所以 v2 每 invoke 62.9 ms，比"绑一次就不动"的 v1（49.4 ms）慢，
+  比同会话 CLI（59.1 ms）也慢 7%。
 
-因此「KV 常驻设备、每 token 只写新行」在 RuntimeAPI v1 上做不到。能拿到的只有这两条，
-都是配对交替测出来的比值（同文 §5）：常驻进程 + KV 在 dma-buf 比 CLI **快 1.23×**，
-KV 在 dma-buf 比 KV 在匿名内存 **快 1.08×**（−3.9 ms/invoke）。
-
-下面「KV 的归属」那一条要改口径：它不是**工程**问题而是**执行形态**问题——要 in-place 就得让图自己
-持有 KV（厂商 `libmtk_llm` 那条路），TFLite 函数式图表达不了；唯一没验证的替代是 RuntimeV2 的
-每请求 `IOBuffer{fd, offset}`（`RuntimeV2.h:23-37`），本票未测。
+结论口径：**"KV 常驻设备"已经做到（架构上不再是 25.6 MB/token 搬运），剩下的是运行时那 13 ms 的
+拷贝与 T=8 的 7 行 padding**——两者都不在图的语义里，属运行时/编译侧优化。上一段"下一轮第一块砖"
+的说法改成："这一块砖已经搬开，露出的是运行时 descriptor 处理与 T=1 编译这两块。"

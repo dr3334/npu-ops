@@ -26,3 +26,9 @@ mkdir -p "$(dirname "$OUT")"
 "$CC" -O2 -Wall -Wextra -Wno-unused-parameter -o "$OUT" "$ROOT/tools/kv1_runner.c" \
       -I"$SDK/host/include" -ldl
 echo "built $OUT"
+
+# The RuntimeV2 variant lives next to it: same job, buffers re-supplied per inference request.
+OUT2="$(dirname "$OUT")/kv2_runner"
+"$CC" -O2 -Wall -Wno-unused-parameter -o "$OUT2" "$ROOT/tools/kv2_runner.c" \
+      -I"$SDK/host/include" -ldl
+echo "built $OUT2"
