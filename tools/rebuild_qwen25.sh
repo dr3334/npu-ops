@@ -51,9 +51,12 @@ build lm_head_t8_fp16 "/usr/bin/python3 tools/build_lm_head.py --chunks 4 --out 
 build block_qwen25_multhead_h2_fp16 "/usr/bin/python3 tools/build_block2.py --heads 2 --out ops/block_qwen25_multhead_h2_fp16"
 build block_qwen25_multhead_h14_fp16 "/usr/bin/python3 tools/build_block2.py --heads 14 --hidden 896 --head_dim 64 --norm fctile --atol 0.03 --rtol 0.03 --out ops/block_qwen25_multhead_h14_fp16"
 build _block_qwen25_multhead_h14_meannorm_control "/usr/bin/python3 tools/build_block2.py --heads 14 --hidden 896 --head_dim 64 --norm mean --out ops/_block_qwen25_multhead_h14_meannorm_control"
-# --- 票 09 / 10（这两张票合进来之后才会有对应的 ops 目录） ---
+# --- 票 09：1 层 decoder 整块（--out 是目录） ---
 build decoder_layer_t8_fp16 "/usr/bin/python3 tools/build_decoder_layer.py --out ops/decoder_layer_t8_fp16"
-build two_layer_t8_fp16 "/usr/bin/python3 tools/build_two_layer.py --out ops/two_layer_t8_fp16"
+# --- 票 10：两张层图 + tied LM head 的 logits 图（--graph l0|l1|logits，--out 是目录） ---
+for g in l0 l1 logits; do
+  build "two_layer_${g}_t8_fp16" "/usr/bin/python3 tools/build_two_layer.py --graph $g --out ops/two_layer_${g}_t8_fp16"
+done
 
 echo "---- built=$built failed=$failed skipped=$skip"
 [ "$failed" = "0" ]
