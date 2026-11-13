@@ -1,0 +1,7 @@
+op        : MUL {'in': [16, 64], 'out': [16, 64]}  dtype=int16
+expected  : 1024 vals   device: 1024 vals   logical shape=(16, 64)
+exact     : YES   mismatched=0/1024
+contract  : int8_tol=1  max_abs_diff=0  fraction_off=0.0000%
+codes     : exact=1024  <=1=1024  <=2=1024  <=3=1024  <=5=1024  <=10=1024
+distribution: mean=0.00 median=0 p99=0 max=0
+PASS

@@ -1,0 +1,54 @@
+{
+  "op": "SHAPEOPS",
+  "form": "probe16",
+  "shape": {
+    "in": [
+      16,
+      64
+    ],
+    "out": [
+      2,
+      16,
+      32
+    ]
+  },
+  "dtype": "int16",
+  "input": {
+    "name": "input",
+    "shape": [
+      16,
+      64
+    ],
+    "type": "int16"
+  },
+  "output": {
+    "name": "out",
+    "shape": [
+      2,
+      16,
+      32
+    ],
+    "type": "int16"
+  },
+  "quant": {
+    "input": 0.00011226620831888318,
+    "output": 0.00011226620831888318
+  },
+  "int8_tol": 1,
+  "tolerance_rationale": "ADR 0005 (2026-11-13, second revision) + ticket 04d: this is the 16-bit ACTIVATION tier (4W16A). Operator criterion: device == quantised golden, |delta| <= int8_tol codes, AND |cos(device) - cos(golden)| <= 0.003 (device fidelity); quality is judged by cosine vs the independent fp64 chain. int8_tol=1 is registered before the first board run for components; the layer registers 2 for the int8 RMSNorm/int8 seam chain (see LAYER_TOL) or 1 when the graph is fully int16 (registered before the run, no adjustment afterwards).",
+  "note": "RESHAPE->SPLIT->CONCAT->TRANSPOSE->RESHAPE",
+  "tflite": "model.tflite",
+  "tflite_bytes": 1600,
+  "precision_tier": {
+    "weights": "int4, symmetric per-output-channel",
+    "activations": "int16, symmetric per-tensor (s = max|v|/32767)",
+    "bias": "int32 per-channel (s[n] = s_a * s_w[n])",
+    "requant": "tools/quant_contract.py: two integer roundings, per-channel multipliers",
+    "builder": "tools/build_w4a8.py --w-bits 4 --a-bits 16 --seam f16"
+  },
+  "quality_criterion": {
+    "cosine_min": 0.9999,
+    "source": "ADR 0005 (operator-level)",
+    "code_criterion": "device vs quantised golden: |delta| <= int8_tol codes"
+  }
+}

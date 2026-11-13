@@ -1,0 +1,6 @@
+op        : DEQUANTIZE {'in': [16, 64], 'out': [16, 64]}  dtype=int16
+expected  : 1024 vals   device: 1024 vals   logical shape=(16, 64)
+max_abs   : 1.250e-01
+rel_l2    : 2.042e-04
+tol       : atol=0.02 rtol=0.02
+PASS

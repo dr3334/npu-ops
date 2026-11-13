@@ -1,0 +1,7 @@
+op        : DECODER_LAYER {'T': 16, 'D': 896, 'H': 14, 'KV': 2, 'HD': 64, 'I': 4864}  dtype=int8
+expected  : 14336 vals   device: 14336 vals   logical shape=(16, 896)
+exact     : NO   mismatched=12314/14336
+contract  : int8_tol=2  max_abs_diff=38  fraction_off=85.8956%
+codes     : exact=2022  <=1=5475  <=2=7863  <=3=9425  <=5=11172  <=10=13072
+distribution: mean=3.83 median=2 p99=21 max=38
+FAIL

@@ -1,0 +1,63 @@
+{
+  "op": "FULLY_CONNECTED",
+  "form": "w4a16",
+  "shape": {
+    "T": 16,
+    "K": 896,
+    "N": 896
+  },
+  "dtype": "int16",
+  "weights_dtype": "int4",
+  "ops_version": 9,
+  "input": {
+    "name": "input",
+    "shape": [
+      16,
+      896
+    ],
+    "type": "int16"
+  },
+  "output": {
+    "name": "out",
+    "shape": [
+      16,
+      896
+    ],
+    "type": "int16"
+  },
+  "quant": {
+    "input": 3.2075857391898446e-05,
+    "output": 0.0007796350932504783,
+    "weights_pc_min": 0.02523367665708065,
+    "weights_pc_max": 0.0490373894572258,
+    "weights_bytes": 401408,
+    "weights_elems": 802816
+  },
+  "int8_tol": 1,
+  "tolerance_rationale": "ADR 0005 (2026-11-13, second revision) + ticket 04d: this is the 16-bit ACTIVATION tier (4W16A). Operator criterion: device == quantised golden, |delta| <= int8_tol codes, AND |cos(device) - cos(golden)| <= 0.003 (device fidelity); quality is judged by cosine vs the independent fp64 chain. int8_tol=1 is registered before the first board run for components; the layer registers 2 for the int8 RMSNorm/int8 seam chain (see LAYER_TOL) or 1 when the graph is fully int16 (registered before the run, no adjustment afterwards).",
+  "tflite": "model.tflite",
+  "tflite_bytes": 427200,
+  "precision_tier": {
+    "weights": "int4, symmetric per-output-channel",
+    "activations": "int16, symmetric per-tensor (s = max|v|/32767)",
+    "bias": "int32 per-channel (s[n] = s_a * s_w[n])",
+    "requant": "tools/quant_contract.py: two integer roundings, per-channel multipliers",
+    "builder": "tools/build_w4a8.py --w-bits 4 --a-bits 16 --seam f16"
+  },
+  "fp32_ref": "q_proj_pre_rope",
+  "quality_criterion": {
+    "cosine_min": 0.9999,
+    "source": "ADR 0005 (operator-level)",
+    "code_criterion": "device vs quantised golden: |delta| <= int8_tol codes"
+  },
+  "accuracy_vs_fp32": {
+    "reference": "independent float64 chain (tools/build_w4a8.py chain_f32)",
+    "cosine": 0.9999933938060875,
+    "rel_l2": 0.0036349389182423458,
+    "max_abs": 0.14532886019918134,
+    "max_abs_over_maxabs_out": 0.00568716990305027,
+    "out_scale": 0.0007796350932504783,
+    "one_code_real": 0.0007796350932504783,
+    "note": "int8 quantisation error of the whole 4W8A path, no device involved"
+  }
+}
