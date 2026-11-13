@@ -11,17 +11,18 @@ For every op dir given this script
   * applies three candidate requant rules and counts mismatches against
     out_device.bin:
 
-      A  what tools/build_ops.py:204 and tools/build_bmm.py:122 ship today
-         -- one float64 np.round of the exact scale ratio;
+      A  one float64 np.round of the ratio built from the *stored float32* scales;
+      D  one float64 np.round of the EXACT declared ratio (1/32) -- this is what
+         tools/build_ops.py / build_bmm.py shipped before the ticket-02 fix;
       B  the contract, M0 taken from an INTEGER multiplier (the declared ratio as
-         a short rational, 1/32 -> M0=2**30, shift=4):
+         a short rational, 1/32 -> M0=2**30, shift=-4):
              RoundingDivideByPOT(round_half_up(acc*M0/2**31), shift)
       C  the same two-step form but with M0 from TFLite's QuantizeMultiplier
          applied to the float64 ratio of the *stored float32* scales -- the
          "reverse-engineer M0 from the scale product" variant (M0=1073741840);
 
-  * reports A against the shipped golden/expected.bin, which proves expected.bin
-    really is rule A (and therefore that B is a change, not a no-op).
+  * reports D against the shipped golden/expected.bin, which proves expected.bin
+    really is rule D (and therefore that B is a change, not a no-op).
 
 Zero board time, zero writes: the op dir is only read.
 
@@ -117,7 +118,7 @@ def two_step(acc, m0, exp):
 
 
 def one_round(acc, ratio):
-    """Rule A: what the two builders ship today."""
+    """One rounding of the exact ratio -- what the builders shipped before this fix."""
     return np.clip(np.round(acc.astype(np.float64) * ratio), -128, 127).astype(np.int8)
 
 
@@ -218,9 +219,10 @@ def analyse(opdir):
 
     m0i, shi = quantize_multiplier_rational(ratio)
     m0f, shf = quantize_multiplier_float32(ratio)
-    ya = one_round(accf, ratio)
-    yb = two_step(accf, m0i, shi)
-    yc = two_step(accf, m0f, shf)
+    ya = one_round(accf, ratio)                                              # A
+    yd = one_round(accf, float(Fraction(float(ratio)).limit_denominator(1 << 20)))  # D
+    yb = two_step(accf, m0i, shi)                                            # B: integer M0
+    yc = two_step(accf, m0f, shf)                                            # C: f32 M0
 
     def n_bad(y):
         return int((y.astype(np.int64) != dev.astype(np.int64)).sum())
@@ -232,8 +234,8 @@ def analyse(opdir):
         "ratio": ratio,
         "m0_int": m0i, "shift_int": shi,
         "m0_f32": m0f, "shift_f32": shf,
-        "A": n_bad(ya), "B": n_bad(yb), "C": n_bad(yc),
-        "golden_is_A": (int((ya != exp).sum()) if exp is not None else None),
+        "A": n_bad(ya), "D": n_bad(yd), "B": n_bad(yb), "C": n_bad(yc),
+        "golden_is_D": (int((yd != exp).sum()) if exp is not None else None),
         "golden_vs_dev": (int((exp.astype(np.int64) != dev.astype(np.int64)).sum())
                           if exp is not None else None),
         "int8_tol": meta.get("int8_tol"),
@@ -273,18 +275,20 @@ def main():
         except Exception as e:
             skipped.append((os.path.basename(d.rstrip("/")), "%s: %s" % (type(e).__name__, e)))
 
-    print("%-32s %-13s %7s %-8s %-13s %6s %6s %6s %6s" % (
-        "op", "kind", "N", "ratio", "(M0,shift)", "A", "B", "C", "A==golden"))
-    tot = {"N": 0, "A": 0, "B": 0, "C": 0}
+    print("%-32s %-13s %7s %-8s %-13s %5s %5s %5s %5s %4s" % (
+        "op", "kind", "N", "ratio", "(M0,shift)", "A", "D", "B", "C", "D=gold"))
+    tot = {"N": 0, "A": 0, "D": 0, "B": 0, "C": 0}
     for r in rows:
-        print("%-32s %-13s %7d %-8s %-13s %6d %6d %6d %6s" % (
+        print("%-32s %-13s %7d %-8s %-13s %5d %5d %5d %5d %4s" % (
             r["op"], r["kind"], r["n"], ("%.6g" % r["ratio"]),
             "(%d,%d)" % (r["m0_int"], r["shift_int"]),
-            r["A"], r["B"], r["C"], r["golden_is_A"]))
+            r["A"], r["D"], r["B"], r["C"], r["golden_is_D"]))
         for k in tot:
             tot[k] += r[k] if k != "N" else r["n"]
-    print("---- ops=%d  values=%d   A(float64 one-round)=%d  B(M0 integer)=%d  "
-          "C(M0 from float32 scales)=%d" % (len(rows), tot["N"], tot["A"], tot["B"], tot["C"]))
+    print("---- ops=%d  values=%d   A(one-round, ratio from f32 scales)=%d  "
+          "D(one-round, exact ratio; what the repo shipped)=%d  "
+          "B(contract, integer M0)=%d  C(contract, M0 from f32 scales)=%d" % (
+              len(rows), tot["N"], tot["A"], tot["D"], tot["B"], tot["C"]))
     if skipped:
         print("---- skipped %d dirs (not FC/BMM or missing inputs):" % len(skipped))
         for n, why in skipped:
