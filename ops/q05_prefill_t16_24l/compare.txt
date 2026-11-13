@@ -1,0 +1,8 @@
+stack      : 24 layers, T=16, int16, out scale 2.691179e-04 (1 code = 2.691e-04)
+golden     : cosine vs fp64 0.9961937   rel_l2 8.7322e-02   max|fp64| 8.866
+per-layer  : max|out| 0.51 0.73 1.04 1.31 1.67 2.11 2.57 3.04 3.50 3.95 4.37 4.77 5.14 5.49 5.80 6.09 6.36 6.60 6.82 7.14 7.57 8.01 8.44 8.87
+device     : cosine vs fp64 0.9961469   rel_l2 vs fp64 8.7860e-02
+device     : cosine vs golden 0.9999852   abs(dcos) 4.6813e-05   rel_l2 5.4353e-03
+codes      : exact=172/14336  max=354  mean=32.53  p99=152
+gate       : abs(dcos)<=0.003 PASS   rel_l2<=0.050 PASS   codes<=1200 PASS
+quality    : device cosine 0.9961469 vs expectation 0.9998 -> FAIL
