@@ -42,7 +42,8 @@
     "fixture": null,
     "safetensors": "/mnt/d/ai/Qwen2.5-0.5B-Instruct/model.safetensors",
     "safetensors_dtype": "BF16",
-    "input_rows": "embedding rows of token ids [9707, 11, 1879, 828, 11780, 13, 220, 16, 41, 1144, 2247, 3350, 4453, 5556, 6659, 7762]"
+    "input_rows": "embedding rows of token ids [9707, 11, 1879, 828, 11780, 13, 220, 16, 41, 1144, 2247, 3350, 4453, 5556, 6659, 7762]",
+    "input_source": "real"
   },
   "precision_tier": {
     "weights": "int8, symmetric per-output-channel",
