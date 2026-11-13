@@ -1,0 +1,5 @@
+op        : RMSNORM {'T': 16, 'D': 896}  dtype=int8
+expected  : 14336 vals   device: 14336 vals   logical shape=(16, 896)
+exact     : NO   mismatched=861/14336
+contract  : int8_tol=1  max_abs_diff=2  fraction_off=6.0059%
+FAIL

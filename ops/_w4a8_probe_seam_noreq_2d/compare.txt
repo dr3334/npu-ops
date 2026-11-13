@@ -1,0 +1,9 @@
+op        : SEAM2 {'shape': [16, 16]}  dtype=int8
+expected  : 256 vals   device: 256 vals   logical shape=(16, 16)
+max_abs   : 7.629e-06
+rmse      : 1.066e-06
+rel_l2    : 4.660e-06
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [0,1]  dev [0,1]
+tol       : atol=0.02 rtol=0.02
+PASS
