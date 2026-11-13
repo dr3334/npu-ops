@@ -10,6 +10,7 @@
 import argparse
 import json
 import os
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -83,7 +84,21 @@ def run_combo(op, length, do_maps=False):
     cap_a = np.fromfile(art.golden / "a.bin", dtype=np.int8)
     cap_b = np.fromfile(art.golden / "b.bin", dtype=np.int8)
     dev = g.run({"a": cap_a, "b": cap_b})
+    # run() 每次覆盖 run/out.bin，先把这一跑的输出留档，免得被第二跑冲掉
+    out_path = art.root / "run" / "out.bin"
+    primary = art.root / "run" / "out_primary.bin"
+    if out_path.exists():
+        shutil.copy(out_path, primary)
     res = g.verify(dev)
+    # 第二跑：**换一对输入**，证明数值门不是"重放抓取时那对输入"才成立
+    # （这一跑"同源"按定义不适用：厂商那次只跑过 capture 的输入）
+    rng = np.random.default_rng(7 + length)
+    alt_a = rng.integers(-100, 101, size=length).astype(np.int8)
+    alt_b = rng.integers(-100, 101, size=length).astype(np.int8)
+    alt = g.run({"a": alt_a, "b": alt_b})
+    res_alt = g.verify(alt)
+    if out_path.exists():
+        shutil.copy(out_path, art.root / "run" / "out_alt.bin")
     dt = time.time() - t0
 
     plan_txt = art.plan_path.read_text()
@@ -108,11 +123,20 @@ def run_combo(op, length, do_maps=False):
             "golden/input_b": sha_file(art.golden / "b.bin"),
             "golden/expected": sha_file(art.golden / "expected.bin"),
             "vendor_out": sha_file(art.capture / "vendor_out.bin"),
-            "device_out": sha_file(out_file),
+            "device_out": sha_file(primary),          # 抓取输入那一跑的输出（留档件）
+            "device_out_alt": sha_file(art.root / "run" / "out_alt.bin"),
         },
-        "bytes": {"device_out": out_file.stat().st_size if out_file.exists() else 0},
+        "bytes": {"device_out": primary.stat().st_size if primary.exists() else 0},
         "verify": res.as_dict(),
-        "pass": res.ok,
+        "alt_inputs": {
+            "numeric_ok": res_alt.numeric_ok,
+            "same_source_ok": res_alt.same_source_ok,
+            "note": "fresh random inputs; the vendor run only ever saw the captured pair, "
+                    "so the same-source gate is not defined here",
+            "sha256_out": res_alt.detail["sha256_out"],
+            "sha256_expected": res_alt.detail["sha256_expected"],
+        },
+        "pass": bool(res.ok and res_alt.numeric_ok),
         "npu_run_log": npu_log.strip().splitlines()[:8],
         "seconds": round(dt, 1),
     }

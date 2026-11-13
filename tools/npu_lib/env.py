@@ -65,8 +65,10 @@ def run(cmd, cwd=None, check=True, capture=False, env=None, timeout=None):
     e = dict(os.environ)
     if env:
         e.update(env)
+    # errors="replace"：从 WSL 里借 Windows 的 git-bash 跑 healthcheck 时，中文输出是 GBK，
+    # 严格 utf-8 解码会炸；这里只做日志透传，不需要原样还原字符。
     p = subprocess.run([str(c) for c in cmd], cwd=str(cwd or REPO_ROOT),
-                       text=True, capture_output=capture, env=e, timeout=timeout)
+                       text=True, errors="replace", capture_output=capture, env=e, timeout=timeout)
     if check and p.returncode != 0:
         tail = ""
         if capture:
@@ -139,15 +141,25 @@ class board_lock:
         return False
 
 
+def _windows_bash():
+    """git-bash 的 bash.exe（WSL 里通过 interop 直接执行这个 .exe）。"""
+    for cand in ("/mnt/c/Program Files/Git/bin/bash.exe", shutil.which("bash.exe") or ""):
+        if cand and os.path.exists(cand):
+            return cand
+    return None
+
+
 def healthcheck(quick=True):
     """前后各一次的 healthcheck（公共工具，不改它；只在 WSL 里换个壳调用）。"""
     script = "./tools/healthcheck.sh" + (" --quick" if quick else "")
     if IS_WSL:
         # healthcheck -> e2e.sh 用了 git-bash 的 'pwd -W'，在 WSL 里跑不了；
-        # 从 WSL 里借 Windows 的 git-bash 跑（interop）。
+        # 借 Windows 的 git-bash 跑（interop：直接 exec 那个 .exe，路径要 Windows 形式）。
+        bash = _windows_bash()
+        if not bash:
+            raise NpuLibError("healthcheck: 找不到 Windows 的 git-bash（设 PATH 或装 Git for Windows）")
         win_repo = subprocess.run(["wslpath", "-w", str(REPO_ROOT)],
                                   capture_output=True, text=True).stdout.strip()
-        bash = r"C:\Program Files\Git\bin\bash.exe"
         inner = 'cd "%s" && %s' % (win_repo.replace("\\", "/"), script)
-        return run(["cmd.exe", "/c", bash, "-lc", inner], capture=True)
+        return run([bash, "-lc", inner], capture=True)
     return run(["bash", "-lc", script], capture=True)
