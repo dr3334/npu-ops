@@ -436,18 +436,18 @@ fp16 量化 → softmax → PV」这条链的固有代价。要更小只有两�
 export QWEN25_WEIGHTS_DIR='/mnt/d/deepseek_ workspace/mtk/npu-ops/weights/qwen25_frozen'
 
 # 1) 层数预算（不需要权重，秒级）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t09' && /usr/bin/python3 tools/build_decoder_layer.py --predict"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/build_decoder_layer.py --predict"
 
 # 2) 生成 tflite + golden + model.json（含先登记的容差）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t09' && export QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' && \
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && export QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' && \
   /usr/bin/python3 tools/build_decoder_layer.py --out ops/decoder_layer_t8_fp16"
 
 # 3) 接线自检（设备无关；第一次上板之前做）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t09' && export QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' && \
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && export QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' && \
   /usr/bin/python3 tools/build_decoder_layer.py --execcheck --out ops/decoder_layer_t8_fp16"
 
 # 4) 编译（锁外）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t09' && \
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && \
   ./tools/compile.sh ops/decoder_layer_t8_fp16/model.tflite ops/decoder_layer_t8_fp16/model.dla"
 
 # 5) 板端（持锁；前后各一次 healthcheck，两轮 = 噪声底）
@@ -460,7 +460,7 @@ export NPU_LOCK='/d/deepseek_ workspace/mtk/.npu-board.lock'
   ./tools/healthcheck.sh --quick'
 
 # 6) 诊断（锁外）：设备 vs golden / 设备语义模拟 / 反事实 / 噪声底
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t09' && export QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' && \
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && export QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' && \
   /usr/bin/python3 tools/build_decoder_layer.py --diag --out ops/decoder_layer_t8_fp16"
 
 # 7) 二分半图（同 2)–5)，换 --variant attn_half|ffn_half，输出到 ops/_decoder_bisect/<v>）

@@ -339,21 +339,21 @@ PASS
 
 ```bash
 # 0) 夹具（332 MB，约 9 s；已有产物时跳过，或 export QWEN25_WEIGHTS_DIR=...）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t08' && /usr/bin/python3 tools/gen_qwen25_weights.py"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/gen_qwen25_weights.py"
 
 # 1) 建图 + golden（锁外，约 5 s，峰值 RSS 1.1 GB）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t08' && /usr/bin/python3 tools/build_lm_head.py --chunks 4"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/build_lm_head.py --chunks 4"
 
 # 2) 编译（锁外，约 30 s）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t08' && ./tools/compile.sh ops/lm_head_t8_fp16/model.tflite ops/lm_head_t8_fp16/model.dla"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && ./tools/compile.sh ops/lm_head_t8_fp16/model.tflite ops/lm_head_t8_fp16/model.dla"
 
 # 3) 边界探针（锁外，compile-only，约 1 min）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t08' && bash ops/lm_head_t8_fp16/probe/run_probes.sh"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && bash ops/lm_head_t8_fp16/probe/run_probes.sh"
 
 # 4) 上板（持锁；healthcheck → e2e×2 → 计时 → healthcheck，约 30 s）
 export NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock"
 ./tools/devlock.sh run -- ./ops/lm_head_t8_fp16/board_run.sh
 
 # 5) 噪声底与误差结构
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t08' && /usr/bin/python3 ops/lm_head_t8_fp16/noise_floor.py"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 ops/lm_head_t8_fp16/noise_floor.py"
 ```

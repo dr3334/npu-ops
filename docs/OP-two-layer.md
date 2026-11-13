@@ -428,15 +428,15 @@ RESHAPE 顺序、常量没写进文件）。它**不是**数值判据（可以�
 export QWEN25_WEIGHTS_DIR='/mnt/d/deepseek_ workspace/mtk/npu-ops/weights/qwen25_frozen'
 
 # 1) 三张图 + golden + 先登记的容差（锁外，约 10 s；logits 的 golden 是 1.2M 列的 fp32 matmul）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t10' && export QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' && \
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && export QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' && \
   for g in l0 l1 logits; do /usr/bin/python3 tools/build_two_layer.py --graph $g; done"
 
 # 2) 接线自检（设备无关；**第一次上板之前**做）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t10' && export QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' && \
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && export QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' && \
   for g in l0 l1 logits; do /usr/bin/python3 tools/build_two_layer.py --graph $g --execcheck; done"
 
 # 3) 编译（锁外，l0/l1 各 ~5 s，logits ~28 s）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t10' && \
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && \
   ./tools/compile.sh ops/two_layer_l0_t8_fp16/model.tflite ops/two_layer_l0_t8_fp16/model.dla && \
   ./tools/compile.sh ops/two_layer_l1_t8_fp16/model.tflite ops/two_layer_l1_t8_fp16/model.dla && \
   ./tools/compile.sh ops/two_layer_logits_t8_fp16/model.tflite ops/two_layer_logits_t8_fp16/model.dla"
@@ -446,7 +446,7 @@ export NPU_LOCK='/d/deepseek_ workspace/mtk/.npu-board.lock'
 ./tools/devlock.sh run -- ./tools/chain_two_layer.sh 2>&1 | tee ops/two_layer_chain_session.log
 
 # 5) 诊断 / 牙齿（锁外）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t10' && export QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' && \
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && export QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' && \
   /usr/bin/python3 tools/build_two_layer.py --graph l1 --counterfactual && \
   /usr/bin/python3 tools/build_two_layer.py --graph logits --counterfactual"
 ```

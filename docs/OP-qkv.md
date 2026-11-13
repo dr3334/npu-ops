@@ -314,20 +314,20 @@ export NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock"
 export QWEN25_WEIGHTS_DIR="/mnt/d/deepseek_ workspace/mtk/npu-ops/weights/qwen25_frozen"
 
 # 1) 生成 tflite + golden + model.json（三个 op，锁外；WSL 的 /usr/bin/python3）
-for W in q k v; do wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t03' && QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' /usr/bin/python3 tools/build_qkv_bias_rope.py --which $W"; done
+for W in q k v; do wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' /usr/bin/python3 tools/build_qkv_bias_rope.py --which $W"; done
 
 # 2) 编译（锁外；EXIT / 层清单 / SIZE / SHA256 都写进 model.compile.log）
-for W in q k v; do wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t03' && ./tools/compile.sh ops/qkv_${W}_bias_rope_t8_fp16/model.tflite ops/qkv_${W}_bias_rope_t8_fp16/model.dla"; done
+for W in q k v; do wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && ./tools/compile.sh ops/qkv_${W}_bias_rope_t8_fp16/model.tflite ops/qkv_${W}_bias_rope_t8_fp16/model.dla"; done
 
 # 3) 896 负对照（锁外；两个都会 EXIT=1，日志保留）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t03' && QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' /usr/bin/python3 tools/build_qkv_bias_rope.py --which k --emit-neg-width896 --out ops/qkv_k_bias_rope_t8_fp16"
-for N in a_896wide_fc_to_kv_reshape b_declared_896_with_128_data; do wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t03' && ./tools/compile.sh ops/qkv_k_bias_rope_t8_fp16/neg_width896/$N.tflite ops/qkv_k_bias_rope_t8_fp16/neg_width896/$N.dla"; done
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' /usr/bin/python3 tools/build_qkv_bias_rope.py --which k --emit-neg-width896 --out ops/qkv_k_bias_rope_t8_fp16"
+for N in a_896wide_fc_to_kv_reshape b_declared_896_with_128_data; do wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && ./tools/compile.sh ops/qkv_k_bias_rope_t8_fp16/neg_width896/$N.tflite ops/qkv_k_bias_rope_t8_fp16/neg_width896/$N.dla"; done
 
 # 4) 板端（唯一持锁的一步）：healthcheck + 每个 op 两轮（第二轮=噪声底）+ healthcheck
 ./tools/devlock.sh run -- ./tools/board_t03.sh
 
 # 5) 诊断（锁外）：设备 vs golden / fp16 模拟 / 反事实
-for W in q k v; do wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t03' && QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' /usr/bin/python3 tools/build_qkv_bias_rope.py --which $W --diag"; done
+for W in q k v; do wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && QWEN25_WEIGHTS_DIR='$QWEN25_WEIGHTS_DIR' /usr/bin/python3 tools/build_qkv_bias_rope.py --which $W --diag"; done
 ```
 
 噪声底复算见 §5.3 的两份 `out_r*.bin`（numpy 一行 max|r1−r2|）。

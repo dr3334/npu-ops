@@ -417,10 +417,10 @@ noise floor : max|r1-r2| = 0.000e+00 (fp16 codes differing: 0/896)
 export QWEN25_WEIGHTS_DIR='/mnt/d/deepseek_ workspace/mtk/npu-ops/weights/qwen25_frozen'
 
 # 1) 构建 .tflite + golden（锁外；约 3 s）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t05' && /usr/bin/python3 tools/build_masked_softmax.py --out ops/masked_softmax_t8_fp16"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/build_masked_softmax.py --out ops/masked_softmax_t8_fp16"
 
 # 2) 编译（锁外）。常量掩码形态也编一份
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t05' &&   ./tools/compile.sh ops/masked_softmax_t8_fp16/model.tflite ops/masked_softmax_t8_fp16/model.dla &&   ./tools/compile.sh ops/masked_softmax_t8_fp16/model_constmask.tflite ops/masked_softmax_t8_fp16/model_constmask.dla"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' &&   ./tools/compile.sh ops/masked_softmax_t8_fp16/model.tflite ops/masked_softmax_t8_fp16/model.dla &&   ./tools/compile.sh ops/masked_softmax_t8_fp16/model_constmask.tflite ops/masked_softmax_t8_fp16/model_constmask.dla"
 
 # 3) 板端（每一步都持锁；脚本见 ops/masked_softmax_t8_fp16/run_experiments.sh）
 export NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock"
@@ -435,10 +435,10 @@ export NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock"
 ./ops/masked_softmax_t8_fp16/run_experiments.sh health      # 实验后
 
 # 4) 判据汇总（噪声底 / 判据一 / 判据二 / 负面控制），不需要板子
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t05' && /usr/bin/python3 tools/build_masked_softmax.py --analyze --out ops/masked_softmax_t8_fp16"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/build_masked_softmax.py --analyze --out ops/masked_softmax_t8_fp16"
 
 # 5) 一元算子探针（只有编译，不碰板子）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t05' && for op in SOFTMAX RSQRT LOGISTIC EXP LOG COS; do   /usr/bin/python3 tools/build_masked_softmax.py --probe $op --out ops/masked_softmax_t8_fp16;   ./tools/compile.sh ops/masked_softmax_t8_fp16/probe_$(echo $op | tr A-Z a-z).tflite ops/masked_softmax_t8_fp16/probe_$(echo $op | tr A-Z a-z).dla; done"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && for op in SOFTMAX RSQRT LOGISTIC EXP LOG COS; do   /usr/bin/python3 tools/build_masked_softmax.py --probe $op --out ops/masked_softmax_t8_fp16;   ./tools/compile.sh ops/masked_softmax_t8_fp16/probe_$(echo $op | tr A-Z a-z).tflite ops/masked_softmax_t8_fp16/probe_$(echo $op | tr A-Z a-z).dla; done"
 ```
 
 **可复现性实测**：重建 `.tflite` 与 `golden/*.bin` 逐字节相同（`MODELS IDENTICAL AFTER REBUILD`、

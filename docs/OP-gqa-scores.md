@@ -310,13 +310,13 @@ EXIT=1
 export QWEN25_WEIGHTS_DIR="/mnt/d/deepseek_ workspace/mtk/npu-ops/weights/qwen25_frozen"
 
 # 1) 生成（锁外）：model.tflite + model.json + golden/{input,input1,expected}.bin
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t04' && /usr/bin/python3 tools/build_gqa_scores.py"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/build_gqa_scores.py"
 
 # 2) 容差下限（锁外，独立于设备）：fp16 顺序累加 vs fp32 golden
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t04' && /usr/bin/python3 tools/build_gqa_scores.py --tol-analysis"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/build_gqa_scores.py --tol-analysis"
 
 # 3) 编译（锁外）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t04' && ./tools/compile.sh ops/gqa_scores_t8_fp16/model.tflite ops/gqa_scores_t8_fp16/model.dla"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && ./tools/compile.sh ops/gqa_scores_t8_fp16/model.tflite ops/gqa_scores_t8_fp16/model.dla"
 
 # 4) 板端（持锁）：e2e 只做 push/run/pull/compare
 export NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock"
@@ -324,11 +324,11 @@ export NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock"
 cp ops/gqa_scores_t8_fp16/out_device.bin ops/gqa_scores_t8_fp16/out_r1.bin
 ./tools/devlock.sh run -- ./tools/e2e.sh ops/gqa_scores_t8_fp16      # 噪声底第二份
 cp ops/gqa_scores_t8_fp16/out_device.bin ops/gqa_scores_t8_fp16/out_r2.bin
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t04' && /usr/bin/python3 ops/gqa_scores_t8_fp16/noise_floor.py"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 ops/gqa_scores_t8_fp16/noise_floor.py"
 
 # 5) 对照与探针（编译/跑法同上，变体名换一下）
 #    bmm_only / nary14 / twox7 / unroll14 / wrong_reshape / rank5
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t04' && /usr/bin/python3 tools/build_gqa_scores.py --variant twox7"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/build_gqa_scores.py --variant twox7"
 ```
 
 ---

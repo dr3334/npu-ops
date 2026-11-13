@@ -289,19 +289,19 @@ PASS
 ```bash
 cd "/d/deepseek_ workspace/mtk/wt-t07"
 # 0) 夹具（本 worktree 内没有 .npz 时生成一次，约 8 s；sha256 与 manifest 一致）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t07' && /usr/bin/python3 tools/gen_qwen25_weights.py \
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/gen_qwen25_weights.py \
   && /usr/bin/python3 tools/qwen25_weights.py --verify"
 
 # 1) 生成 model.tflite + golden + model.json（锁外）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t07' && /usr/bin/python3 tools/build_swiglu_ffn.py \
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/build_swiglu_ffn.py \
   swiglu_ffn_t8_fp16 --out ops/swiglu_ffn_t8_fp16"
 
 # 2) 编译（锁外，~2.8 s）：exec plan / 层数 / Static / EXIT 全进 model.compile.log
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t07' && \
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && \
   ./tools/compile.sh ops/swiglu_ffn_t8_fp16/model.tflite ops/swiglu_ffn_t8_fp16/model.dla"
 
 # 3) 对照（只编译，不上板）：去掉 silu 的图是 4 层
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t07' && \
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && \
   /usr/bin/python3 tools/build_swiglu_ffn.py swiglu_ffn_t8_fp16_nosilu_ctrl --out ops/_swiglu_ffn_t8_fp16_nosilu_ctrl \
   && ./tools/compile.sh ops/_swiglu_ffn_t8_fp16_nosilu_ctrl/model.tflite ops/_swiglu_ffn_t8_fp16_nosilu_ctrl/model.dla"
 
@@ -313,7 +313,7 @@ export NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock"
   ./tools/healthcheck.sh --quick'
 
 # 5) 噪声底 + 两种参考 + 相对口径
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t07' && \
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && \
   /usr/bin/python3 tools/build_swiglu_ffn.py --analyze ops/swiglu_ffn_t8_fp16"
 ```
 

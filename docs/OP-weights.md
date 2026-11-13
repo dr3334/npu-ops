@@ -278,7 +278,7 @@ real 0m5.5s
 ### 6.3 磁盘产物 vs manifest（`qwen25_weights.py --verify`）
 
 ```
-fixture: /mnt/d/deepseek_ workspace/mtk/wt-t02/weights/qwen25_frozen
+fixture: /mnt/d/deepseek_ workspace/mtk/npu-ops/weights/qwen25_frozen
 tensors verified : 25/25
 aliases verified : 1
 total bytes      : 331918848
@@ -411,22 +411,22 @@ int8 路径（全 fp16）。
 ```bash
 # 0) 环境：WSL 的 /usr/bin/python3（有 numpy），路径含空格必须加引号
 # 1) 生成（约 8 s，332 MB；只写 weights/qwen25_frozen/）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t02' && /usr/bin/python3 tools/gen_qwen25_weights.py"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/gen_qwen25_weights.py"
 
 # 2) 同 seed 是否逐字节相同（重新生成到内存，与 manifest 里的 sha256 逐一比对）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t02' && /usr/bin/python3 tools/gen_qwen25_weights.py --verify"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/gen_qwen25_weights.py --verify"
 
 # 3) 磁盘产物是否与 manifest 一致（缺文件/字节被改都会报；RESULT: PASS 就是本票的核心判据）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t02' && /usr/bin/python3 tools/qwen25_weights.py --verify"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/qwen25_weights.py --verify"
 
 # 4) 守卫是否真的会响（临时目录，篡改 1 ULP / 删文件 / 未知名）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t02' && /usr/bin/python3 tools/qwen25_weights.py --selftest"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/qwen25_weights.py --selftest"
 
 # 5) 重新实测真实权重统计量（torch + safetensors；会打印与内嵌 MEASURED 的差值）
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t02' && /usr/bin/python3 tools/gen_qwen25_weights.py --measure --safetensors /mnt/d/ai/Qwen2.5-0.5B-Instruct/model.safetensors"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/gen_qwen25_weights.py --measure --safetensors /mnt/d/ai/Qwen2.5-0.5B-Instruct/model.safetensors"
 
 # 6) 张量清单 / 一览
-wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t02' && /usr/bin/python3 tools/qwen25_weights.py --summary"
+wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/qwen25_weights.py --summary"
 ```
 
 ---
