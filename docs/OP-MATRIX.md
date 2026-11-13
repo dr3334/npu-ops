@@ -111,3 +111,25 @@ convpool 的 9 个（C=4/8 的 pool 与 conv、dilation/stride 特定组合）�
 `probe/dump_tflite.py` 打印 tensor 表 + operator 表，两份模型 diff → 一眼看到
 `RSQRT` 的输入是 **axis 张量**（`len(tensors)-1` 在 append 之后取值导致的索引错位）。
 **"独立算子能跑、拼进整图跑不了"这类问题，tflite 表 diff 比手写试错快一个数量级。**
+
+---
+
+## 12. ✅ 自建提交器跑通完整 attention（2026-11-13）
+
+`probe/npu_attn16_demo`，T=16、int8、**51 次提交**、同一进程、无 `libneuron`/`neuronrt`：
+
+```
+q,k,v = x·Wᵀ    ← 48 次 FULLY_CONNECTED(动态权重)
+s     = q·kᵀ    ← BATCH_MATMUL(T=16)          mismatch 0/256
+p     = softmax(s) ← SOFTMAX[1,16,16] + LUT    mismatch 0/256
+o     = p·v     ← BATCH_MATMUL(PV T=16)        mismatch 0/1024
+```
+
+两次运行结果相同；前后 healthcheck PASS。
+
+**定位方法（可复用）**：命令流字节 diff（我方 patch 后 vs 厂商抓取）证明"只有 3 个地址字不同"，
+于是把怀疑从命令流转到缓冲 → 再比对缓冲内容，发现 `mkasset.py` 把资产目录上一层的
+`vendor_out.bin` 当成了输入，导致 **LUT 与输出缓冲互换**（给 kernel 喂了全零 LUT）。
+
+**链路里必须自己做的一步**：softmax 输出域 `(1/256, zp=-128)` → PV 输入域 `(1/127, zp=0)`
+的 requant（`code = round(((c+128)/256)*127)`）。TFLite 图里这步由 ncc 插入。
