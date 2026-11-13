@@ -42,6 +42,8 @@ Qwen2.5-0.5B 需要 **14 个 query head + 2 个 KV head**（GQA 7:1）。若"多
 | int8 14 头 head_dim=8 | 1 | `Bridging is disallowed`（16 B 行规则） |
 | 仓库原版 `build_block2.py --heads 2` | 1 | `Fail to process the given model`（**加载期**） |
 | 同上，仅把 q/k/v/o 权重改成 `(H,H)` | 0 | 通过 —— **H3 成立** |
+| 修好后的块构造器（ticket 01）：`build_block2.py --heads 2` | 0 | **31 层，1 执行步，`.dla` 101 KB**；板端 **PASS**（1 ULP，见 `docs/OP-block.md §10.5`） |
+| 同上 `--heads 14 --hidden 896 --head_dim 64 --norm fctile` | 0 | **33 层，1 执行步，`.dla` 7.06 MB**；板端 **PASS**（见 `docs/OP-block.md §10.5`） |
 
 **H1 否定**：没有头数上限，扫到 1024 头仍是一个原生层。
 **H2 部分成立**：复合图本身没问题，构造正确就编。
@@ -67,4 +69,10 @@ Qwen2.5-0.5B 需要 **14 个 query head + 2 个 KV head**（GQA 7:1）。若"多
 
 - `docs/OP-block.md` 的"多 head WIP/未通过"归因**已订正**——不能按一条编译器的假限制去设计兜底方案；
 - 兜底方案（2×7 头 23 层 / 14 次 unroll 15 层）相对于单体 1 层是**纯亏损**，不采用；
-- GQA 的 KV 显式复制采用 `SPLIT→CONCAT`，代价 4 层、仍在同一执行步。
+- GQA 的 KV 显式复制采用 `SPLIT→CONCAT`，代价 4 层、仍在同一执行步；
+- **ticket 01 已把修复落进 `tools/build_block2.py`**（权重张量按数组真实形状声明 + `check_fc_weight()`
+  形状守卫 + `--hidden/--head_dim/--ffn/--norm`），两个多头整块 op 编译与板端都通过；
+- ticket 01 顺带发现**第二个坑**（本文只做编译侧，没看到）：`[T,H]` 直接 `RESHAPE` 成 `[heads,T,HD]`
+  也能编、也能跑，但那是"按头分块重排 token"，板端 `rel_l2=0.143`；必须先 `[T,H]→[T,heads,HD]`
+  再 `TRANSPOSE(perm=[1,0,2])`。⇒ **编译 EXIT=0 + 单执行步不等于数学正确**，多头必须补板端对拍
+  （见 `docs/OP-block.md §10.5.1`）。

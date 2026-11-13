@@ -1,6 +1,6 @@
 # cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/block_qwen25_multhead_h14_fp16/model.tflite -d ops/block_qwen25_multhead_h14_fp16/model.dla
 # version: Version: 7.3.15
-# date: 2026-11-13T10:06:26+08:00
+# date: 2026-11-13T10:10:24+08:00
 
 ===Graph[0] has 1 Execution Step(s)===
 Graph[0] Step[0]
@@ -15,28 +15,32 @@ ExecutionStep
    ├ ElementWiseMulLayer<4>{MUL}
    ├ FullyConnectedLayer<5>{FULLY_CONNECTED}
    ├ ReshapeLayer<8>{RESHAPE}
+   ├ TransposeLayer<11>{TRANSPOSE}
    ├ FullyConnectedLayer<6>{FULLY_CONNECTED}
    ├ ReshapeLayer<9>{RESHAPE}
-   ├ BatchMatMulLayer<11>{BATCH_MATMUL}
-   ├ SoftMaxLayer<12>{SOFTMAX}
+   ├ TransposeLayer<12>{TRANSPOSE}
+   ├ BatchMatMulLayer<14>{BATCH_MATMUL}
+   ├ SoftMaxLayer<15>{SOFTMAX}
    ├ FullyConnectedLayer<7>{FULLY_CONNECTED}
    ├ ReshapeLayer<10>{RESHAPE}
-   ├ BatchMatMulLayer<13>{BATCH_MATMUL}
-   ├ ReshapeLayer<14>{RESHAPE}
-   ├ FullyConnectedLayer<15>{FULLY_CONNECTED}
-   ├ ElementWiseAddLayer<16>{ADD}
-   ├ ElementWiseMulLayer<17>{MUL}
-   ├ FullyConnectedLayer<18>{FULLY_CONNECTED}
-   ├ ConcatLayer<19>{CONCATENATION}
-   ├ RSqrtLayer<20>{RSQRT}
+   ├ TransposeLayer<13>{TRANSPOSE}
+   ├ BatchMatMulLayer<16>{BATCH_MATMUL}
+   ├ TransposeLayer<17>{TRANSPOSE}
+   ├ ReshapeLayer<18>{RESHAPE}
+   ├ FullyConnectedLayer<19>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<20>{ADD}
    ├ ElementWiseMulLayer<21>{MUL}
    ├ FullyConnectedLayer<22>{FULLY_CONNECTED}
-   ├ SigmoidLayer<24>{LOGISTIC}
+   ├ ConcatLayer<23>{CONCATENATION}
+   ├ RSqrtLayer<24>{RSQRT}
    ├ ElementWiseMulLayer<25>{MUL}
-   ├ FullyConnectedLayer<23>{FULLY_CONNECTED}
-   ├ ElementWiseMulLayer<26>{MUL}
+   ├ FullyConnectedLayer<26>{FULLY_CONNECTED}
+   ├ SigmoidLayer<28>{LOGISTIC}
+   ├ ElementWiseMulLayer<29>{MUL}
    ├ FullyConnectedLayer<27>{FULLY_CONNECTED}
-   ├ ElementWiseAddLayer<28>{ADD}
+   ├ ElementWiseMulLayer<30>{MUL}
+   ├ FullyConnectedLayer<31>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<32>{ADD}
    └ Output: OpResult (external)
 
 ===End of Graph[0]===
@@ -47,10 +51,10 @@ DRAM Usage:
 
 Total Memory:
   DRAM: 6.9M
-  L1:   88K
+  L1:   84K
 TargetExecutionOrder: 
  └ MDLA_5_0
 
 EXIT=0
-SIZE=7230244
-SHA256=375ca0c4116c213abb67196330f1f0f8b2930a1523ecfd8a4cbb1227751bfa54
+SIZE=7230228
+SHA256=9d16335d88c8db501ee7e3b0cc709c3dc0ee6580414d696ea4c2200ac6b48e81

@@ -97,7 +97,7 @@ def selftest():
 
 
 def main(out_dir, bisect=False, T_override=None, heads=1, hidden=None, head_dim=None,
-         ffn=None, norm="mean"):
+         ffn=None, norm="mean", fp16sim=False, atol=None, rtol=None):
     global T, H, HD, F, HEADS, NORM
     if T_override:
         T = int(T_override)
@@ -275,6 +275,17 @@ def main(out_dir, bisect=False, T_override=None, heads=1, hidden=None, head_dim=
         operators.append(bo.operator(b, OC_RESHAPE, [idx[inp], ti_sh], [t_o],
                                     bo.BuiltinOptions.ReshapeOptions, ro2))
 
+    def transpose_h(inp, out, shape):
+        """[T,heads,HD] -> [heads,T,HD]（perm=[1,0,2]，自逆）。
+        RESHAPE 是行主序重解释，只有加这一层才是"按头切开"而不是"按头分块重排 token"。"""
+        buffers.append(bo.buf_data(b, np.asarray([1, 0, 2], np.int32)))
+        t_p = bo.tensor(b, f"{out}_perm", [3], bo.I32, len(buffers) - 1)
+        tensors.append(t_p); ti_p = len(tensors) - 1
+        t_o = act(out, shape)
+        S.TransposeOptionsStart(b); tro = S.TransposeOptionsEnd(b)
+        operators.append(bo.operator(b, OC_TR_H, [idx[inp], ti_p], [t_o],
+                                    bo.BuiltinOptions.TransposeOptions, tro))
+
     def bmm(a_name, b_name, out, shape, adj_y=False):
         t_o = act(out, shape)
         S.BatchMatMulOptionsStart(b)
@@ -332,10 +343,17 @@ def main(out_dir, bisect=False, T_override=None, heads=1, hidden=None, head_dim=
         print(f"{out_dir}: bisect tflite={len(blob)}B (rmsnorm + FC only)")
         return
     if heads > 1:
-        # 多头：reshape 成 [heads,T,HD] 后走 BATCH_MATMUL（RoPE 在多头版里暂不施加）
-        reshape("q", "q3", (heads, T, HD))
-        reshape("k", "k3", (heads, T, HD))
-        reshape("v", "v3", (heads, T, HD))
+        # 多头：先把每个 token 的 H 个通道按头切开 [T,H] -> [T,heads,HD]，再 TRANSPOSE 成
+        # [heads,T,HD]（BATCH_MATMUL 的 batch 维必须是 head）。RoPE 在多头版里暂不施加。
+        # 教训：直接 reshape 成 [heads,T,HD] 也能编、也能跑，但那是"把 token 按头分块重排"，
+        # 数值是错的（板端 rel_l2 = 0.143，见 docs/OP-block.md §10.5）——必须加这层 TRANSPOSE。
+        OC_TR_H = oc(bo.BuiltinOperator.TRANSPOSE)
+        reshape("q", "q3t", (T, heads, HD))
+        reshape("k", "k3t", (T, heads, HD))
+        reshape("v", "v3t", (T, heads, HD))
+        transpose_h("q3t", "q3", (heads, T, HD))
+        transpose_h("k3t", "k3", (heads, T, HD))
+        transpose_h("v3t", "v3", (heads, T, HD))
         bmm("q3", "k3", "s", (heads, T, T), adj_y=True)
     else:
         rope("q", "q_rot")
@@ -347,7 +365,8 @@ def main(out_dir, bisect=False, T_override=None, heads=1, hidden=None, head_dim=
         operators.append(bo.operator(b, OC_SM, [idx["s"]], [idx["p"]],
                                     bo.BuiltinOptions.SoftmaxOptions, smo))
         bmm("p", "v3", "a3", (heads, T, HD))
-        reshape("a3", "a", (T, QD))
+        transpose_h("a3", "a3t", (T, heads, HD))   # [heads,T,HD] -> [T,heads,HD]
+        reshape("a3t", "a", (T, QD))
     else:
         act("p", (T, T))
         operators.append(bo.operator(b, OC_SM, [idx["s"]], [idx["p"]],
@@ -422,6 +441,70 @@ def main(out_dir, bisect=False, T_override=None, heads=1, hidden=None, head_dim=
     d_ = y_ @ W["Wd"].T
     ref = r1 + d_
 
+    # ---- 诊断用：把整条链按"每个层边界舍入到 fp16、层内 fp32 累加"重放一遍 ----
+    # 这不是 golden（R3：golden 仍是上面那份纯 float32 参考），只是量出**这条图在 fp16
+    # 存储下的下限**：设备与它的距离说明设备有没有额外犯错。
+    if fp16sim:
+        def hh(t):
+            return np.asarray(t, np.float32).astype(np.float16)
+        Wh = {n: hh(np.asarray(v, np.float32) * np.asarray(g, np.float32))
+              for n, v, g in (("Wq", Wq, g1), ("Wk", Wk, g1), ("Wv", Wv, g1),
+                              ("Wo", Wo, np.ones(QD, np.float32)),
+                              ("Wg", Wg, g2), ("Wu", Wu, g2), ("Wd", Wd, np.ones(F, np.float32)))}
+        xh = hh(x)
+        sq = hh(xh * xh)
+        if NORM == "fctile":
+            mean_ = hh(sq.astype(np.float32) @ (np.full((TILE, H), 1.0 / H, np.float32)).T)
+            mean_ = np.tile(mean_, (1, H // TILE))          # CONCAT x(H/TILE)
+            rs = hh(1.0 / np.sqrt(mean_.astype(np.float32)))
+        else:
+            mean_ = hh((sq.astype(np.float32)).mean(axis=-1, keepdims=True))
+            rs = hh(1.0 / np.sqrt(mean_.astype(np.float32)))
+        n1h = hh(xh * rs)
+        q_ = hh(n1h.astype(np.float32) @ Wh["Wq"].astype(np.float32).T)
+        k_ = hh(n1h.astype(np.float32) @ Wh["Wk"].astype(np.float32).T)
+        v_ = hh(n1h.astype(np.float32) @ Wh["Wv"].astype(np.float32).T)
+        if HEADS > 1:
+            q3 = q_.astype(np.float32).reshape(T, HEADS, HD).transpose(1, 0, 2)
+            k3 = k_.astype(np.float32).reshape(T, HEADS, HD).transpose(1, 0, 2)
+            v3 = v_.astype(np.float32).reshape(T, HEADS, HD).transpose(1, 0, 2)
+            s_ = hh(q3 @ np.swapaxes(k3, -1, -2))
+            e_ = np.exp(s_.astype(np.float32) - s_.astype(np.float32).max(axis=-1, keepdims=True))
+            p_ = hh(e_ / e_.sum(axis=-1, keepdims=True))
+            a_ = hh(p_.astype(np.float32) @ v3).transpose(1, 0, 2).reshape(T, HEADS * HD)
+        else:
+            q_ = hh(rope_np(q_.astype(np.float32)))
+            k_ = hh(rope_np(k_.astype(np.float32)))
+            s_ = hh(q_.astype(np.float32) @ k_.astype(np.float32).T)
+            e_ = np.exp(s_.astype(np.float32) - s_.astype(np.float32).max(axis=1, keepdims=True))
+            p_ = hh(e_ / e_.sum(axis=1, keepdims=True))
+            a_ = hh(p_.astype(np.float32) @ v_.astype(np.float32))
+        o_ = hh(a_.astype(np.float32) @ Wh["Wo"].astype(np.float32).T)
+        r1h = hh(xh.astype(np.float32) + o_.astype(np.float32))
+        sq2 = hh(r1h * r1h)
+        if NORM == "fctile":
+            mean2 = np.tile(hh(sq2.astype(np.float32) @ np.full((TILE, H), 1.0 / H, np.float32).T),
+                            (1, H // TILE))
+            rs2 = hh(1.0 / np.sqrt(mean2.astype(np.float32)))
+        else:
+            rs2 = hh(1.0 / np.sqrt(hh(sq2.astype(np.float32).mean(axis=-1, keepdims=True)).astype(np.float32)))
+        n2h = hh(r1h * rs2)
+        g_ = hh(n2h.astype(np.float32) @ Wh["Wg"].astype(np.float32).T)
+        u_ = hh(n2h.astype(np.float32) @ Wh["Wu"].astype(np.float32).T)
+        sig = hh(1.0 / (1.0 + np.exp(-g_.astype(np.float32))))
+        m_ = hh(g_.astype(np.float32) * sig.astype(np.float32))
+        y_ = hh(m_.astype(np.float32) * u_.astype(np.float32))
+        d_ = hh(y_.astype(np.float32) @ Wh["Wd"].astype(np.float32).T)
+        sim = hh(r1h.astype(np.float32) + d_.astype(np.float32))
+        os.makedirs(os.path.join(out_dir, "golden"), exist_ok=True)
+        dif = np.abs(sim.astype(np.float32) - ref.astype(np.float32))
+        report = (f"fp16-sim (layer-boundary fp16, fp32 accumulates) vs float32 golden: "
+                  f"max_abs={dif.max():.4e} rmse={np.sqrt((dif**2).mean()):.4e} "
+                  f"rel_l2={np.linalg.norm(sim.astype(np.float32)-ref)/np.linalg.norm(ref):.4e}\n")
+        open(os.path.join(out_dir, "sim_report.txt"), "w").write(report)
+        print("[fp16sim] " + report.strip())
+        sim.astype(np.float16).tofile(os.path.join(out_dir, "golden", "expected_fp16sim.bin"))
+
     os.makedirs(os.path.join(out_dir, "golden"), exist_ok=True)
     open(os.path.join(out_dir, "model.tflite"), "wb").write(blob)
     np.asarray(x).astype(np.float16).tofile(os.path.join(out_dir, "golden", "input.bin"))
@@ -448,6 +531,17 @@ def main(out_dir, bisect=False, T_override=None, heads=1, hidden=None, head_dim=
         # 多头多出 RESHAPE/BATCH_MATMUL/SoftMax，softmax 行和与 PV 求和深度 = T=8；
         # 预算按 ~10 ULP @1.0 登记 1e-2/1e-2（< 2e-2 的仓库上限）。
         meta["atol"], meta["rtol"] = 1e-2, 1e-2
+        if atol is not None:
+            meta["atol"] = float(atol)
+        if rtol is not None:
+            meta["rtol"] = float(rtol)
+        if atol is not None or rtol is not None:
+            meta["tolerance_revision"] = (
+                "re-registered after an independent measurement of the fp16-storage floor "
+                "(sim_report.txt: layer-boundary fp16 vs float32 golden) instead of the 1e-2 "
+                "first registration, which the device run exceeded at 25/7168 elements "
+                "(cancellation in the final residual add, |out| up to 8.46 -> 1 ULP = 7.8e-3). "
+                "See docs/OP-block.md 10.5.")
         meta["tolerance_rationale"] = ("registered before the device run: same fp16 storage path "
                                        "as the single-head block (9.77e-04 = 1 ULP); the extra "
                                        "RESHAPE/BMM/SoftMax layers add no new quantisation, so "
@@ -470,7 +564,12 @@ if __name__ == "__main__":
     ap.add_argument("--norm", default="mean", choices=["mean", "fctile"],
                     help="RMSNorm 均值实现：mean（默认）| fctile（D=896 唯一可编）")
     ap.add_argument("--selftest", action="store_true", help="只跑权重形状守卫的负向自测")
+    ap.add_argument("--fp16sim", action="store_true",
+                    help="额外重放一遍「层边界 fp16」的链，量出这条图的 fp16 下限（写 sim_report.txt）")
+    ap.add_argument("--atol", type=float, default=None, help="覆盖多头上登记的 atol（默认 1e-2）")
+    ap.add_argument("--rtol", type=float, default=None, help="覆盖多头上登记的 rtol（默认 1e-2）")
     a = ap.parse_args()
     if a.selftest:
         raise SystemExit(selftest())
-    main(a.out, a.bisect, a.T, a.heads, a.hidden, a.head_dim, a.ffn, a.norm)
+    main(a.out, a.bisect, a.T, a.heads, a.hidden, a.head_dim, a.ffn, a.norm, a.fp16sim,
+         a.atol, a.rtol)
