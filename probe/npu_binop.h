@@ -38,6 +38,8 @@ typedef enum {
   NPU_OP_BMM_QK16,
   NPU_OP_BMM_PV16,
   NPU_OP_FC_CONST,
+  NPU_OP_FC512,
+  NPU_OP_FC1024,
   NPU_OP__COUNT
 } npu_op_t;
 

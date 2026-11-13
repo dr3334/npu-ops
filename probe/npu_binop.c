@@ -249,6 +249,32 @@ static npu_binop_plan_t g_plan_fc_const = {
     .expect_patches = 3,
     .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
 };
+static npu_binop_plan_t g_plan_fc512 = {
+    .name = "FULLY_CONNECTED(512x512 dynW)",
+    .asset_dir = "/data/local/tmp/npuops/assets/fc_dyn512",
+    .old_iova = { 0, 0, 0 },
+    .bytes = 512,
+    .bytes_b = 262144,       /* 512x512 int8 权重走另一段地址（0xcbbc0000） */
+    .alloc_size = NPU_BINOP_ALLOC,
+    .n_inputs = 2,
+    .cmdbuf_dir = { 1, 2, 1 },
+    .patch_idx = 2,
+    .expect_patches = 3,
+    .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
+};
+static npu_binop_plan_t g_plan_fc1024 = {
+    .name = "FULLY_CONNECTED(1024x1024 dynW)",
+    .asset_dir = "/data/local/tmp/npuops/assets/fc_dyn1024",
+    .old_iova = { 0, 0, 0 },
+    .bytes = 1024,
+    .bytes_b = 1048576,
+    .alloc_size = NPU_BINOP_ALLOC,
+    .n_inputs = 2,
+    .cmdbuf_dir = { 1, 2, 1 },
+    .patch_idx = 2,
+    .expect_patches = 3,
+    .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
+};
 static const npu_binop_plan_t *const g_plans[NPU_OP__COUNT] = {
     [NPU_OP_ADD] = &g_plan_add,
     [NPU_OP_MUL] = &g_plan_mul,
@@ -264,6 +290,8 @@ static const npu_binop_plan_t *const g_plans[NPU_OP__COUNT] = {
     [NPU_OP_BMM_QK16] = &g_plan_bmm_qk16,
     [NPU_OP_BMM_PV16] = &g_plan_bmm_pv16,
     [NPU_OP_FC_CONST] = &g_plan_fc_const,
+    [NPU_OP_FC512] = &g_plan_fc512,
+    [NPU_OP_FC1024] = &g_plan_fc1024,
 };
 
 static const char *const g_op_names[NPU_OP__COUNT] = {
