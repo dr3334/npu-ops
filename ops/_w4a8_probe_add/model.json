@@ -1,0 +1,35 @@
+{
+  "op": "ADD",
+  "form": "probe",
+  "shape": {
+    "T": 16,
+    "K": 64
+  },
+  "dtype": "int8",
+  "input": {
+    "name": "a",
+    "shape": [
+      16,
+      64
+    ],
+    "type": "int8"
+  },
+  "output": {
+    "name": "out",
+    "shape": [
+      16,
+      64
+    ],
+    "type": "int8"
+  },
+  "quant": {
+    "a": 0.015625,
+    "b": 0.0078125,
+    "out": 0.015625
+  },
+  "int8_tol": 1,
+  "tolerance_rationale": "ADR 0005: the 4-bit tier does not promise bit-exactness; the operator criterion is |delta| <= 1 code and cosine >= 0.9999. Per-channel multipliers are outside reports/Q02-int8-bitexact.md (tensor-level only), so int8_tol=1.",
+  "dynamic_inputs": 2,
+  "tflite": "model.tflite",
+  "tflite_bytes": 528
+}

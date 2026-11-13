@@ -1,0 +1,9 @@
+op        : SEAM {'H': 14, 'T': 16}  dtype=int8
+expected  : 3584 vals   device: 3584 vals   logical shape=(14, 16, 16)
+max_abs   : 9.375e-01
+rmse      : 2.054e-01
+rel_l2    : 8.498e-01
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [0,1]  dev [0,1]
+tol       : atol=0.02 rtol=0.02
+FAIL
