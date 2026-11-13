@@ -23,8 +23,8 @@ Quantisation contract (why some variants are bit-exact):
     These are the "basis-vector-like" tests demanded by AGENTS.md §3.2: a transpose or an
     offset mistake cannot survive a ±1 code alphabet.
   * codes="full"   int8 codes over the whole range, out_scale = s_in·s_w·32 (multiplier 1/32);
-    the device requant is a two-step rounding (OP-MATRIX §3, E-003), so a priori allow
-    int8_tol = 1 and check the fraction of off-by-one codes.
+    the golden applies the device's two-step requant (tools/quant_contract.py), so it is
+    bit-exact too -> int8_tol = 0 (replays 0/N on the recorded device dumps).
   * fp16           tolerance registered BEFORE the run: K-term fp16 accumulation has a
     relative error bound ≈ K·2⁻¹¹  (K=64 → 3.1e-2).  atol=1e-2, rtol=3e-2 are written into
     model.json; tools/compare.py prefers the registered values over its defaults.
@@ -45,6 +45,7 @@ import os
 import numpy as np
 
 import build_ops as bo
+import quant_contract as qc
 
 SEED = 20261112
 D = 64          # head dim (model width of the attention head)
@@ -98,11 +99,10 @@ def reference(kind, a, b, dtype, sa, sb, so):
             acc = np.einsum("btd,bsd->bts", a2.astype(np.int64), b2.astype(np.int64))
         else:
             acc = np.einsum("bts,bsd->btd", a2.astype(np.int64), b2.astype(np.int64))
-        ratio = (sa * sb) / so
-        # float64 exact product, single rounding; ±1 vs the device's two-step requant
-        # rule is inside the registered int8_tol (OP-MATRIX §3 / E-003)
-        y = np.round(acc.astype(np.float64) * ratio)
-        out = np.clip(y, -128, 127).astype(np.int8)
+        # INT64 accumulate -> the device's two integer roundings (contract, OP-MATRIX §3).
+        # (sa*sb)/so is the declared multiplier (1 or 1/32); quant_contract snaps it to
+        # the exact rational so M0 = 2^30 instead of the float32 product 1073741840.
+        out = qc.requant_int8(acc, (sa * sb) / so)
         return out.reshape(lead + out.shape[-2:])
     if dtype == "fp16":
         a32, b32 = a2.astype(np.float32), b2.astype(np.float32)
@@ -120,7 +120,9 @@ def quant_contract(dtype, codes):
     if dtype == "int8":
         sa = sb = S8
         so = sa * sb if codes == "small" else sa * sb * 32.0
-        tol = 0 if codes == "small" else 1
+        # both tiers are bit-exact against the device (multiplier 1 and 1/32 both
+        # replay 0/N on 35 dumps -- reports/Q02-int8-bitexact.md)
+        tol = 0
         return sa, sb, so, {"int8_tol": tol}, (
             "int64_exact" if codes == "small" else "int64_exact_requant")
     if dtype == "fp16":
