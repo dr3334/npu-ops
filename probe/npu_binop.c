@@ -470,6 +470,7 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
   if (plan->n_inputs != 2 && plan->n_inputs != 1) return NPU_BINOP_EINVAL;
   {
     uint32_t bsize = plan->bytes_b > plan->alloc_size ? plan->bytes_b : plan->alloc_size;
+    if (getenv("NPU_B_4096")) bsize = plan->alloc_size;   /* 诊断用：强制 4 KiB */
     if (plan->n_inputs == 2 &&
         apu_alloc_map(&b1, bsize, NPU_BINOP_CMDBUF_ALIGN, 1)) { rc = NPU_BINOP_EIO; goto done; }
   }
@@ -496,6 +497,7 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
 
   /* 写回主机 -> 设备前同步 A/B（START|WRITE + END|WRITE） */
   /* 命令缓冲同样要 flush：它们也是 dma-buf，之前漏了同步，导致偶发读到陈旧命令流 */
+  if (!getenv("NPU_NO_CMDFLUSH"))
   for (int k2 = 0; k2 < 3; k2++) {
     if (!cb[k2].handle) continue;
     dma_buf_sync(cb[k2].handle, (1u << 30) | 2u);
@@ -511,6 +513,7 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
   /* --- 3. 地址重定位：把抓取时的 A/B/C IOVA 换成这次的 --- */
   {
     uint64_t newv[3] = { a1.iova, plan->n_inputs == 2 ? b1.iova : 0, c.iova };
+    if (getenv("NPU_SWAP_BC")) { uint64_t t = newv[1]; newv[1] = newv[2]; newv[2] = t; }
     int k = plan->patch_idx;
     if (k < 0 || k > 2) { rc = NPU_BINOP_EINVAL; goto done; }
     patch_addrs((unsigned char *)cb[k].host, cb_size[k], old_iova, newv, &hits);
@@ -568,6 +571,9 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
   put64(&cmd, 0x60, 0xffffffffffffffffULL);
   put64(&cmd, 0x68, einfo.handle);   /* exec_infos 必须是 MEM handle（E-106B 卡点 1） */
 
+  if (getenv("NPU_VERBOSE"))
+    fprintf(stderr, "  iova A=0x%llx B=0x%llx C=0x%llx\n",
+            (unsigned long long)a1.iova, (unsigned long long)b1.iova, (unsigned long long)c.iova);
   if (ioctl(g_fd, APU_CMD, &cmd) < 0) { perror("CMD RUN"); rc = NPU_BINOP_ECALL; goto done; }
 
   usleep(200000);                    /* rc=0 只代表提交成功（E-106B 卡点 3） */
