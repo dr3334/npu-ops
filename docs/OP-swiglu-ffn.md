@@ -287,7 +287,7 @@ PASS
 ## 7. 复现
 
 ```bash
-cd "/d/deepseek_ workspace/mtk/wt-t07"
+cd "/d/deepseek_ workspace/mtk/npu-ops"
 # 0) 夹具（本 worktree 内没有 .npz 时生成一次，约 8 s；sha256 与 manifest 一致）
 wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && /usr/bin/python3 tools/gen_qwen25_weights.py \
   && /usr/bin/python3 tools/qwen25_weights.py --verify"
