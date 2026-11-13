@@ -199,7 +199,7 @@ static void dump_buffers(void) {
   if (!dir) dir = "/data/local/tmp/npuops/probe/buf";
   char path[256];
   for (int i = 0; i < nmaps; i++) {
-    if (maps[i].len < 8 || maps[i].len > 65536) continue;
+    if (maps[i].len < 8 || maps[i].len > (4u << 20)) continue;   /* 放宽到 4 MiB：大 FC 的常量权重缓冲要能抓 */
     snprintf(path, sizeof(path), "%s/map%02d_fd%d_len%zx%s.bin", dir, i, maps[i].fd,
              maps[i].len, getenv("BUFSUFFIX") ? getenv("BUFSUFFIX") : "");
     int f = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);

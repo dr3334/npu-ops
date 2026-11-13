@@ -1,0 +1,56 @@
+{
+  "op": "BATCH_MATMUL",
+  "form": "bmm",
+  "matmul": "P\u00b7V",
+  "shape": {
+    "T": 16,
+    "D": 64,
+    "batch": 1,
+    "adj_x": 0,
+    "adj_y": 0
+  },
+  "dtype": "int8",
+  "inputs": [
+    {
+      "name": "a",
+      "shape": [
+        1,
+        16,
+        16
+      ],
+      "type": "int8"
+    },
+    {
+      "name": "b",
+      "shape": [
+        1,
+        16,
+        64
+      ],
+      "type": "int8"
+    }
+  ],
+  "output": {
+    "name": "out",
+    "shape": [
+      1,
+      16,
+      64
+    ],
+    "type": "int8",
+    "bytes": 1024
+  },
+  "quant": {
+    "a": 0.007874015748031496,
+    "b": 0.007874015748031496,
+    "out": 0.0019840039680079358
+  },
+  "codes": "full",
+  "reference": "int64_exact_requant",
+  "score": "repro",
+  "seed": 20261112,
+  "int8_tol": 1,
+  "spec": "bmm_pv_t16_int8_full",
+  "tflite": "model.tflite",
+  "tflite_bytes": 608
+}

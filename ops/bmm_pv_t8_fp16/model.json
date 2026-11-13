@@ -1,0 +1,57 @@
+{
+  "op": "BATCH_MATMUL",
+  "form": "bmm",
+  "matmul": "P\u00b7V",
+  "shape": {
+    "T": 8,
+    "D": 64,
+    "batch": 1,
+    "adj_x": 0,
+    "adj_y": 0
+  },
+  "dtype": "fp16",
+  "inputs": [
+    {
+      "name": "a",
+      "shape": [
+        1,
+        8,
+        8
+      ],
+      "type": "fp16"
+    },
+    {
+      "name": "b",
+      "shape": [
+        1,
+        8,
+        64
+      ],
+      "type": "fp16"
+    }
+  ],
+  "output": {
+    "name": "out",
+    "shape": [
+      1,
+      8,
+      64
+    ],
+    "type": "fp16",
+    "bytes": 1024
+  },
+  "quant": {
+    "a": null,
+    "b": null,
+    "out": null
+  },
+  "codes": "-",
+  "reference": "float32_accum_to_fp16",
+  "score": "repro",
+  "seed": 20261112,
+  "atol": 0.01,
+  "rtol": 0.03,
+  "spec": "bmm_pv_t8_fp16",
+  "tflite": "model.tflite",
+  "tflite_bytes": 476
+}

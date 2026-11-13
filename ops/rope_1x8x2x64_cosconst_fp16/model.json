@@ -1,0 +1,64 @@
+{
+  "op": "ROPE_SPLIT_HALF",
+  "shape": {
+    "in": [
+      1,
+      8,
+      2,
+      64
+    ]
+  },
+  "dtype": "fp16",
+  "inputs": [
+    {
+      "name": "input",
+      "shape": [
+        1,
+        8,
+        2,
+        64
+      ],
+      "type": "float16",
+      "bytes": 2048
+    }
+  ],
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      8,
+      2,
+      64
+    ],
+    "type": "float16",
+    "bytes": 2048
+  },
+  "quant": {},
+  "reference": "numpy_float64_from_stored_fp16",
+  "atol": 0.002,
+  "rtol": 0.001,
+  "tolerance_rationale": "fp16 chain: 4 MUL roundings (0.5 ULP each at |x*cos| <= 1) + 1 ADD/SUB rounding (0.5 ULP at |out| <= 2) + the reference's own storage rounding; every term is a relative fp16 rounding, so atol covers the floor at |out|~1 and rtol covers the 1-2 ULP slop at |out|~2.  Beyond that = ordering/layout bug.",
+  "rope": {
+    "convention": "qwen2_split_half",
+    "formula": "out_lo = a*cos - b*sin ; out_hi = b*cos + a*sin",
+    "convention_note": "the 'b*sin + a*cos' variant written in the original task text is NOT a rotation (it does not preserve the pair norm); this generator asserts norm preservation and audits against transformers Qwen2 rotate_half -- see docs/OP-rope.md",
+    "theta": 1000000.0,
+    "head_dim": 64,
+    "half": 32,
+    "pos_start": 5,
+    "table_values": "rotary"
+  },
+  "decomposition": {
+    "table": "const2",
+    "mul": "4mul",
+    "muls": 4,
+    "note": "SPLIT -> 4 MUL -> SUB/ADD -> CONCAT (faithful decomposition)",
+    "table_note": "cos/sin as two half-width const buffers"
+  },
+  "rotation_invariant_rel_err": 0.0004656384593842125,
+  "seed": 20261112,
+  "pos_start_note": "positions start at 5: at p=0 cos=1, sin=0 and out==in, so a p=0 table would let sign/swizzle bugs pass",
+  "generator": "tools/build_rope.py",
+  "tflite": "model.tflite",
+  "tflite_bytes": 3648
+}

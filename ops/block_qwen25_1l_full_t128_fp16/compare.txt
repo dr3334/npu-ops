@@ -1,0 +1,9 @@
+op        : QWEN25_BLOCK_1L_V2_RMSNORM {'T': 128, 'H': 64, 'HD': 32, 'FFN': 128}  dtype=float16
+expected  : 8192 vals   device: 8192 vals   logical shape=(128, 64)
+max_abs   : 9.766e-04
+rmse      : 1.901e-04
+rel_l2    : 3.803e-04
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-1.924,1.858]  dev [-1.924,1.858]
+tol       : atol=0.03 rtol=0.03
+PASS

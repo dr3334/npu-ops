@@ -1,0 +1,28 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/split_axis3_c16_part2_int8//model.tflite -d ops/split_axis3_c16_part2_int8//model.dla
+# version: Version: 7.3.15
+# date: 2026-11-12T21:13:12+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ SliceLayer<0>{SPLIT}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     1.0K   512     0     0       224   1.7K
+
+Total Memory:
+  DRAM: 1.7K
+  L1:   0
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=2493
+SHA256=41063966d9d7797252c67e30c9797e698e3ed1d049e61e93e9f70ef6438d4c36

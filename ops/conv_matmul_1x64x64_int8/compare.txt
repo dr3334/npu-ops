@@ -1,0 +1,5 @@
+op        : CONV_2D {'N': 1, 'H': 64, 'W': 1, 'C': 64, 'OH': 64, 'OW': 1, 'OC': 64, 'FH': 1, 'FW': 1, 'stride': 1, 'dilation': 1, 'mult': 1, 'padding': 'SAME', 'activation': 'NONE'}  dtype=int8
+expected  : 4096 vals   device: 4096 vals   logical shape=(1, 64, 1, 64)
+exact     : YES   mismatched=0/4096
+contract  : int8_tol=0  max_abs_diff=0  fraction_off=0.0000%
+PASS

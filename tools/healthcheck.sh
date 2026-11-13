@@ -38,6 +38,11 @@ if "$ROOT/tools/e2e.sh" "ops/$GOOD_OP" >"/tmp/health_$GOOD_OP.log" 2>&1; then
 else
   echo "FAIL (see /tmp/health_$GOOD_OP.log)"; rc=13
 fi
+# e2e regenerates tracked evidence (model.compile.log/e2e.json) inside the checkout;
+# in a worktree that dirties the tree and creates merge conflicts. Restore afterwards.
+if [ "${HEALTH_RESTORE:-1}" = "1" ]; then
+  git -C "$ROOT" checkout -- "ops/$GOOD_OP" 2>/dev/null || true
+fi
 
 if [ "$QUICK" = "0" ]; then
   # --- 3. repeatability: same op twice, results must agree --------------------
@@ -53,6 +58,10 @@ if [ "$QUICK" = "0" ]; then
   step "board state (no crash/leak markers)"
   ST="$("$ADB" shell 'dmesg | tail -40' 2>/dev/null | tr -d '\r' | grep -ciE "apusys.*(timeout|fail|error)|mdw.*(timeout|fail)" || true)"
   if [ "${ST:-0}" = "0" ]; then echo "OK"; else echo "WARN ($ST lines, review dmesg)"; fi
+fi
+
+if [ "${HEALTH_RESTORE:-1}" = "1" ]; then
+  ( cd "$ROOT" && git checkout -- "ops/$GOOD_OP" 2>/dev/null && echo "[restore] cleaned ops/$GOOD_OP" ) || true
 fi
 
 echo

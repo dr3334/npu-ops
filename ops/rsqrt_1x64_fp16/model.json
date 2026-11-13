@@ -1,0 +1,40 @@
+{
+  "op": "RSQRT",
+  "shape": {
+    "d0": 1,
+    "d1": 64
+  },
+  "dtype": "fp16",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      64
+    ],
+    "type": "float16",
+    "bytes": 128
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      64
+    ],
+    "type": "float16",
+    "bytes": 128
+  },
+  "quant": {},
+  "seed": 20261112,
+  "prediction": "H1 (native): RSQRT maps to an MDLA elementwise/rsqrt layer, EXIT=0. H2 (bridge): 'Bridging is disallowed but gap is detected between Input and MDLA_5_0'. Static prior for H1: ncc-tflite contains the strings MTKEXT_RSQRT / 'RSqrt: ParamSetup fails.' / XFL_RSQRT_QUANT, and libmvpu_isa.so exports the instruction v_rsqrt_f32. Numeric prediction: |y - 1/sqrt(x)| <= 1 fp16 ULP (<= 1e-3), i.e. far inside the registered 1e-2.",
+  "generator": "tools/build_rmsnorm.py",
+  "spec": "rsqrt_1x64_fp16",
+  "expect_compile_fail": false,
+  "golden_dtype": "float32",
+  "golden_f32_vs_f64_max_abs": 0.0,
+  "atol": 0.01,
+  "rtol": 0.01,
+  "reference": "float32",
+  "tolerance_rationale": "registered before the run, per the branch brief: fp16 atol 1e-2 with rtol 1e-2 on a signal with |y| <= ~3 (>= 8 fp16 ULP at 1.0 = 4.9e-4; the budget covers a chained 6-op graph with a division-like rsqrt whose input is an accumulated mean).  The actual max_abs is reported alongside so the contract can be seen to be coarse rather than retro-fitted.",
+  "tflite": "model.tflite",
+  "tflite_bytes": 388
+}

@@ -1,0 +1,220 @@
+#!/usr/bin/env python3
+"""Turn one captured run (iolog2 log + buffer dump dir) into a submitter asset dir.
+
+    /usr/bin/python3 probe/mkasset.py <log> <bufdir> <a.bin> (<b.bin>|-) <outdir>
+
+Produces: cmd0.bin cmd1.bin cmd2.bin cmdin.bin subcmd.bin iova.txt [cmdsizes.txt]
+  cmdN.bin   — the three command buffers, in the order the subcmd descriptor lists them
+               (that order is semantic, see E-106B-3). Sizes are NOT hardcoded: they are
+               taken from the mdw_subcmd_cmdbuf array printed by the shim, so unary ops
+               (which use a 336-byte command stream instead of 368) work unchanged.
+  iova.txt   — "<oldA> <oldB> <oldC>" (hex), 0 for the unused slot of a unary op.
+"""
+import os
+import re
+import shutil
+import struct
+import sys
+
+
+def u32(b, o): return struct.unpack_from("<I", b, o)[0]
+def u64(b, o): return struct.unpack_from("<Q", b, o)[0]
+
+
+def parse_log(path):
+    """Return cmd_in, subcmd, maps[(handle,size,iova)], cmdbufs[(handle,size,align,dir)]."""
+    lines = open(path, "r", errors="replace").read().splitlines()
+    cmd_in = subcmd = None
+    cmdbufs = []
+    maps = []
+    cur = None
+    for ln in lines:
+        m = re.match(r"PRE\s+fd=(-?\d+) nr=(\d+) size=(\d+)", ln)
+        if m:
+            cur = dict(nr=int(m.group(2)), pre=b"")
+            continue
+        if ln.startswith("  in ") and cur is not None:
+            cur["pre"] = bytes.fromhex(ln.split("=", 1)[1].replace(" ", ""))
+            continue
+        if ln.startswith("  out") and cur is not None:
+            post = bytes.fromhex(ln.split("=", 1)[1].replace(" ", ""))
+            if cur["nr"] == 33 and len(cur["pre"]) >= 24 and len(post) >= 16:
+                op = u32(cur["pre"], 0)
+                if op == 0:
+                    maps.append([u64(post, 0), u32(cur["pre"], 20), 0])
+                elif op == 2:
+                    h = u64(cur["pre"], 16)
+                    for e in maps:
+                        if e[0] == h:
+                            e[2] = u64(post, 8)
+            elif cur["nr"] == 34 and len(cur["pre"]) >= 4 and u32(cur["pre"], 0) == 0:
+                cmd_in = cur["pre"]
+            cur = None
+            continue
+        m = re.match(r"  subcmd\[(\d+)\]=(.*)$", ln)
+        if m and subcmd is None:
+            subcmd = bytes.fromhex(m.group(2).replace(" ", ""))
+            continue
+        m = re.match(r"  cmdbufs\[(\d+)\]=(.*)$", ln)
+        if m:
+            raw = bytes.fromhex(m.group(2).replace(" ", ""))
+            for k in range(len(raw) // 24):
+                e = raw[k * 24:(k + 1) * 24]
+                cmdbufs.append((u64(e, 0), u32(e, 8), u32(e, 12), u32(e, 16)))
+    return cmd_in, subcmd, maps, cmdbufs
+
+
+def find_by_fd(bufdir, handle, size):
+    """Buffer dumps are named map<idx>_fd<fd>_len<size>.bin and fd == MEM handle."""
+    for f in sorted(os.listdir(bufdir)):
+        if "_post" in f or "_final" in f:
+            continue
+        m = re.match(r"map\d+_fd(\d+)_len([0-9a-f]+)\.bin$", f)
+        if not m:
+            continue
+        if int(m.group(1)) == handle and int(m.group(2), 16) == size:
+            return os.path.join(bufdir, f)
+    return None
+
+
+def find_output_by_vendor(bufdir, vendor, nbytes):
+    """有的算子会多分配几个 4 KiB 缓冲（scratch/输出）；用抓取时的厂商输出反查真正的输出缓冲。"""
+    if not vendor or not os.path.exists(vendor):
+        return None
+    want = open(vendor, "rb").read(nbytes)
+    for f in sorted(os.listdir(bufdir)):
+        if "_post" not in f:
+            continue
+        p = os.path.join(bufdir, f)
+        try:
+            if open(p, "rb").read(nbytes) == want:
+                base = f.replace("_post.bin", ".bin")
+                cand = os.path.join(bufdir, base)
+                # 只接受 4 KiB 的数据缓冲：抓取目录里还有 .dla 代码缓冲（几千字节），
+                # 它的前 256 字节可能与输出偶然相同，选错会把地址写进代码区。
+                if os.path.exists(cand):
+                    return cand
+        except OSError:
+            pass
+    return None
+
+
+def find_by_size(bufdir, size):
+    for f in sorted(os.listdir(bufdir)):
+        if "_post" in f or "_final" in f:
+            continue
+        p = os.path.join(bufdir, f)
+        if os.path.getsize(p) == size:
+            return p
+    return None
+
+
+def find_data(bufdir, a, b, unary):
+    A = B = C = None
+    other = []
+    code_size = None
+    for f in sorted(os.listdir(bufdir)):
+        if "_post" in f or "_final" in f:
+            continue
+        p = os.path.join(bufdir, f)
+        head = open(p, "rb").read(64)
+        if head == a:
+            A = p
+        elif not unary and head == b:
+            B = p
+        else:
+            other.append(p)
+    if other:
+        C = other[0]
+    return A, B, C
+
+
+def main(log, bufdir, abin, bbin, outdir):
+    unary = (bbin == "-")
+    a = open(abin, "rb").read(64)
+    b_full = b"" if unary else open(bbin, "rb").read()
+    b = b_full[:64]
+    cmd_in, subcmd, maps, cmdbufs = parse_log(log)
+    if not cmd_in or not subcmd:
+        sys.exit("log: cmdin/subcmd not found")
+    if len(cmdbufs) != 3:
+        sys.exit(f"expected 3 cmdbuf descriptors, got {len(cmdbufs)}")
+
+    A, B, C = find_data(bufdir, a, b, unary)
+    # 大张量（如 512x512 权重 = 256 KiB）不会落在 4 KiB 缓冲里：按文件大小兜底匹配
+    if not A:
+        A = find_by_size(bufdir, len(a))
+    if not B and not unary:
+        B = find_by_size(bufdir, len(b_full))
+    if not C:
+        C = find_by_size(bufdir, 512)
+    vendor = os.path.join(outdir, "vendor_out.bin")   # 抓取输出就在资产目录里
+    nbytes = 256 if os.path.exists(vendor) and os.path.getsize(vendor) <= 4096 else 4096
+    by_vendor = find_output_by_vendor(bufdir, vendor, os.path.getsize(vendor) if os.path.exists(vendor) else 0)
+    if by_vendor is not None:
+        C = by_vendor
+    if not (A and C) or (not unary and not B):
+        sys.exit(f"data buffers: A={bool(A)} B={bool(B)} C={bool(C)}")
+
+    def iova_of(path):
+        """fd 会重复（.dla 代码缓冲和输入缓冲可能同 fd），所以必须 (fd, 文件大小) 一起匹配。"""
+        m = re.search(r"_fd(\d+)_len([0-9a-f]+)", os.path.basename(path))
+        fd = int(m.group(1))
+        fsz = int(m.group(2), 16)
+        for h, sz, va in maps:
+            if h == fd and sz == fsz:
+                return va
+        return 0
+
+    # 一元算子如果有第三个 4 KiB 缓冲（scratch/LUT），也算进资产：命令流里确实有它的地址
+    scratch = None
+    if not B:
+        import struct as _st
+        src = find_by_fd(bufdir, cmdbufs[2][0], cmdbufs[2][1])
+        cmd2 = open(src, "rb").read() if src else b""
+        words = [_st.unpack_from("<I", cmd2, o)[0] for o in range(0, len(cmd2) - 3, 4)]
+        used = {os.path.basename(A), os.path.basename(C)}
+        best = None
+        for pth in sorted(os.listdir(bufdir)):
+            if not (pth.startswith("map") and pth.endswith(".bin")) or "_post" in pth or "_final" in pth:
+                continue
+            if pth in used:
+                continue
+            va = iova_of(os.path.join(bufdir, pth))
+            if va and (va >> 4) in words:          # 命令流确实引用它 -> 常量/scratch 缓冲
+                best = os.path.join(bufdir, pth)
+                break
+        scratch = best
+    iova_b = iova_of(B) if B else (iova_of(scratch) if scratch else 0)
+    if iova_b == 0 and not unary:
+        # 大张量兜底：直接按"分配大小 == 权重文件大小"从 MAP 表里取 IOVA
+        for h, sz, va in maps:
+            if sz == len(b_full) and va:
+                iova_b = va
+                break
+    iova = [iova_of(A), iova_b, iova_of(C)]
+    if iova[0] == 0 or iova[2] == 0 or (not unary and iova[1] == 0):
+        sys.exit(f"iova not resolved: {[hex(x) for x in iova]}")
+
+    os.makedirs(outdir, exist_ok=True)
+    sizes = []
+    for k, (handle, size, align, direction) in enumerate(cmdbufs):
+        src = find_by_fd(bufdir, handle, size)
+        if src is None:
+            sys.exit(f"cmdbuf[{k}] handle={handle} size={size}: no dump file found")
+        shutil.copy(src, os.path.join(outdir, f"cmd{k}.bin"))
+        sizes.append(size)
+    if scratch:
+        shutil.copy(scratch, os.path.join(outdir, "scratch.bin"))
+    open(os.path.join(outdir, "cmdin.bin"), "wb").write(cmd_in)
+    open(os.path.join(outdir, "subcmd.bin"), "wb").write(subcmd)
+    with open(os.path.join(outdir, "iova.txt"), "w") as f:
+        f.write("0x%x 0x%x 0x%x\n" % tuple(iova))
+    with open(os.path.join(outdir, "cmdsizes.txt"), "w") as f:
+        f.write(" ".join(str(s) for s in sizes) + "\n")
+    print(f"{outdir}: cmdbufs={sizes} dirs={[c[3] for c in cmdbufs]} "
+          f"iova={[hex(x) for x in iova]}")
+
+
+if __name__ == "__main__":
+    main(*sys.argv[1:6])

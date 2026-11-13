@@ -1,0 +1,28 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/pad_1x4x8x16_int8//model.tflite -d ops/pad_1x4x8x16_int8//model.dla
+# version: Version: 7.3.15
+# date: 2026-11-12T21:12:57+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ PadLayer<0>{PAD}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     512    960     0     224     1.1K  2.8K
+
+Total Memory:
+  DRAM: 2.8K
+  L1:   0
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=4701
+SHA256=2c4cb26270070b39071b28b23cf0a2110affc31c8619393dcd46903131a63ae6

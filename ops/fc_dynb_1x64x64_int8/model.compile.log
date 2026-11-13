@@ -1,6 +1,6 @@
 # cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/fc_dynb_1x64x64_int8/model.tflite -d ops/fc_dynb_1x64x64_int8/model.dla
 # version: Version: 7.3.15
-# date: 2026-11-12T19:47:36+08:00
+# date: 2026-11-13T01:22:43+08:00
 
 ===Graph[0] has 1 Execution Step(s)===
 Graph[0] Step[0]
@@ -25,4 +25,4 @@ TargetExecutionOrder:
 
 EXIT=0
 SIZE=3085
-SHA256=a717cfe829bad0f32d9a723ee8e15e8c7d7b319e71f07036ab3299e2bb1af8b9
+SHA256=dbbfa70e9e03ba92fcd7cc3e2c592b5627d70763480578d338f15e888f5daf3a

@@ -1,0 +1,69 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/block_qwen25_1l_full_t128_fp16/model.tflite -d ops/block_qwen25_1l_full_t128_fp16/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T01:21:44+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ ElementWiseMulLayer<0>{MUL}
+   ├ MeanLayer<1>{MEAN}
+   ├ RSqrtLayer<2>{RSQRT}
+   ├ ElementWiseMulLayer<3>{MUL}
+   ├ FullyConnectedLayer<4>{FULLY_CONNECTED}
+   ├ SliceLayer<7>{SPLIT}
+   ├ ElementWiseMulLayer<11>{MUL}
+   ├ ElementWiseMulLayer<8>{MUL}
+   ├ SliceLayer<7>{SPLIT}
+   ├ ElementWiseMulLayer<10>{MUL}
+   ├ ElementWiseAddLayer<13>{ADD}
+   ├ ElementWiseMulLayer<9>{MUL}
+   ├ ElementWiseSubLayer<12>{SUB}
+   ├ ConcatLayer<14>{CONCATENATION}
+   ├ FullyConnectedLayer<5>{FULLY_CONNECTED}
+   ├ SliceLayer<15>{SPLIT}
+   ├ ElementWiseMulLayer<19>{MUL}
+   ├ ElementWiseMulLayer<16>{MUL}
+   ├ SliceLayer<15>{SPLIT}
+   ├ ElementWiseMulLayer<18>{MUL}
+   ├ ElementWiseAddLayer<21>{ADD}
+   ├ ElementWiseMulLayer<17>{MUL}
+   ├ ElementWiseSubLayer<20>{SUB}
+   ├ ConcatLayer<22>{CONCATENATION}
+   ├ FullyConnectedLayer<23>{FULLY_CONNECTED}
+   ├ SoftMaxLayer<24>{SOFTMAX}
+   ├ FullyConnectedLayer<6>{FULLY_CONNECTED}
+   ├ TransposeLayer<25>{TRANSPOSE}
+   ├ FullyConnectedLayer<26>{FULLY_CONNECTED}
+   ├ FullyConnectedLayer<27>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<28>{ADD}
+   ├ ElementWiseMulLayer<29>{MUL}
+   ├ MeanLayer<30>{MEAN}
+   ├ RSqrtLayer<31>{RSQRT}
+   ├ ElementWiseMulLayer<32>{MUL}
+   ├ FullyConnectedLayer<33>{FULLY_CONNECTED}
+   ├ SigmoidLayer<35>{LOGISTIC}
+   ├ ElementWiseMulLayer<36>{MUL}
+   ├ FullyConnectedLayer<34>{FULLY_CONNECTED}
+   ├ ElementWiseMulLayer<37>{MUL}
+   ├ FullyConnectedLayer<38>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<39>{ADD}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     16K    16K     0     72K     11K   115K
+
+Total Memory:
+  DRAM: 115K
+  L1:   128K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=99499
+SHA256=27f3ba648b1297e7f2e1e701dd776f95557384f365b42b090f7fb32d34ab0bd8

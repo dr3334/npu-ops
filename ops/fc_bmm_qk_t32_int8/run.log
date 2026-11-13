@@ -1,0 +1,12 @@
+D:/deepseek_ workspace/mtk/wt-bmm/ops/fc_bmm_qk_t32_int8/model.dla: 1 file pushed, 0 skipped. 8.0 MB/s (3080 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-bmm/ops/fc_bmm_qk_t32_int8/golden/input.bin: 1 file pushed, 0 skipped. 4.2 MB/s (2048 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-bmm/ops/fc_bmm_qk_t32_int8/golden/input1.bin: 1 file pushed, 0 skipped. 3.4 MB/s (2048 bytes in 0.001s)
+Inference repeats for 3 times.
+Total inference time = 2.339 ms (0.779667 ms/inf)
+Avg. FPS : 1041
+/data/local/tmp/npuops/dla/fc_bmm_qk_t32_int8.out.bin: 1 file pulled, 0 skipped. 0.2 MB/s (1024 bytes in 0.006s)
+op        : FULLY_CONNECTED {'T': 32, 'D': 64, 'M': 32, 'K': 64, 'N': 32}  dtype=int8
+expected  : 1024 vals   device: 1024 vals   logical shape=(32, 32)
+exact     : YES   mismatched=0/1024
+contract  : int8_tol=0  max_abs_diff=0  fraction_off=0.0000%
+PASS

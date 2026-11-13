@@ -1,0 +1,9 @@
+op        : MEAN {'d0': 1, 'd1': 8, 'd2': 16}  dtype=fp16
+expected  : 8 vals   device: 8 vals   logical shape=(1, 8)
+max_abs   : 0.000e+00
+rmse      : 0.000e+00
+rel_l2    : 0.000e+00
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-0.9956,0.2028]  dev [-0.9956,0.2028]
+tol       : atol=0.002 rtol=0.01
+PASS

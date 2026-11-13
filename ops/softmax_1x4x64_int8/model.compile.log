@@ -1,0 +1,28 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/softmax_1x4x64_int8//model.tflite -d ops/softmax_1x4x64_int8//model.dla
+# version: Version: 7.3.15
+# date: 2026-11-12T21:10:23+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ SoftMaxLayer<0>{SOFTMAX}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     256    256     0     448     1.2K  2.1K
+
+Total Memory:
+  DRAM: 2.1K
+  L1:   4.0K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=4887
+SHA256=55c21332c4df3b3b8d8ac442a68e8dd7267de80f5aa0a325cef410d0f95f53ed

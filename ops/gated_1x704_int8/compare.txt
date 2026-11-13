@@ -1,0 +1,5 @@
+op        : GATED_SILU_MUL {'T': 1, 'W': 704}  dtype=int8
+expected  : 704 vals   device: 704 vals   logical shape=(1, 704)
+exact     : NO   mismatched=35/704
+contract  : int8_tol=2  max_abs_diff=1  fraction_off=4.9716%
+PASS

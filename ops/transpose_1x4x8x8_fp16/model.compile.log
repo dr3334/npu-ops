@@ -1,0 +1,28 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/transpose_1x4x8x8_fp16//model.tflite -d ops/transpose_1x4x8x8_fp16//model.dla
+# version: Version: 7.3.15
+# date: 2026-11-12T21:13:21+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ TransposeLayer<0>{TRANSPOSE}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     512    512     0     0       224   1.2K
+
+Total Memory:
+  DRAM: 1.2K
+  L1:   0
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=2485
+SHA256=06a6d39e80d2220bce6f55a84aaafe9f707fc9e7c98c4785c9702e504701b0c9

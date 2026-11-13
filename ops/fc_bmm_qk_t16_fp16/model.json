@@ -1,0 +1,57 @@
+{
+  "op": "FULLY_CONNECTED",
+  "form": "fc",
+  "matmul": "Q\u00b7K\u1d40",
+  "shape": {
+    "T": 16,
+    "D": 64,
+    "heads": 1,
+    "M": 16,
+    "K": 64,
+    "N": 16
+  },
+  "dtype": "fp16",
+  "dynamic_weights": false,
+  "inputs": [
+    {
+      "name": "input",
+      "shape": [
+        16,
+        64
+      ],
+      "type": "fp16"
+    },
+    {
+      "name": "weights",
+      "shape": [
+        16,
+        64
+      ],
+      "type": "fp16"
+    }
+  ],
+  "output": {
+    "name": "output",
+    "shape": [
+      16,
+      16
+    ],
+    "type": "fp16",
+    "bytes": 512
+  },
+  "quant": {
+    "input": null,
+    "weights": null,
+    "bias": null,
+    "output": null
+  },
+  "codes": "-",
+  "reference": "float32_accum_to_fp16",
+  "weights_layout": "K rows = [N,K]",
+  "seed": 20261112,
+  "atol": 0.01,
+  "rtol": 0.03,
+  "spec": "fc_bmm_qk_t16_fp16",
+  "tflite": "model.tflite",
+  "tflite_bytes": 588
+}

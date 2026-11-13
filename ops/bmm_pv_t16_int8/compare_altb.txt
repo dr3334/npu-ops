@@ -1,0 +1,5 @@
+op        : BATCH_MATMUL P·V out (1, 16, 64) int8
+check     : A = golden/input.bin (unchanged), B = golden/input1_alt.bin (different)
+purpose   : one compiled .dla serves arbitrary K/V, no recompile per weight (L3)
+exact     : YES mismatched=0/1024 max_abs_diff=0
+PASS

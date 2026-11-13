@@ -1,0 +1,30 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/gated_1x704_int8//model.tflite -d ops/gated_1x704_int8//model.dla
+# version: Version: 7.3.15
+# date: 2026-11-12T23:52:48+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ SigmoidLayer<0>{LOGISTIC}
+   ├ ElementWiseMulLayer<1>{MUL}
+   ├ ElementWiseMulLayer<2>{MUL}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     1.4K   704     0     1.0K    1.3K  4.4K
+
+Total Memory:
+  DRAM: 4.4K
+  L1:   4.0K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=6453
+SHA256=66502d6273f45f0a3c1a9ffeb88575e5c81548a61d680fa96ff4fbfe312a8289

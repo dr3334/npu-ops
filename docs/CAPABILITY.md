@@ -53,3 +53,56 @@
 - 只测 **FULLY_CONNECTED**，其它算子见 W5；
 - K 的上界未触及（512 通过，未测更大）；
 - 未测非 4 维输入、batch>1 的 4D 形态。
+
+---
+
+## 6. 跨算子统一规则（来自 W6 并行工作的合并）
+
+三个 worktree 的独立结论最后收敛到同一条**字节对齐**规则上：
+
+> **`--disallow-bridge` 下要无桥编译，DRAM 边界张量的最内层行必须 ≥ 16 字节，且字节数必须是 16 的倍数。**
+> 这是**字节**规则，不是元素规则；并且**输入侧**最严格，输出侧在部分算子上可以更小。
+
+| 来源 | 证据 |
+|---|---|
+| FULLY_CONNECTED（本文 §1） | int8 的 K 就是行字节数：K=8/24/40/56/72 失败，16/32/48/64/80/112 成功 —— 正好是"K % 16" |
+| 激活/归约（`docs/OP-actreduce.md`） | fp16 w8（16 B）✅ vs int8 w8（8 B）❌；int8 w16/48 ✅、w40/44/56 ❌；MEAN `[1,8,12]` fp16 失败——**总字节 192 也不行，看的是每行** |
+| 形状/布局（`docs/OP-shapeops.md`） | 同一算子只改边界行宽：8 B → `IN_GAP`/`OUT_GAP`，16 B → 通过且逐位相等 |
+
+失败原文（可直接检索）：
+
+```
+IN_GAP  = "Bridging is disallowed but gap is detected between Input and MDLA_5_0"
+OUT_GAP = "Bridging is disallowed but gap is detected between MDLA_5_0 and Output"
+```
+
+**注意**：失败的模型**仍会先打印 `Layer<Target: MDLA_5_0>` 的 exec plan**（bridge 检查在打印之后），
+所以判断成败必须看 `EXIT=`，不能只看层名。
+
+## 7. 已确认可用的算子（截至 2026-11-12）
+
+| 算子 | dtype | 落点 | 数值 |
+|---|---|---|---|
+| FULLY_CONNECTED | int8（静态/动态权重）、fp16 | FullyConnectedLayer | 逐位 / ±1 LSB（requant） |
+| ADD | int8 | MDLA（且已用**自建提交器**跑通） | 逐位 |
+| RESHAPE / TRANSPOSE / CONCAT / SPLIT / PAD | int8 / fp16 | Reshape/Transpose/Concat/Slice/Pad Layer | 逐位 |
+| RELU / LOGISTIC / TANH | int8 / fp16 | ReLU/Sigmoid/Tanh Layer | 逐位（TANH fp16 差 1 code） |
+| **SOFTMAX** | int8 / fp16 | **SoftMaxLayer** | 逐位（int8 `[1,8,16]`）；fp16 差 1 code；**β 生效** |
+| MEAN / SUM | int8 / fp16 | Mean / Sum Layer | 逐位 |
+
+## 8. 构建产物的可复现性（重要）
+
+`model.tflite` 是**字节可复现**的（同源重建 sha 相同）；**`.dla` 不是**——同一个 tflite 连续编译 3 次，
+大小相同但 sha256 三次都不同。因此：
+- `.dla` 的 sha256 只能标识"这是一个产物"，**不能**当作构建一致性/回归比对的依据；
+- 回归要比对的是**数值**（`compare.txt`），不是 `.dla` 哈希。
+
+## 9. 由 W6b 修正/收紧的规则
+
+1. **16 字节规则只约束 DRAM 边界张量**（rms-agent 的对照实验）：`[T,1]` 这类中间张量行宽 2 B 也能编译运行；
+   失败的只有"图的输入/输出"这一侧。原文的"输入侧最严"要读作"**边界**最严"。
+2. **int8 路径会把小于 1 个 code 的 `+eps` 常量折叠掉**（RMSNorm int8 的 `ElementWiseAdd` 层消失，
+   层号从 <1> 跳到 <3>）。⇒ int8 RMSNorm 实际上**没有 eps**；`mean=0` 的行为未测，标 UNKNOWN。
+3. **RSQRT 是原生 MDLA_5_0 层**（fp16 与 int8 都落 MDLA，int8 甚至逐位），
+   所以 RMSNorm 不需要 CPU 侧求倒数：6 个算子组成的链在**同一个执行步**里跑完。
+4. fp16 存 eps 只有约 0.6% 精度（`1e-5 → 1.0014e-05`，次正规数）——写 golden 时要按 fp16 舍入，不能按 float32。

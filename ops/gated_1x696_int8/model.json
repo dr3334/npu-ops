@@ -1,0 +1,78 @@
+{
+  "op": "GATED_SILU_MUL",
+  "graph": [
+    "LOGISTIC",
+    "MUL",
+    "MUL"
+  ],
+  "shape": {
+    "T": 1,
+    "W": 696
+  },
+  "op_shape": [
+    1,
+    696
+  ],
+  "dtype": "int8",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      696
+    ],
+    "type": "int8",
+    "bytes": 696
+  },
+  "inputs": [
+    {
+      "name": "gate",
+      "shape": [
+        1,
+        696
+      ],
+      "type": "int8"
+    },
+    {
+      "name": "up",
+      "shape": [
+        1,
+        696
+      ],
+      "type": "int8"
+    }
+  ],
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      696
+    ],
+    "type": "int8",
+    "bytes": 696
+  },
+  "quant": {
+    "input": 0.0625,
+    "input_zp": 0,
+    "up": 0.0078125,
+    "up_zp": 0,
+    "sigmoid": 0.00390625,
+    "sigmoid_zp": -128,
+    "s": 0.0625,
+    "s_zp": 0,
+    "output": 0.125,
+    "output_zp": 0,
+    "requant": {
+      "mul1": "0.00390625 = 2^-8",
+      "mul2": "0.00390625 = 2^-8"
+    }
+  },
+  "reference": "float64_exact_then_encode",
+  "alt_reference": "tflite_reference_two_step_then_plain_shift",
+  "seed": 20261112,
+  "prediction": "expected COMPILE FAIL on the 696-wide model inputs",
+  "generator": "tools/build_silu.py",
+  "tflite": "model.tflite",
+  "tflite_bytes": 920,
+  "int8_tol": 2,
+  "tolerance_rationale": "codes of the output tensor; bound registered before the run = sigmoid 8-bit quantisation (<=0.25 code) + one shift rounding per requant (0.5 each) + the golden's own rounding (0.5); the fused variant adds the FC 1/127 requant (>=1 code, OP-MATRIX \u00a73).  1 code = out_scale in absolute terms."
+}

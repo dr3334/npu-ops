@@ -1,0 +1,9 @@
+op        : LOGISTIC(control) {'T': 1, 'W': 696}  dtype=fp16
+expected  : 696 vals   device: 696 vals   logical shape=(1, 696)
+max_abs   : 4.883e-04
+rmse      : 4.628e-05
+rel_l2    : 7.106e-05
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [0.0003355,0.9995]  dev [0.0003355,0.9995]
+tol       : atol=0.002 rtol=0.01
+PASS

@@ -1,0 +1,9 @@
+op        : RSQRT {'d0': 1, 'd1': 64}  dtype=fp16
+expected  : 64 vals   device: 64 vals   logical shape=(1, 64)
+max_abs   : 9.766e-04
+rmse      : 2.863e-04
+rel_l2    : 3.121e-04
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [0.5,2]  dev [0.5,2]
+tol       : atol=0.01 rtol=0.01
+PASS

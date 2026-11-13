@@ -1,0 +1,56 @@
+{
+  "op": "BATCH_MATMUL",
+  "form": "bmm",
+  "matmul": "Q\u00b7K\u1d40",
+  "shape": {
+    "T": 16,
+    "D": 64,
+    "batch": 1,
+    "adj_x": 0,
+    "adj_y": 1
+  },
+  "dtype": "int8",
+  "inputs": [
+    {
+      "name": "a",
+      "shape": [
+        1,
+        16,
+        64
+      ],
+      "type": "int8"
+    },
+    {
+      "name": "b",
+      "shape": [
+        1,
+        16,
+        64
+      ],
+      "type": "int8"
+    }
+  ],
+  "output": {
+    "name": "out",
+    "shape": [
+      1,
+      16,
+      16
+    ],
+    "type": "int8",
+    "bytes": 256
+  },
+  "quant": {
+    "a": 0.007874015748031496,
+    "b": 0.007874015748031496,
+    "out": 6.200012400024799e-05
+  },
+  "codes": "small",
+  "reference": "int64_exact",
+  "score": "repro",
+  "seed": 20261112,
+  "int8_tol": 0,
+  "spec": "bmm_qk_t16_int8",
+  "tflite": "model.tflite",
+  "tflite_bytes": 616
+}
