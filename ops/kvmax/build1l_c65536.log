@@ -1,0 +1,2 @@
+ops/kvmax_1l_t8_c65536             44646448 B  decode l=1 T=8 C=65536  in=['x', 'mask', 'cos14', 'sin14', 'cos2', 'sin2', 'k_in', 'v_in']
+  saturation: {'L00_down': 1, 'L00_gate': 1, 'L00_k_fc': 1, 'L00_masked': 194, 'L00_mlp_y': 1, 'L00_n1_mean': 1, 'L00_n1_norm': 1, 'L00_n2_mean': 1}

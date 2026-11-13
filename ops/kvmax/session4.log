@@ -1,0 +1,28 @@
+########## HEALTHCHECK BEFORE 2026-11-13T17:19:31+08:00
+device present                             OK
+device identity                            mt6897/16
+/dev/apusys node                           OK
+neuronrt present                           OK
+known-good op (fc_1x64x64_int8)            PASS
+[restore] cleaned ops/fc_1x64x64_int8
+
+HEALTHCHECK: PASS
+HC_BEFORE_RC=0
+rc=0
+rc=0
+rc=0
+[noise] C=8192, three Runs (hidden k v sha256):
+dda000aaf5d6230020b1eeaff160fcccce730c28541b4cb0da442ff40b66d303 a5cb478aaaec6962dd8013e6ac19215687f82c743a074704d0e251257b4388d8 ad68e4afee42ad74e9ba12c932b0124ebea4dfeb2effe15752391ad38036e586 
+dda000aaf5d6230020b1eeaff160fcccce730c28541b4cb0da442ff40b66d303 a5cb478aaaec6962dd8013e6ac19215687f82c743a074704d0e251257b4388d8 ad68e4afee42ad74e9ba12c932b0124ebea4dfeb2effe15752391ad38036e586 
+dda000aaf5d6230020b1eeaff160fcccce730c28541b4cb0da442ff40b66d303 a5cb478aaaec6962dd8013e6ac19215687f82c743a074704d0e251257b4388d8 ad68e4afee42ad74e9ba12c932b0124ebea4dfeb2effe15752391ad38036e586 
+########## HEALTHCHECK AFTER 2026-11-13T17:19:35+08:00
+device present                             OK
+device identity                            mt6897/16
+/dev/apusys node                           OK
+neuronrt present                           OK
+known-good op (fc_1x64x64_int8)            PASS
+[restore] cleaned ops/fc_1x64x64_int8
+
+HEALTHCHECK: PASS
+HC_AFTER_RC=0
+SESSION4_DONE 2026-11-13T17:19:36+08:00

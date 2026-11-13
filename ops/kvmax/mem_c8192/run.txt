@@ -1,0 +1,249 @@
+=== C 8192 BASELINE meminfo ===
+MemFree:          632300 kB
+MemAvailable:    7479716 kB
+=== PID 26355 ===
+=== SAMPLE 0 ===
+Rss:              109844 kB
+Pss:              105990 kB
+Pss_Anon:         103760 kB
+Pss_File:           2157 kB
+Pss_Shmem:            73 kB
+Private_Dirty:    103760 kB
+rchar: 102793241
+read_bytes: 0
+--- dmabuf vmas ---
+7664f9d000-7667f9d000 rw-s 00000000 00:09 70214                          /dmabuf:APUBUF0:26355:MDLA
+7667f9d000-766af9d000 rw-s 00000000 00:09 70213                          /dmabuf:APUBUF0:26355:MDLA
+7673de5000-7673fa6000 rw-s 00000000 00:09 70208                          /dmabuf:APUBUF0:26355:MDLA
+767426d000-767523c000 rw-s 00000000 00:09 70201                          /dmabuf:APUBUF0:26355:MDLA
+767523c000-7675304000 rw-s 00000000 00:09 70200                          /dmabuf:APUCB0:26355:MDLA
+7675304000-76753df000 rw-s 00000000 00:09 70199                          /dmabuf:APUCB0:26355:MDLA
+76753df000-767df80000 rw-s 00000000 00:09 70198                          /dmabuf:APUBUF0:26355:MDLA
+767f5d3000-767f5db000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5db000-767f5e7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5e7000-767f5e8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5eb000-767f5ec000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+77008a1000-77008ad000 rw-s 00000000 00:09 70217                          /dmabuf:APUBUF0:26355:MDLA
+7910b31000-7910b3d000 rw-s 00000000 00:09 70216                          /dmabuf:APUBUF0:26355:MDLA
+791290b000-791290f000 rw-s 00000000 00:09 70215                          /dmabuf:APUBUF0:26355:MDLA
+7912a16000-7912a1a000 rw-s 00000000 00:09 70207                          /dmabuf:APUBUF0:26355:MDLA
+7912a20000-7912a21000 rw-s 00000000 00:09 70212                          /dmabuf:APUBUF0:26355:MDLA
+7912a23000-7912a25000 rw-s 00000000 00:09 70210                          /dmabuf:APUBUF0:26355:MDLA
+7912a26000-7912a27000 rw-s 00000000 00:09 70211                          /dmabuf:APUBUF0:26355:MDLA
+7912a27000-7912a29000 rw-s 00000000 00:09 70209                          /dmabuf:APUBUF0:26355:MDLA
+7912a29000-7912a2a000 rw-s 00000000 00:09 70206                          /dmabuf:APUCB0:26355:execInfo:sc(2)
+7912a37000-7912a38000 rw-s 00000000 00:09 70205                          /dmabuf:APUCB0:26355:MDLA
+7912a38000-7912a39000 rw-s 00000000 00:09 70204                          /dmabuf:APUCB0:26355:MDLA
+7913c10000-7913c11000 rw-s 00000000 00:09 70203                          /dmabuf:APUCB0:26355:MDLA
+7913c11000-7913c12000 rw-s 00000000 00:09 70202                          /dmabuf:APUCB0:26355:MDLA
+=== SAMPLE 1 ===
+Rss:              109844 kB
+Pss:              105987 kB
+Pss_Anon:         103760 kB
+Pss_File:           2153 kB
+Pss_Shmem:            73 kB
+Private_Dirty:    103760 kB
+rchar: 102793241
+read_bytes: 0
+--- dmabuf vmas ---
+7664f9d000-7667f9d000 rw-s 00000000 00:09 70214                          /dmabuf:APUBUF0:26355:MDLA
+7667f9d000-766af9d000 rw-s 00000000 00:09 70213                          /dmabuf:APUBUF0:26355:MDLA
+7673de5000-7673fa6000 rw-s 00000000 00:09 70208                          /dmabuf:APUBUF0:26355:MDLA
+767426d000-767523c000 rw-s 00000000 00:09 70201                          /dmabuf:APUBUF0:26355:MDLA
+767523c000-7675304000 rw-s 00000000 00:09 70200                          /dmabuf:APUCB0:26355:MDLA
+7675304000-76753df000 rw-s 00000000 00:09 70199                          /dmabuf:APUCB0:26355:MDLA
+76753df000-767df80000 rw-s 00000000 00:09 70198                          /dmabuf:APUBUF0:26355:MDLA
+767f5d3000-767f5db000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5db000-767f5e7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5e7000-767f5e8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5eb000-767f5ec000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+77008a1000-77008ad000 rw-s 00000000 00:09 70217                          /dmabuf:APUBUF0:26355:MDLA
+7910b31000-7910b3d000 rw-s 00000000 00:09 70216                          /dmabuf:APUBUF0:26355:MDLA
+791290b000-791290f000 rw-s 00000000 00:09 70215                          /dmabuf:APUBUF0:26355:MDLA
+7912a16000-7912a1a000 rw-s 00000000 00:09 70207                          /dmabuf:APUBUF0:26355:MDLA
+7912a20000-7912a21000 rw-s 00000000 00:09 70212                          /dmabuf:APUBUF0:26355:MDLA
+7912a23000-7912a25000 rw-s 00000000 00:09 70210                          /dmabuf:APUBUF0:26355:MDLA
+7912a26000-7912a27000 rw-s 00000000 00:09 70211                          /dmabuf:APUBUF0:26355:MDLA
+7912a27000-7912a29000 rw-s 00000000 00:09 70209                          /dmabuf:APUBUF0:26355:MDLA
+7912a29000-7912a2a000 rw-s 00000000 00:09 70206                          /dmabuf:APUCB0:26355:execInfo:sc(2)
+7912a37000-7912a38000 rw-s 00000000 00:09 70205                          /dmabuf:APUCB0:26355:MDLA
+7912a38000-7912a39000 rw-s 00000000 00:09 70204                          /dmabuf:APUCB0:26355:MDLA
+7913c10000-7913c11000 rw-s 00000000 00:09 70203                          /dmabuf:APUCB0:26355:MDLA
+7913c11000-7913c12000 rw-s 00000000 00:09 70202                          /dmabuf:APUCB0:26355:MDLA
+=== SAMPLE 2 ===
+Rss:              109844 kB
+Pss:              105994 kB
+Pss_Anon:         103760 kB
+Pss_File:           2161 kB
+Pss_Shmem:            73 kB
+Private_Dirty:    103760 kB
+rchar: 102793241
+read_bytes: 0
+--- dmabuf vmas ---
+7664f9d000-7667f9d000 rw-s 00000000 00:09 70214                          /dmabuf:APUBUF0:26355:MDLA
+7667f9d000-766af9d000 rw-s 00000000 00:09 70213                          /dmabuf:APUBUF0:26355:MDLA
+7673de5000-7673fa6000 rw-s 00000000 00:09 70208                          /dmabuf:APUBUF0:26355:MDLA
+767426d000-767523c000 rw-s 00000000 00:09 70201                          /dmabuf:APUBUF0:26355:MDLA
+767523c000-7675304000 rw-s 00000000 00:09 70200                          /dmabuf:APUCB0:26355:MDLA
+7675304000-76753df000 rw-s 00000000 00:09 70199                          /dmabuf:APUCB0:26355:MDLA
+76753df000-767df80000 rw-s 00000000 00:09 70198                          /dmabuf:APUBUF0:26355:MDLA
+767f5d3000-767f5db000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5db000-767f5e7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5e7000-767f5e8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5eb000-767f5ec000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+77008a1000-77008ad000 rw-s 00000000 00:09 70217                          /dmabuf:APUBUF0:26355:MDLA
+7910b31000-7910b3d000 rw-s 00000000 00:09 70216                          /dmabuf:APUBUF0:26355:MDLA
+791290b000-791290f000 rw-s 00000000 00:09 70215                          /dmabuf:APUBUF0:26355:MDLA
+7912a16000-7912a1a000 rw-s 00000000 00:09 70207                          /dmabuf:APUBUF0:26355:MDLA
+7912a20000-7912a21000 rw-s 00000000 00:09 70212                          /dmabuf:APUBUF0:26355:MDLA
+7912a23000-7912a25000 rw-s 00000000 00:09 70210                          /dmabuf:APUBUF0:26355:MDLA
+7912a26000-7912a27000 rw-s 00000000 00:09 70211                          /dmabuf:APUBUF0:26355:MDLA
+7912a27000-7912a29000 rw-s 00000000 00:09 70209                          /dmabuf:APUBUF0:26355:MDLA
+7912a29000-7912a2a000 rw-s 00000000 00:09 70206                          /dmabuf:APUCB0:26355:execInfo:sc(2)
+7912a37000-7912a38000 rw-s 00000000 00:09 70205                          /dmabuf:APUCB0:26355:MDLA
+7912a38000-7912a39000 rw-s 00000000 00:09 70204                          /dmabuf:APUCB0:26355:MDLA
+7913c10000-7913c11000 rw-s 00000000 00:09 70203                          /dmabuf:APUCB0:26355:MDLA
+7913c11000-7913c12000 rw-s 00000000 00:09 70202                          /dmabuf:APUCB0:26355:MDLA
+=== SAMPLE 3 ===
+Rss:              109844 kB
+Pss:              105987 kB
+Pss_Anon:         103760 kB
+Pss_File:           2153 kB
+Pss_Shmem:            73 kB
+Private_Dirty:    103760 kB
+rchar: 102793241
+read_bytes: 0
+--- dmabuf vmas ---
+7664f9d000-7667f9d000 rw-s 00000000 00:09 70214                          /dmabuf:APUBUF0:26355:MDLA
+7667f9d000-766af9d000 rw-s 00000000 00:09 70213                          /dmabuf:APUBUF0:26355:MDLA
+7673de5000-7673fa6000 rw-s 00000000 00:09 70208                          /dmabuf:APUBUF0:26355:MDLA
+767426d000-767523c000 rw-s 00000000 00:09 70201                          /dmabuf:APUBUF0:26355:MDLA
+767523c000-7675304000 rw-s 00000000 00:09 70200                          /dmabuf:APUCB0:26355:MDLA
+7675304000-76753df000 rw-s 00000000 00:09 70199                          /dmabuf:APUCB0:26355:MDLA
+76753df000-767df80000 rw-s 00000000 00:09 70198                          /dmabuf:APUBUF0:26355:MDLA
+767f5d3000-767f5db000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5db000-767f5e7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5e7000-767f5e8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5eb000-767f5ec000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+77008a1000-77008ad000 rw-s 00000000 00:09 70217                          /dmabuf:APUBUF0:26355:MDLA
+7910b31000-7910b3d000 rw-s 00000000 00:09 70216                          /dmabuf:APUBUF0:26355:MDLA
+791290b000-791290f000 rw-s 00000000 00:09 70215                          /dmabuf:APUBUF0:26355:MDLA
+7912a16000-7912a1a000 rw-s 00000000 00:09 70207                          /dmabuf:APUBUF0:26355:MDLA
+7912a20000-7912a21000 rw-s 00000000 00:09 70212                          /dmabuf:APUBUF0:26355:MDLA
+7912a23000-7912a25000 rw-s 00000000 00:09 70210                          /dmabuf:APUBUF0:26355:MDLA
+7912a26000-7912a27000 rw-s 00000000 00:09 70211                          /dmabuf:APUBUF0:26355:MDLA
+7912a27000-7912a29000 rw-s 00000000 00:09 70209                          /dmabuf:APUBUF0:26355:MDLA
+7912a29000-7912a2a000 rw-s 00000000 00:09 70206                          /dmabuf:APUCB0:26355:execInfo:sc(2)
+7912a37000-7912a38000 rw-s 00000000 00:09 70205                          /dmabuf:APUCB0:26355:MDLA
+7912a38000-7912a39000 rw-s 00000000 00:09 70204                          /dmabuf:APUCB0:26355:MDLA
+7913c10000-7913c11000 rw-s 00000000 00:09 70203                          /dmabuf:APUCB0:26355:MDLA
+7913c11000-7913c12000 rw-s 00000000 00:09 70202                          /dmabuf:APUCB0:26355:MDLA
+=== SAMPLE 4 ===
+Rss:              109844 kB
+Pss:              105996 kB
+Pss_Anon:         103760 kB
+Pss_File:           2162 kB
+Pss_Shmem:            73 kB
+Private_Dirty:    103760 kB
+rchar: 102793241
+read_bytes: 0
+--- dmabuf vmas ---
+7664f9d000-7667f9d000 rw-s 00000000 00:09 70214                          /dmabuf:APUBUF0:26355:MDLA
+7667f9d000-766af9d000 rw-s 00000000 00:09 70213                          /dmabuf:APUBUF0:26355:MDLA
+7673de5000-7673fa6000 rw-s 00000000 00:09 70208                          /dmabuf:APUBUF0:26355:MDLA
+767426d000-767523c000 rw-s 00000000 00:09 70201                          /dmabuf:APUBUF0:26355:MDLA
+767523c000-7675304000 rw-s 00000000 00:09 70200                          /dmabuf:APUCB0:26355:MDLA
+7675304000-76753df000 rw-s 00000000 00:09 70199                          /dmabuf:APUCB0:26355:MDLA
+76753df000-767df80000 rw-s 00000000 00:09 70198                          /dmabuf:APUBUF0:26355:MDLA
+767f5d3000-767f5db000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5db000-767f5e7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5e7000-767f5e8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5eb000-767f5ec000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+77008a1000-77008ad000 rw-s 00000000 00:09 70217                          /dmabuf:APUBUF0:26355:MDLA
+7910b31000-7910b3d000 rw-s 00000000 00:09 70216                          /dmabuf:APUBUF0:26355:MDLA
+791290b000-791290f000 rw-s 00000000 00:09 70215                          /dmabuf:APUBUF0:26355:MDLA
+7912a16000-7912a1a000 rw-s 00000000 00:09 70207                          /dmabuf:APUBUF0:26355:MDLA
+7912a20000-7912a21000 rw-s 00000000 00:09 70212                          /dmabuf:APUBUF0:26355:MDLA
+7912a23000-7912a25000 rw-s 00000000 00:09 70210                          /dmabuf:APUBUF0:26355:MDLA
+7912a26000-7912a27000 rw-s 00000000 00:09 70211                          /dmabuf:APUBUF0:26355:MDLA
+7912a27000-7912a29000 rw-s 00000000 00:09 70209                          /dmabuf:APUBUF0:26355:MDLA
+7912a29000-7912a2a000 rw-s 00000000 00:09 70206                          /dmabuf:APUCB0:26355:execInfo:sc(2)
+7912a37000-7912a38000 rw-s 00000000 00:09 70205                          /dmabuf:APUCB0:26355:MDLA
+7912a38000-7912a39000 rw-s 00000000 00:09 70204                          /dmabuf:APUCB0:26355:MDLA
+7913c10000-7913c11000 rw-s 00000000 00:09 70203                          /dmabuf:APUCB0:26355:MDLA
+7913c11000-7913c12000 rw-s 00000000 00:09 70202                          /dmabuf:APUCB0:26355:MDLA
+=== SAMPLE 5 ===
+Rss:              109844 kB
+Pss:              105987 kB
+Pss_Anon:         103760 kB
+Pss_File:           2153 kB
+Pss_Shmem:            73 kB
+Private_Dirty:    103760 kB
+rchar: 102793241
+read_bytes: 0
+--- dmabuf vmas ---
+7664f9d000-7667f9d000 rw-s 00000000 00:09 70214                          /dmabuf:APUBUF0:26355:MDLA
+7667f9d000-766af9d000 rw-s 00000000 00:09 70213                          /dmabuf:APUBUF0:26355:MDLA
+7673de5000-7673fa6000 rw-s 00000000 00:09 70208                          /dmabuf:APUBUF0:26355:MDLA
+767426d000-767523c000 rw-s 00000000 00:09 70201                          /dmabuf:APUBUF0:26355:MDLA
+767523c000-7675304000 rw-s 00000000 00:09 70200                          /dmabuf:APUCB0:26355:MDLA
+7675304000-76753df000 rw-s 00000000 00:09 70199                          /dmabuf:APUCB0:26355:MDLA
+76753df000-767df80000 rw-s 00000000 00:09 70198                          /dmabuf:APUBUF0:26355:MDLA
+767f5d3000-767f5db000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5db000-767f5e7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5e7000-767f5e8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5eb000-767f5ec000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+77008a1000-77008ad000 rw-s 00000000 00:09 70217                          /dmabuf:APUBUF0:26355:MDLA
+7910b31000-7910b3d000 rw-s 00000000 00:09 70216                          /dmabuf:APUBUF0:26355:MDLA
+791290b000-791290f000 rw-s 00000000 00:09 70215                          /dmabuf:APUBUF0:26355:MDLA
+7912a16000-7912a1a000 rw-s 00000000 00:09 70207                          /dmabuf:APUBUF0:26355:MDLA
+7912a20000-7912a21000 rw-s 00000000 00:09 70212                          /dmabuf:APUBUF0:26355:MDLA
+7912a23000-7912a25000 rw-s 00000000 00:09 70210                          /dmabuf:APUBUF0:26355:MDLA
+7912a26000-7912a27000 rw-s 00000000 00:09 70211                          /dmabuf:APUBUF0:26355:MDLA
+7912a27000-7912a29000 rw-s 00000000 00:09 70209                          /dmabuf:APUBUF0:26355:MDLA
+7912a29000-7912a2a000 rw-s 00000000 00:09 70206                          /dmabuf:APUCB0:26355:execInfo:sc(2)
+7912a37000-7912a38000 rw-s 00000000 00:09 70205                          /dmabuf:APUCB0:26355:MDLA
+7912a38000-7912a39000 rw-s 00000000 00:09 70204                          /dmabuf:APUCB0:26355:MDLA
+7913c10000-7913c11000 rw-s 00000000 00:09 70203                          /dmabuf:APUCB0:26355:MDLA
+7913c11000-7913c12000 rw-s 00000000 00:09 70202                          /dmabuf:APUCB0:26355:MDLA
+=== SAMPLE 6 ===
+Rss:              109844 kB
+Pss:              105988 kB
+Pss_Anon:         103760 kB
+Pss_File:           2154 kB
+Pss_Shmem:            73 kB
+Private_Dirty:    103760 kB
+rchar: 102793241
+read_bytes: 0
+--- dmabuf vmas ---
+7664f9d000-7667f9d000 rw-s 00000000 00:09 70214                          /dmabuf:APUBUF0:26355:MDLA
+7667f9d000-766af9d000 rw-s 00000000 00:09 70213                          /dmabuf:APUBUF0:26355:MDLA
+7673de5000-7673fa6000 rw-s 00000000 00:09 70208                          /dmabuf:APUBUF0:26355:MDLA
+767426d000-767523c000 rw-s 00000000 00:09 70201                          /dmabuf:APUBUF0:26355:MDLA
+767523c000-7675304000 rw-s 00000000 00:09 70200                          /dmabuf:APUCB0:26355:MDLA
+7675304000-76753df000 rw-s 00000000 00:09 70199                          /dmabuf:APUCB0:26355:MDLA
+76753df000-767df80000 rw-s 00000000 00:09 70198                          /dmabuf:APUBUF0:26355:MDLA
+767f5d3000-767f5db000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5db000-767f5e7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5e7000-767f5e8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+767f5eb000-767f5ec000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+77008a1000-77008ad000 rw-s 00000000 00:09 70217                          /dmabuf:APUBUF0:26355:MDLA
+7910b31000-7910b3d000 rw-s 00000000 00:09 70216                          /dmabuf:APUBUF0:26355:MDLA
+791290b000-791290f000 rw-s 00000000 00:09 70215                          /dmabuf:APUBUF0:26355:MDLA
+7912a16000-7912a1a000 rw-s 00000000 00:09 70207                          /dmabuf:APUBUF0:26355:MDLA
+7912a20000-7912a21000 rw-s 00000000 00:09 70212                          /dmabuf:APUBUF0:26355:MDLA
+7912a23000-7912a25000 rw-s 00000000 00:09 70210                          /dmabuf:APUBUF0:26355:MDLA
+7912a26000-7912a27000 rw-s 00000000 00:09 70211                          /dmabuf:APUBUF0:26355:MDLA
+7912a27000-7912a29000 rw-s 00000000 00:09 70209                          /dmabuf:APUBUF0:26355:MDLA
+7912a29000-7912a2a000 rw-s 00000000 00:09 70206                          /dmabuf:APUCB0:26355:execInfo:sc(2)
+7912a37000-7912a38000 rw-s 00000000 00:09 70205                          /dmabuf:APUCB0:26355:MDLA
+7912a38000-7912a39000 rw-s 00000000 00:09 70204                          /dmabuf:APUCB0:26355:MDLA
+7913c10000-7913c11000 rw-s 00000000 00:09 70203                          /dmabuf:APUCB0:26355:MDLA
+7913c11000-7913c12000 rw-s 00000000 00:09 70202                          /dmabuf:APUCB0:26355:MDLA
+=== AFTER meminfo ===
+MemFree:          632160 kB
+MemAvailable:    7479592 kB
+=== RUNLOG tail ===
+Inference repeats for 20 times.
+Total inference time = 4037.91 ms (201.896 ms/inf)
+Avg. FPS : 4.934
