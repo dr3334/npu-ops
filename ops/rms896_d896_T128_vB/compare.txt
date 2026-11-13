@@ -1,0 +1,9 @@
+op        : RMSNORM_D896_B {'T': 128, 'D': 896}  dtype=float16
+expected  : 114688 vals   device: 114688 vals   logical shape=(128, 896)
+max_abs   : 7.812e-03
+rmse      : 5.717e-04
+rel_l2    : 5.695e-04
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-5.152,4.852]  dev [-5.16,4.848]
+tol       : atol=0.02 rtol=0.02
+PASS

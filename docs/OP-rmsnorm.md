@@ -334,3 +334,44 @@ fp16 的 `1e-2` 是当前唯一可用的浮点契约，实测误差 2 ULP（≈2
    int8 对尺度的敏感性没有做网格（只测了一套尺度）。
 8. **回退路径**：`SQRT + RECIPROCAL` / `DIV` 未测（RSQRT 原生可用，本分支不需要）。
 9. **性能**：本文无任何性能结论。
+
+---
+
+## D=896（Qwen2.5-0.5B 真实宽度）：三种均值实现对照（2026-11-13）
+
+起因：`bestkojima/mtk-npug-handoff` 的 `frontend.norm()` 用 **静态 FC 权重算均值**
+（`W[32,D]` 全部 = 1/D → `[T,32]` → CONCAT 复制 → 裁剪）来避开窄输出；源码还注明
+"第二个 `[32→D]` 扩张 FC 在真实 D2048 图上触发过 APUSYS I/O 错误"。
+我们在自己的栈（TFLite → ncc → MDLA）上把这三种实现都造了出来（`tools/build_rms896.py`）。
+
+| 变体 | 均值实现 | 编译 | 层数 | 板端 |
+|---|---|---|---|---|
+| **A（我们原来的）** | `MEAN(axis=-1, keep_dims)` + ADD eps | ❌ `ElementWiseAdd: input types are incompatible` | 1 | — |
+| **A0（去 eps）** | 同上，去掉 ADD | ❌ `RSqrt: output shape is incompatible` | 1 | — |
+| **B（他们的 tiled statistics）** | `FC[32,896]`(W=1/896) → `[T,32]` → **CONCAT ×28** → SLICE 裁剪 → RSQRT | ✅ EXIT=0 | **6** | ✅ |
+| **C（他们报告会出错的扩张 FC）** | `FC[32,896]` → `[T,32]` → **FC[896,32] 扩张** → RSQRT | ✅ EXIT=0 | 6 | ❌ 数值错（`rel_l2 0.82`，输出被压到 ±0.78，参考 ±4.4） |
+
+**B 的数值（独立 numpy 参考，fp16）**：
+
+| T | 编译 | 板端 | rel_l2 |
+|---|---|---|---|
+| 1 | EXIT=0（73.2 KB） | **PASS** | ~5e-4 量级 |
+| 8 | EXIT=0（72.6 KB） | **PASS** | 5.76e-04 |
+| 128 | EXIT=0（72.6 KB） | **PASS** | ~5e-4 量级 |
+
+### 结论（对我们这条栈的直接指导）
+
+1. **D=896 上，我们原来的 `MEAN` 方案编不过**（先 ADD 类型、后 RSQRT 形状），而
+   **FC-tile + CONCAT 能编、能跑、逐层数值正确** —— 这条 workaround 在我们的栈上同样成立；
+2. **扩张 FC 在 D=896 就已经数值错误**（他们把现象描述为 D2048 的 I/O 错误，
+   我们在 D896 看到的是"能跑但结果被压缩"），所以**不能用**；
+3. `MEAN` 在小宽度（D=64/128）可用、在大宽度不可用 —— 这是一个**宽度依赖的 bridge/形状问题**，
+   与 `docs/CAPABILITY.md` 的 16 字节行规则不是同一条（这里行宽 1792 B 早就满足）。
+
+### 复现
+
+```bash
+/usr/bin/python3 tools/build_rms896.py --variant B --T 8 --out ops/rms896_d896_T8_vB
+./tools/compile.sh ops/rms896_d896_T8_vB/model.tflite ops/rms896_d896_T8_vB/model.dla
+./tools/e2e.sh ops/rms896_d896_T8_vB
+```
