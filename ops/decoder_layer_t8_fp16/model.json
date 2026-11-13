@@ -357,5 +357,5 @@
   },
   "generator": "tools/build_decoder_layer.py",
   "tflite": "model.tflite",
-  "tflite_bytes": 29906972
+  "tflite_bytes": 29878152
 }

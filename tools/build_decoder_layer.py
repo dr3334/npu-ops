@@ -488,7 +488,7 @@ class G:
 
 def rmsnorm_nodes(g, x, name, gamma):
     """MUL(x,x) -> MEAN -> ADD eps -> RSQRT -> MUL(x) -> MUL(gamma)  (6 layers)."""
-    sq = g.mul(x, name + "_sq")
+    sq = g.mul(x, name + "_sq", b=x)      # MUL(x,x): same tensor twice is accepted (OP-rmsnorm 2.2)
     mean = g.mean_last(sq, name + "_mean")
     eps = g.const(name + "_eps", np.full((T, 1), EPS, np.float16))
     m_eps = g.add(mean, eps, name + "_mean_eps", (T, 1))
@@ -663,6 +663,8 @@ def main():
     ap.add_argument("--stage", choices=STAGES, default="out")
     ap.add_argument("--diag", action="store_true")
     ap.add_argument("--analyze", action="store_true")
+    ap.add_argument("--execcheck", action="store_true",
+                    help="run the built .tflite in numpy (wiring check) and compare to golden")
     ap.add_argument("--predict", action="store_true", help="print the layer budget only")
     a = ap.parse_args()
 
@@ -677,10 +679,12 @@ def main():
         return diag(a.out)
     if a.analyze:
         return analyze(a.out)
+    if a.execcheck:
+        return execcheck(a.out)
 
     P = fixture()
     x16 = input_hidden()
-    stage = "out" if a.variant != "full" else a.stage
+    stage = a.stage if a.variant == "full" else ("r1" if a.variant == "attn_half" else "out")
 
     if a.variant == "ffn_half":
         # the graph input is r1 (stored fp16), exactly what the first half would hand over
@@ -822,6 +826,129 @@ def main():
     return 0
 
 
+# ------------------------------------------------------- device-free graph checker
+import tflite as _tfl
+from tflite import BuiltinOperator as _BO          # opcode -> name, no hand-written table
+
+_OPNAME = {v: k for k, v in vars(_BO).items() if isinstance(v, int)}
+_OPTNAME = {v: k for k, v in vars(_tfl.BuiltinOptions).items() if isinstance(v, int)}
+
+
+def _opts(op):
+    """Rebind the builtin-options bytes onto the generated table class (typed access)."""
+    raw = op.BuiltinOptions()
+    if raw is None:
+        return None
+    cls = getattr(_tfl, _OPTNAME.get(op.BuiltinOptionsType(), ""), None)
+    if cls is None:
+        return None
+    t = cls()
+    t.Init(raw.Bytes, raw.Pos)
+    return t
+
+
+def _tinfo(t):
+    q = t.Quantization()
+    return (t.Name().decode() if t.Name() else "", list(t.ShapeAsNumpy()),
+            np.asarray(q.ScaleAsNumpy(), np.float64) if q is not None else np.array([]))
+
+
+def exec_graph(path, feed, trace=False):
+    """Evaluate the .tflite graph in numpy, straight from the flatbuffer.
+
+    This is a *wiring* check, not a numerical one: it reads the operator list, tensor
+    shapes and constant buffers out of the file and applies standard TFLite semantics.
+    It therefore catches the whole class of "compiles fine, wrong maths" bugs that
+    NOTES 10.2 / C4 warn about -- wrong opcode index, SPLIT input order, CONCAT input
+    order, a MUL wired to a constant instead of the second operand, missing TRANSPOSE,
+    reshape in the wrong order -- before spending a board cycle on them.
+    """
+    from tflite import Model
+    buf = open(path, "rb").read()
+    m = Model.GetRootAsModel(buf, 0)
+    sg = m.Subgraphs(0)
+    tensors, buffers = [], []
+    for i in range(sg.TensorsLength()):
+        t = sg.Tensors(i)
+        name, shape, _ = _tinfo(t)
+        b = m.Buffers(t.Buffer())
+        data = None
+        if b is not None and b.DataLength():
+            raw = bytes(b.DataAsNumpy())
+            dt = {0: np.float32, 1: np.float16, 2: np.int32, 3: np.uint8,
+                  9: np.int8, 7: np.int64}.get(t.Type())
+            data = np.frombuffer(raw, dtype=dt).reshape(shape).copy()
+        tensors.append({"name": name, "shape": shape, "data": data})
+    codes = [m.OperatorCodes(i).BuiltinCode() for i in range(m.OperatorCodesLength())]
+    vals = {}
+    for i in range(sg.InputsLength()):
+        ti = sg.Inputs(i)
+        vals[ti] = np.asarray(feed, np.float32).reshape(tensors[ti]["shape"])
+    out_idx = [sg.Outputs(i) for i in range(sg.OutputsLength())]
+
+    def get(i):
+        a = tensors[i]["data"]
+        return a if a is not None else vals[i]
+
+    def put(i, a):
+        vals[i] = np.asarray(a, np.float32)
+        if trace:
+            print("  %-28s %-16s max=%.5g rms=%.5g" % (
+                tensors[i]["name"], tensors[i]["shape"], np.abs(vals[i]).max(),
+                float(np.sqrt((vals[i].astype(np.float64) ** 2).mean()))))
+
+    def opt(op):
+        return _opts(op)
+
+    for k in range(sg.OperatorsLength()):
+        op = sg.Operators(k)
+        code = codes[op.OpcodeIndex()]
+        ins = [op.Inputs(j) for j in range(op.InputsLength())]
+        outs = [op.Outputs(j) for j in range(op.OutputsLength())]
+        nm = _OPNAME.get(code, "code%d" % code)
+        o = opt(op)
+        if nm in ("MUL", "ADD", "SUB"):
+            a, b = get(ins[0]), get(ins[1])
+            put(outs[0], {"MUL": a * b, "ADD": a + b, "SUB": a - b}[nm])
+        elif nm == "MEAN":
+            ax = tuple(int(x) for x in np.atleast_1d(get(ins[1])))
+            put(outs[0], get(ins[0]).mean(axis=ax, keepdims=bool(o.KeepDims())))
+        elif nm == "RSQRT":
+            put(outs[0], 1.0 / np.sqrt(get(ins[0])))
+        elif nm == "LOGISTIC":
+            put(outs[0], 1.0 / (1.0 + np.exp(-get(ins[0]).astype(np.float64))))
+        elif nm == "SOFTMAX":
+            v = get(ins[0]).astype(np.float64) * float(o.Beta())
+            v = v - v.max(axis=-1, keepdims=True)
+            e = np.exp(v)
+            put(outs[0], e / e.sum(axis=-1, keepdims=True))
+        elif nm == "FULLY_CONNECTED":
+            x, W, b = get(ins[0]), get(ins[1]), get(ins[2])
+            shp = x.shape
+            put(outs[0], (x.reshape(-1, shp[-1]) @ W.T + b).reshape(shp[:-1] + (W.shape[0],)))
+        elif nm == "RESHAPE":
+            put(outs[0], get(ins[0]).reshape(list(o.NewShapeAsNumpy())))
+        elif nm == "TRANSPOSE":
+            put(outs[0], np.transpose(get(ins[0]), tuple(int(p) for p in get(ins[1]))))
+        elif nm == "SPLIT":
+            ax = int(np.atleast_1d(get(ins[0]))[0])
+            parts = np.split(get(ins[1]), len(outs), axis=ax)
+            for ti, part in zip(outs, parts):
+                put(ti, part)
+        elif nm == "CONCATENATION":
+            put(outs[0], np.concatenate([get(i) for i in ins], axis=int(o.Axis())))
+        elif nm == "BATCH_MATMUL":
+            a, b = get(ins[0]), get(ins[1])
+            if o.AdjX():
+                a = np.swapaxes(a, -1, -2)
+            if o.AdjY():
+                b = np.swapaxes(b, -1, -2)
+            put(outs[0], a @ b)
+        else:
+            raise SystemExit("exec_graph: unsupported op %s (code %d)" % (nm, code))
+    return [vals[i] for i in out_idx]
+
+
 # -------------------------------------------------------------------- --analyze
 def analyze(op_dir):
     """Per-stage magnitudes / fp16 floor / reference precision.  Device-free, no board needed."""
@@ -870,6 +997,39 @@ def analyze(op_dir):
     return 0
 
 
+# -------------------------------------------------------------------- --execcheck
+def execcheck(op_dir):
+    """Evaluate the .tflite in numpy and compare with the registered golden.
+
+    Device-free, no ncc, no board.  Any wiring bug (see exec_graph) shows up here as a
+    large discrepancy, which is exactly the failure class ticket 09 must avoid burning
+    board time on (NOTES 10.2 / spec C4).
+    """
+    meta = json.load(open(os.path.join(op_dir, "model.json")))
+    x = np.fromfile(os.path.join(op_dir, "golden", "input.bin"), dtype=np.float16)
+    exp = np.fromfile(os.path.join(op_dir, "golden", "expected.bin"), dtype=np.float16)
+    shape = tuple(meta["inputs"][0]["shape"])
+    got = exec_graph(os.path.join(op_dir, "model.tflite"), x.reshape(shape).astype(np.float32))
+    if len(got) != 1:
+        raise SystemExit("expected exactly one graph output, got %d" % len(got))
+    g = np.asarray(got[0], np.float16).reshape(-1)
+    e = exp.reshape(-1)
+    if g.size != e.size:
+        print("FAIL size: graph %s vs golden %s" % (g.shape, e.shape))
+        return 1
+    mx = float(np.abs(e.astype(np.float64)).max())
+    d = np.abs(g.astype(np.float64) - e.astype(np.float64))
+    tol = 4 * float(np.spacing(np.float16(mx)))
+    print("numpy execution vs golden: max_abs=%.4e (%.2f ULP of max|out|, %.2f ULP of the "
+          "fp16 floor idea)  rmse=%.3e  rel_l2=%.3e  codes_same=%d/%d -> %s"
+          % (d.max(), d.max() / float(np.spacing(np.float16(mx))),
+             d.max() / tol, float(np.sqrt((d ** 2).mean())),
+             float(np.linalg.norm(d) / np.linalg.norm(e.astype(np.float64))),
+             int((g == e).sum()), e.size,
+             "WIRING OK (fp16 rounding level)" if d.max() <= tol else "WIRING MISMATCH"))
+    return 0 if d.max() <= tol else 1
+
+
 # ------------------------------------------------------------------------ --diag
 def diag(op_dir):
     meta = json.load(open(os.path.join(op_dir, "model.json")))
@@ -890,7 +1050,7 @@ def diag(op_dir):
 
     d = np.abs(dev.astype(np.float64) - exp.astype(np.float64))
     ok = bool(np.all(d <= atol + rtol * np.abs(exp.astype(np.float64))))
-    print("registered tolerance : atol=rtol=%.6g  threshold@max=%.6g" % (atol, rtol, thr))
+    print("registered tolerance : atol=%.6g rtol=%.6g  threshold@max=%.6g" % (atol, rtol, thr))
     print("device vs golden     : max_abs=%.4e (%.2f ULP, rel=%.3e)  rmse=%.3e  rel_l2=%.3e "
           "-> %s" % (d.max(), d.max() / ulp, d.max() / mx,
                      float(np.sqrt((d ** 2).mean())),
@@ -905,11 +1065,23 @@ def diag(op_dir):
         nf = float(np.abs(a1.astype(np.float64) - a2.astype(np.float64)).max())
         print("noise floor          : max|r1-r2| = %.4e  (%d/%d codes differing)"
               % (nf, int((a1 != a2).sum()), a1.size))
-    if meta.get("stage") == "out" and meta.get("variant") == "full":
-        sim = np.asarray(forward(x16, P, np.float32, True, "out")["out"], np.float16)
+    var = meta.get("variant", "full")
+    if var != "full" or meta.get("stage") == "out":
+        if var == "ffn_half":
+            r1_16 = np.asarray(np.fromfile(os.path.join(op_dir, "golden", "input.bin"),
+                                           dtype=np.float16)).reshape(T, D)
+            sim = np.asarray(forward_ffn(r1_16, P, np.float32, True),
+                             np.float16).reshape(-1)
+        elif var == "attn_half":
+            sim = np.asarray(forward(x16, P, np.float32, True, "r1")["r1"],
+                             np.float16).reshape(-1)
+        else:
+            sim = np.asarray(forward(x16, P, np.float32, True, "out")["out"],
+                             np.float16).reshape(-1)
         ds = np.abs(dev.astype(np.float64) - sim.astype(np.float64))
         print("device vs fp16 sim   : max_abs=%.4e (%.2f ULP)  identical=%d/%d"
               % (ds.max(), ds.max() / ulp, int((dev == sim).sum()), dev.size))
+    if var == "full" and meta.get("stage") == "out":
         ref, cfs = cf_variants(x16, P)
         print("device vs counterfactuals (must be >> threshold):")
         for name, cf in cfs.items():
