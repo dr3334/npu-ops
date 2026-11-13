@@ -50,7 +50,7 @@
     "activations": "int8, symmetric per-tensor (s = max|v|/127)",
     "bias": "int32 per-channel (s[n] = s_a * s_w[n])",
     "requant": "tools/quant_contract.py: two integer roundings, per-channel multipliers",
-    "builder": "tools/build_w4a8.py --w-bits 8"
+    "builder": "tools/build_w4a8.py --w-bits 8 --a-bits 8 --seam f16"
   },
   "fp32_ref": "out",
   "quality_criterion": {
@@ -60,10 +60,10 @@
   },
   "accuracy_vs_fp32": {
     "reference": "independent float64 chain (tools/build_w4a8.py chain_f32)",
-    "cosine": 0.8737824781355477,
-    "rel_l2": 0.9935991159403466,
-    "max_abs": 3.090306073748837,
-    "max_abs_over_maxabs_out": 1.0175658818038416,
+    "cosine": 0.8792695695186616,
+    "rel_l2": 1.2943664505770158,
+    "max_abs": 3.054786119100975,
+    "max_abs_over_maxabs_out": 1.0058699872515462,
     "out_scale": 0.023913064624179758,
     "one_code_real": 0.023913064624179758,
     "note": "int8 quantisation error of the whole 4W8A path, no device involved"
