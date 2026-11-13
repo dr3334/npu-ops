@@ -35,3 +35,5 @@ probe/npuadd_demo
 probe/npu_unop_demo
 probe/apusctl_run
 probe/assets/*_demo
+probe/npu_hold
+probe/apusctl
