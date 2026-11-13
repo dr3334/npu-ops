@@ -1,6 +1,6 @@
 # cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/qkv_v_bias_rope_t8_fp16/model.tflite -d ops/qkv_v_bias_rope_t8_fp16/model.dla
 # version: Version: 7.3.15
-# date: 2026-11-13T10:21:03+08:00
+# date: 2026-11-13T11:00:40+08:00
 
 ===Graph[0] has 1 Execution Step(s)===
 Graph[0] Step[0]
@@ -34,5 +34,5 @@ TargetExecutionOrder:
  └ MDLA_5_0
 
 EXIT=0
-SIZE=239768
-SHA256=e237fd9cf030f37bc6c3d821233f19925ed80651939bf518e5b3269be42c10d5
+SIZE=239769
+SHA256=71219f127990b3f1a4c8422b0667079693df681bb819eb2334ca1bdc10fa7346

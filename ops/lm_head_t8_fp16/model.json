@@ -59,9 +59,9 @@
     "dtype": "float16",
     "bytes": 272269312,
     "sha256": "40cdb3488dedade266d353dd674f2ed279dab6b7a4f3590bfbcb46f9bc859d7a",
-    "fixture_dir": "/mnt/d/deepseek_ workspace/mtk/wt-t08/weights/qwen25_frozen",
+    "fixture_dir": "/mnt/d/deepseek_ workspace/mtk/npu-ops/weights/qwen25_frozen",
     "weights_digest": "898fa3195d627a4ce055cbdb6fc762a12e74665b431e3ae09b530b4abdad18a4",
-    "load_seconds": 2.1
+    "load_seconds": 1.47
   },
   "tied_materialised_once": true,
   "constant_bytes": 272573184,
@@ -90,7 +90,7 @@
   },
   "int8_tol": 0,
   "golden": {
-    "seconds": 0.34,
+    "seconds": 0.52,
     "chunk_rows": 8192,
     "abs_max": 2.197265625,
     "min": -2.12109375,
@@ -108,6 +108,6 @@
     68067328
   ],
   "tflite_sha256": "327359ea38c6651ef109b773dadf54103333b46c6605676656ba4fc331ee9c2e",
-  "build_seconds": 0.55,
+  "build_seconds": 0.61,
   "builder": "build_lm_head.py"
 }

@@ -1,6 +1,6 @@
 # cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/pv_o_residual_t8_fp16/model.tflite -d ops/pv_o_residual_t8_fp16/model.dla
 # version: Version: 7.3.15
-# date: 2026-11-13T10:22:14+08:00
+# date: 2026-11-13T11:00:44+08:00
 
 ===Graph[0] has 1 Execution Step(s)===
 Graph[0] Step[0]
@@ -30,5 +30,5 @@ TargetExecutionOrder:
  └ MDLA_5_0
 
 EXIT=0
-SIZE=1630614
-SHA256=29d23db1346357337dff1df1d06820e368864756f33fbdda7f7a89ffcccb5b0b
+SIZE=1630615
+SHA256=5d962a1ee81a4ed73cc23c16a1b3a9737e5ba6ed61bb73a0057a9fb9b01fca80
