@@ -90,7 +90,9 @@ def find_output_by_vendor(bufdir, vendor, nbytes):
             if open(p, "rb").read(nbytes) == want:
                 base = f.replace("_post.bin", ".bin")
                 cand = os.path.join(bufdir, base)
-                if os.path.exists(cand):
+                # 只接受 4 KiB 的数据缓冲：抓取目录里还有 .dla 代码缓冲（几千字节），
+                # 它的前 256 字节可能与输出偶然相同，选错会把地址写进代码区。
+                if os.path.exists(cand) and os.path.getsize(cand) == 4096:
                     return cand
         except OSError:
             pass
