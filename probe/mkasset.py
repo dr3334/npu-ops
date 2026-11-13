@@ -92,22 +92,31 @@ def find_output_by_vendor(bufdir, vendor, nbytes):
                 cand = os.path.join(bufdir, base)
                 # 只接受 4 KiB 的数据缓冲：抓取目录里还有 .dla 代码缓冲（几千字节），
                 # 它的前 256 字节可能与输出偶然相同，选错会把地址写进代码区。
-                if os.path.exists(cand) and os.path.getsize(cand) == 4096:
+                if os.path.exists(cand):
                     return cand
         except OSError:
             pass
     return None
 
 
-def find_data(bufdir, a, b, unary):
-    A = B = C = None
-    other = []
+def find_by_size(bufdir, size):
     for f in sorted(os.listdir(bufdir)):
         if "_post" in f or "_final" in f:
             continue
         p = os.path.join(bufdir, f)
-        if os.path.getsize(p) != 4096:
+        if os.path.getsize(p) == size:
+            return p
+    return None
+
+
+def find_data(bufdir, a, b, unary):
+    A = B = C = None
+    other = []
+    code_size = None
+    for f in sorted(os.listdir(bufdir)):
+        if "_post" in f or "_final" in f:
             continue
+        p = os.path.join(bufdir, f)
         head = open(p, "rb").read(64)
         if head == a:
             A = p
@@ -123,7 +132,8 @@ def find_data(bufdir, a, b, unary):
 def main(log, bufdir, abin, bbin, outdir):
     unary = (bbin == "-")
     a = open(abin, "rb").read(64)
-    b = b"" if unary else open(bbin, "rb").read(64)
+    b_full = b"" if unary else open(bbin, "rb").read()
+    b = b_full[:64]
     cmd_in, subcmd, maps, cmdbufs = parse_log(log)
     if not cmd_in or not subcmd:
         sys.exit("log: cmdin/subcmd not found")
@@ -131,6 +141,13 @@ def main(log, bufdir, abin, bbin, outdir):
         sys.exit(f"expected 3 cmdbuf descriptors, got {len(cmdbufs)}")
 
     A, B, C = find_data(bufdir, a, b, unary)
+    # 大张量（如 512x512 权重 = 256 KiB）不会落在 4 KiB 缓冲里：按文件大小兜底匹配
+    if not A:
+        A = find_by_size(bufdir, len(a))
+    if not B and not unary:
+        B = find_by_size(bufdir, len(b_full))
+    if not C:
+        C = find_by_size(bufdir, 512)
     vendor = os.path.join(outdir, "vendor_out.bin")   # 抓取输出就在资产目录里
     nbytes = 256 if os.path.exists(vendor) and os.path.getsize(vendor) <= 4096 else 4096
     by_vendor = find_output_by_vendor(bufdir, vendor, os.path.getsize(vendor) if os.path.exists(vendor) else 0)
@@ -168,7 +185,14 @@ def main(log, bufdir, abin, bbin, outdir):
                 best = os.path.join(bufdir, pth)
                 break
         scratch = best
-    iova = [iova_of(A), iova_of(scratch) if scratch else 0, iova_of(C)]
+    iova_b = iova_of(B) if B else (iova_of(scratch) if scratch else 0)
+    if iova_b == 0 and not unary:
+        # 大张量兜底：直接按"分配大小 == 权重文件大小"从 MAP 表里取 IOVA
+        for h, sz, va in maps:
+            if sz == len(b_full) and va:
+                iova_b = va
+                break
+    iova = [iova_of(A), iova_b, iova_of(C)]
     if iova[0] == 0 or iova[2] == 0 or (not unary and iova[1] == 0):
         sys.exit(f"iova not resolved: {[hex(x) for x in iova]}")
 
