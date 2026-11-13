@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""4W8A (int4 weights / int8 activations): components + the whole decoder layer.
+"""4W8A / 8W8A (int4 or int8 weights / int8 activations): components + the layer.
 
-Ticket 04, ADR 0005.  Hard constraints encoded here (each re-confirmed in
-docs/OP-w4a8-layer.md):
+Ticket 04 (4W8A) and ticket 04c (8W8A, --w-bits 8).  ADR 0005.  The 8-bit tier is
+the same graph, same seam, same T: only the weight format and the per-channel
+weight scales change (int8 codes in [-127,127], s[n] = max|W[n,:]|/127).  Hard
+constraints encoded here (each re-confirmed in docs/OP-w4a8-layer.md):
 
   * int4 weights are packed the TFLite way: 2 codes/byte, element 2i in the LOW
     nibble, 2i+1 in the HIGH nibble (probe-w4a8 board run: the opposite order
@@ -25,6 +27,8 @@ Usage
     /usr/bin/python3 tools/build_w4a8.py --list
     /usr/bin/python3 tools/build_w4a8.py fc_proj --out ops/w4a8_fc_proj
     /usr/bin/python3 tools/build_w4a8.py layer   --out ops/decoder_layer_t16_w4a8
+    /usr/bin/python3 tools/build_w4a8.py layer --w-bits 8 --out ops/decoder_layer_t16_w8a8
+    /usr/bin/python3 tools/build_w4a8.py --weights-report     # per-matrix W error, 4 vs 8 bit
 """
 import argparse
 import json
@@ -42,6 +46,31 @@ import qwen25_weights as qw     # frozen fixture loader
 I4 = bo.S.TensorType.INT4
 I8 = bo.I8
 I32 = bo.I32
+
+# Ticket 04c: the ONLY knob that separates the two precision tiers.  4 -> int4
+# weights packed 2 codes/byte (ticket 04); 8 -> plain int8 codes, per-channel.
+# Set by --w-bits before any spec is built; every weight tensor, every scale and
+# every requant ratio below follows it, so the two tiers share one code path.
+W_BITS = 4
+
+
+FORM = "w4a8"      # "w4a8" | "w8a8"; kept in sync with W_BITS by --w-bits
+
+
+def wq_max(bits=None):
+    """Largest magnitude a symmetric weight code may take at this tier."""
+    return 7 if (bits or W_BITS) == 4 else 127
+
+
+def form_tag():
+    """Tier tag used in graph descriptions / default op dirs / model.json."""
+    return FORM
+
+
+def set_tier(bits):
+    global W_BITS, FORM
+    W_BITS = int(bits)
+    FORM = "w4a8" if W_BITS == 4 else "w8a8"
 
 T = 16
 D = 896
@@ -63,6 +92,17 @@ ADR_TOL = ("ADR 0005: the 4-bit tier does not promise bit-exactness; the operato
            "multipliers are outside reports/Q02-int8-bitexact.md (tensor-level only), "
            "so int8_tol=1.")
 
+TOL8 = ("ADR 0005 (2026-11-13 revision): the operator criterion applies to 8-bit and "
+        "wider -- |delta| <= 1 code AND cosine >= 0.9999. 8W8A uses int8 weights, "
+        "per-channel s[n]=max|W[n,:]|/127, int32 per-channel bias, and the two-step "
+        "requant of tools/quant_contract.py; int8_tol=1 is registered here (the ADR "
+        "allowance), while the ticket expects bit-exactness -- tools/compare.py prints "
+        "the exact counts, so 0 codes is reported as 0/14336, never inferred from PASS.")
+
+
+def tol_text():
+    return TOL8 if W_BITS == 8 else ADR_TOL
+
 
 # --------------------------------------------------------------- quantisation math
 def pack_i4(codes):
@@ -81,13 +121,31 @@ def s8(x):
     return np.clip(np.round(x / scale), -127, 127).astype(np.int8), scale
 
 
-def sw4(W):
-    """Symmetric per-output-channel int4 weights: codes[n,k] in [-8,7], scales[n]."""
+def sw_weights(W, bits=None):
+    """Symmetric per-output-channel weights for the active tier.
+
+    codes[n,k] in [-qmax,qmax] with qmax = 7 (int4) or 127 (int8),
+    scales[n] = max|W[n,:]| / qmax.  Only the mirror point and the divisor change
+    between the two tiers -- the packing below is the only other difference.
+
+    Note (ticket 04c): the division runs on the float64 scale, which is what
+    sw4() did for the FC component in ticket 04; the old inline copy in
+    q_fc_tables() divided by the float32 scale instead.  Both tiers now use ONE
+    rule, so the 4-bit layer/SwiGLU golden moves by ~1e-4 in cosine relative to
+    ticket 04 (see docs/OP-8w8a-layer.md 10) -- the measured device numbers in
+    this ticket were all produced with this single rule.
+    """
     W = np.asarray(W, np.float64)
-    sc = np.abs(W).max(axis=1) / 7.0
-    sc = np.maximum(sc, 1e-12)
-    q = np.clip(np.round(W / sc[:, None]), -8, 7).astype(np.int8)
+    qmax = wq_max(bits)
+    sc = np.maximum(np.abs(W).max(axis=1) / float(qmax), 1e-12)
+    q = np.clip(np.round(W / sc[:, None]), -qmax, qmax).astype(np.int8)
     return q, sc.astype(np.float32)
+
+
+def weight_bytes(codes):
+    """Bytes this weight tensor occupies on disk: int4 packs 2 codes/byte."""
+    codes = np.asarray(codes)
+    return int(pack_i4(codes).size) if W_BITS == 4 else int(codes.nbytes)
 
 
 def ratio_groups(ratios):
@@ -187,10 +245,21 @@ class GQ:
         return self._t(name, a.shape, I32, len(self.buffers) - 1)
 
     def const_i4(self, name, codes, scales, axis=0):
-        self.buffers.append(bo.buf_data(self.b, pack_i4(codes)))
-        return self._t(name, list(np.asarray(codes).shape), I4, len(self.buffers) - 1,
-                       list(np.asarray(scales, np.float32)),
-                       [0] * len(np.atleast_1d(scales)), axis=axis)
+        """Weight tensor in the ACTIVE tier format, per-channel scales on axis 0.
+
+        int4: packed 2 codes/byte (TFLite layout), tensor type INT4.
+        int8: raw int8 codes, tensor type INT8 -- the stock int8 FC weight form.
+        """
+        shp = list(np.asarray(codes).shape)
+        zps = [0] * len(np.atleast_1d(scales))
+        if W_BITS == 4:
+            self.buffers.append(bo.buf_data(self.b, pack_i4(codes)))
+            return self._t(name, shp, I4, len(self.buffers) - 1,
+                           list(np.asarray(scales, np.float32)), zps, axis=axis)
+        a = np.ascontiguousarray(np.asarray(codes, np.int8))
+        self.buffers.append(bo.buf_data(self.b, a))
+        return self._t(name, shp, I8, len(self.buffers) - 1,
+                       list(np.asarray(scales, np.float32)), zps, axis=axis)
 
     def act(self, name, shape, scale, zp=0, ttype=I8):
         return self._t(name, shape, ttype, 0, scale, zp)
@@ -200,7 +269,7 @@ class GQ:
         self.ops.append(bo.operator(self.b, len(self.opcodes) - 1, ins, outs, opt_type, opt))
 
     def fc_i4(self, inp, name, w_codes, w_scales, bias_q, s_a, out_scale, n, version=9):
-        """FULLY_CONNECTED with int4 per-channel weights + int32 per-channel bias."""
+        """FULLY_CONNECTED with per-channel weights of the ACTIVE tier + int32 bias."""
         tw = self.const_i4(name + "_W", w_codes, w_scales, axis=0)
         self.buffers.append(bo.buf_data(self.b, np.asarray(bias_q, np.int32)))
         tb = self._t(name + "_b", [len(bias_q)], I32, len(self.buffers) - 1,
@@ -224,22 +293,22 @@ class GQ:
 
 
 def w4a8_fc_tables(a_f64, W_f64, b_f64):
-    """Quantised operands + the per-channel requant tables for one 4W8A FC."""
+    """Quantised operands + the per-channel requant tables for one int8-activation FC."""
     a_i8, s_a = s8(a_f64)
-    w_i4, s_w = sw4(W_f64)
+    w_q, s_w = sw_weights(W_f64)
     bs = s_a * s_w.astype(np.float64)
     b_q = np.round(b_f64 / bs).astype(np.int32)
-    acc = a_i8.astype(np.int64) @ w_i4.astype(np.int64).T + b_q[None, :]
-    o_ref = (a_i8.astype(np.float64) * s_a) @ (w_i4.astype(np.float64) * s_w[:, None]).T + b_f64
+    acc = a_i8.astype(np.int64) @ w_q.astype(np.int64).T + b_q[None, :]
+    o_ref = (a_i8.astype(np.float64) * s_a) @ (w_q.astype(np.float64) * s_w[:, None]).T + b_f64
     s_o = float(np.abs(o_ref).max()) / 127.0
     ratios = bs / s_o
-    return dict(a_i8=a_i8, s_a=s_a, w_i4=w_i4, s_w=s_w, b_q=b_q, bs=bs,
+    return dict(a_i8=a_i8, s_a=s_a, w_q=w_q, s_w=s_w, b_q=b_q, bs=bs,
                 s_o=s_o, ratios=ratios, acc=acc, o_ref=o_ref)
 
 
 # ------------------------------------------------------------------- components
 def build_fc_proj(P):
-    """4W8A q_proj: n1 [T,896] int8 -> q [T,896] int8, int4 per-channel weights."""
+    """q_proj: n1 [T,896] int8 -> q [T,896] int8, per-channel weights at the active tier."""
     x = input_hidden(T).astype(np.float64)
     n1 = rmsnorm_f32(x, P["g1"].astype(np.float64))
     tb = w4a8_fc_tables(n1, P["Wq"].astype(np.float64), P["bq"].astype(np.float64))
@@ -247,18 +316,18 @@ def build_fc_proj(P):
 
     g = GQ()
     ta = g.act("input", (T, D), tb["s_a"])
-    t = g.fc_i4(ta, "out", tb["w_i4"], tb["s_w"], tb["b_q"], tb["s_a"], tb["s_o"], D)
-    blob = g.finish([ta], [t], "w4a8 q_proj T=%d" % T)
-    meta = dict(op="FULLY_CONNECTED", form="w4a8", shape={"T": T, "K": D, "N": D},
-                dtype="int8", weights_dtype="int4", ops_version=9,
+    t = g.fc_i4(ta, "out", tb["w_q"], tb["s_w"], tb["b_q"], tb["s_a"], tb["s_o"], D)
+    blob = g.finish([ta], [t], form_tag() + " q_proj T=%d" % T)
+    meta = dict(op="FULLY_CONNECTED", form=FORM, shape={"T": T, "K": D, "N": D},
+                dtype="int8", weights_dtype="int%d" % W_BITS, ops_version=9,
                 input={"name": "input", "shape": [T, D], "type": "int8"},
                 output={"name": "out", "shape": [T, D], "type": "int8"},
                 quant={"input": tb["s_a"], "output": tb["s_o"],
                        "weights_pc_min": float(tb["s_w"].min()),
                        "weights_pc_max": float(tb["s_w"].max()),
-                       "weights_bytes": int(pack_i4(tb["w_i4"]).size),
-                       "weights_int4_elems": int(tb["w_i4"].size)},
-                int8_tol=1, tolerance_rationale=ADR_TOL)
+                       "weights_bytes": weight_bytes(tb["w_q"]),
+                       "weights_elems": int(tb["w_q"].size)},
+                int8_tol=1, tolerance_rationale=tol_text())
     extra = dict(fp32=(n1 @ np.asarray(P["Wq"], np.float64).T
                        + np.asarray(P["bq"], np.float64)))
     return blob, meta, tb["a_i8"], out_q, extra
@@ -287,7 +356,7 @@ def build_probe_add_scales(P):
                 input={"name": "a", "shape": [T, 64], "type": "int8"},
                 output={"name": "out", "shape": [T, 64], "type": "int8"},
                 quant={"a": s_a, "b": s_b, "out": s_o}, int8_tol=1,
-                tolerance_rationale=ADR_TOL, dynamic_inputs=2)
+                tolerance_rationale=tol_text(), dynamic_inputs=2)
     return blob, meta, a, out, dict(second=b)
 
 
@@ -309,7 +378,7 @@ def build_probe_quantize(P):
                 input={"name": "input", "shape": [T, 64], "type": "int8"},
                 output={"name": "out", "shape": [T, 64], "type": "int8"},
                 quant={"input": s_a, "output": s_o}, int8_tol=1,
-                tolerance_rationale=ADR_TOL)
+                tolerance_rationale=tol_text())
     return blob, meta, a, out, {}
 
 
@@ -651,10 +720,9 @@ class QL(GQ):
 
 
 def q_fc_tables(a_codes, a_scale, W_f64, b_f64):
-    """int4 per-channel weights + int32 per-channel bias for one 4W8A FC."""
+    """Per-channel weights of the ACTIVE tier + int32 per-channel bias for one FC."""
     W = np.asarray(W_f64, np.float64)
-    s_w = np.maximum(np.abs(W).max(axis=1) / 7.0, 1e-12).astype(np.float32)
-    wq = np.clip(np.round(W / s_w[:, None]), -8, 7).astype(np.int8)
+    wq, s_w = sw_weights(W)
     bs = a_scale * s_w.astype(np.float64)
     b_q = np.round(np.asarray(b_f64, np.float64) / bs).astype(np.int32)
     o_ref = (a_codes.astype(np.float64) * a_scale) @ (wq.astype(np.float64) * s_w[:, None]).T \
@@ -686,13 +754,13 @@ def build_rmsnorm(P):
     g = QL()
     a = g.mk_in("input", (T, D), x_c, s_x)
     y = _rmsnorm5(g, a, P["g1"], "n1")
-    blob = g.finish([a.i], [y.i], "w4a8 int8 rmsnorm T=%d" % T)
-    meta = dict(op="RMSNORM", form="w4a8", shape={"T": T, "D": D}, dtype="int8",
+    blob = g.finish([a.i], [y.i], form_tag() + " int8 rmsnorm T=%d" % T)
+    meta = dict(op="RMSNORM", form=FORM, shape={"T": T, "D": D}, dtype="int8",
                 layers_expected=5, eps_register="dropped (constant-folded at int8), see ADR 0005",
                 input={"name": "input", "shape": [T, D], "type": "int8"},
                 output={"name": "out", "shape": [T, D], "type": "int8"},
                 quant={"input": s_x, "output": y.s}, int8_tol=1,
-                tolerance_rationale=ADR_TOL)
+                tolerance_rationale=tol_text())
     return blob, meta, x_c, y.c, dict(fp32=ch["n1"])
 
 
@@ -711,13 +779,13 @@ def build_swiglu(P):
     y = g.q_mul(s1, up, pick_scale(s1.real * up.real), "mlp_y")
     wd, swd, bqd, s_down, _ = q_fc_tables(y.c, y.s, P["Wd"], np.zeros(D))
     down = g.q_fc(y, wd, swd, bqd, s_down, D, "down")
-    blob = g.finish([a.i], [down.i], "w4a8 swiglu T=%d" % T)
-    meta = dict(op="SWIGLU", form="w4a8", shape={"T": T, "D": D, "I": INTER},
-                dtype="int8", weights_dtype="int4",
+    blob = g.finish([a.i], [down.i], form_tag() + " swiglu T=%d" % T)
+    meta = dict(op="SWIGLU", form=FORM, shape={"T": T, "D": D, "I": INTER},
+                dtype="int8", weights_dtype="int%d" % W_BITS,
                 input={"name": "input", "shape": [T, D], "type": "int8"},
                 output={"name": "out", "shape": [T, D], "type": "int8"},
                 quant={"input": s_a, "gate": s_gate, "up": s_up, "mlp_y": y.s,
-                       "output": down.s}, int8_tol=1, tolerance_rationale=ADR_TOL)
+                       "output": down.s}, int8_tol=1, tolerance_rationale=tol_text())
     return blob, meta, a_c, down.c, dict(fp32=ch["down"], y=y.c, s_y=y.s)
 
 
@@ -732,14 +800,14 @@ def build_bmm_qk(P):
     a = g.mk_in("a", (H, T, HD), q_c, s_q)
     b = g.mk_in("b", (H, T, HD), k_c, s_k)
     sc = g.q_bmm(a, b, s_s, "scores", adj_y=True)
-    blob = g.finish([a.i, b.i], [sc.i], "w4a8 int8 bmm qk T=%d" % T)
-    meta = dict(op="BATCH_MATMUL", form="w4a8", matmul="Q.K^T",
+    blob = g.finish([a.i, b.i], [sc.i], form_tag() + " int8 bmm qk T=%d" % T)
+    meta = dict(op="BATCH_MATMUL", form=FORM, matmul="Q.K^T",
                 shape={"H": H, "T": T, "HD": HD, "adj_y": 1}, dtype="int8",
                 inputs=[{"name": "a", "shape": [H, T, HD], "type": "int8"},
                         {"name": "b", "shape": [H, T, HD], "type": "int8"}],
                 output={"name": "scores", "shape": [H, T, T], "type": "int8"},
                 quant={"a": s_q, "b": s_k, "output": s_s}, int8_tol=1,
-                tolerance_rationale=ADR_TOL)
+                tolerance_rationale=tol_text())
     return blob, meta, q_c, sc.c, dict(second=k_c, fp32=ch["scores"])
 
 
@@ -755,14 +823,14 @@ def build_bmm_pv(P):
     a = g.mk_in("a", (H, T, T), p_c, 1.0 / 127.0)
     b = g.mk_in("b", (H, T, HD), v_c, s_v)
     o = g.q_bmm(a, b, s_o, "attn")
-    blob = g.finish([a.i, b.i], [o.i], "w4a8 int8 bmm pv T=%d" % T)
-    meta = dict(op="BATCH_MATMUL", form="w4a8", matmul="P.V",
+    blob = g.finish([a.i, b.i], [o.i], form_tag() + " int8 bmm pv T=%d" % T)
+    meta = dict(op="BATCH_MATMUL", form=FORM, matmul="P.V",
                 shape={"H": H, "T": T, "HD": HD}, dtype="int8",
                 inputs=[{"name": "a", "shape": [H, T, T], "type": "int8"},
                         {"name": "b", "shape": [H, T, HD], "type": "int8"}],
                 output={"name": "attn", "shape": [H, T, HD], "type": "int8"},
                 quant={"a": 1.0 / 127.0, "b": s_v, "output": s_o}, int8_tol=1,
-                tolerance_rationale=ADR_TOL)
+                tolerance_rationale=tol_text())
     return blob, meta, p_c, o.c, dict(second=v_c, fp32=a3)
 
 
@@ -874,16 +942,17 @@ def build_layer(P, upto="out"):
 
 def finish_layer(g, x, t, ch, stage):
     f16_out = isinstance(t, TF)
-    blob = g.finish([x.i], [t.i], "decoder layer qwen2.5-0.5b T=%d 4W8A (int4 W / int8 A)" % T)
+    blob = g.finish([x.i], [t.i], "decoder layer qwen2.5-0.5b T=%d %s (int%d W / int8 A)"
+                     % (T, FORM.upper(), W_BITS))
     if f16_out:
         shape, codes, s_o = list(t.v.shape), np.asarray(t.v, np.float16), None
         otype = "float16"
     else:
         shape, codes, s_o = list(t.c.shape), t.c, t.s
         otype = "int8"
-    meta = dict(op="DECODER_LAYER", form="w4a8", stage=stage,
+    meta = dict(op="DECODER_LAYER", form=FORM, stage=stage,
                 shape=dict(T=T, D=D, H=H, KV=KV, HD=HD, I=INTER),
-                dtype="int8", weights_dtype="int4",
+                dtype="int8", weights_dtype="int%d" % W_BITS,
                 input={"name": "x", "shape": [T, D], "type": "int8"},
                 output={"name": "out", "shape": shape, "type": otype},
                 quant={"input": x.s, "output": s_o}, int8_tol=2,
@@ -892,6 +961,8 @@ def finish_layer(g, x, t, ch, stage):
 
 
 LAYER_TOL = ("Register-before-run, before the first board run of this graph. Code level: "
+             "(unchanged from ticket 04 for both weight tiers: this layer contains the same "
+             "int8 RMSNorm chain and the same fp16<->int8 seam either way) "
              "int8_tol=2 because the layer contains the int8 RMSNorm chain (its RSQRT is a "
              "fixed-point LUT: docs/OP-rmsnorm.md 2.3 registers 4 codes for that chain, and "
              "the component run here measured max 2 codes on 6% of the values) plus one "
@@ -924,7 +995,7 @@ def diag(opdir):
     shape = tuple(meta["output"]["shape"])
     dev = dev.reshape(shape)
     s = float(meta["quant"]["output"])
-    key = meta.get("fp32_ref") or REF_KEY.get(meta.get("form") == "w4a8" and opdir.rstrip("/").split("_")[-1], "out")
+    key = meta.get("fp32_ref") or REF_KEY.get(opdir.rstrip("/").replace("\\", "/").split("/")[-1].split("_")[-1], "out")
     ref = fp32_ref(key, fixture())
     dq = dev.astype(np.float64) * s
     d = dq - ref.reshape(shape)
@@ -953,7 +1024,7 @@ def build_probe_dequant(P):
                 input={"name": "input", "shape": [T, 64], "type": "int8"},
                 output={"name": "out", "shape": [T, 64], "type": "float16"},
                 quant={"input": s, "output": None}, int8_tol=2,
-                tolerance_rationale=ADR_TOL)
+                tolerance_rationale=tol_text())
     return blob, meta, a, np.asarray(tf.v, np.float16), dict(fp32=a.astype(np.float64) * s)
 
 
@@ -973,7 +1044,7 @@ def build_probe_dequant_add(P):
                 input={"name": "input", "shape": [T, 64], "type": "int8"},
                 output={"name": "out", "shape": [T, 64], "type": "float16"},
                 quant={"input": s, "output": None}, int8_tol=2,
-                tolerance_rationale=ADR_TOL)
+                tolerance_rationale=tol_text())
     return blob, meta, a, np.asarray(tadd.v, np.float16), dict(fp32=a.astype(np.float64) * s + c.astype(np.float64))
 
 
@@ -994,7 +1065,7 @@ def _seam_probe(s_out):
                 input={"name": "scores", "shape": [H, T, T], "type": "int8"},
                 output={"name": "out", "shape": [H, T, T], "type": "float16"},
                 quant={"input": s8_, "output": None, "scaled_scale": s_out},
-                int8_tol=2, tolerance_rationale=ADR_TOL)
+                int8_tol=2, tolerance_rationale=tol_text())
     return blob, meta, c8, np.asarray(p.v, np.float16), dict(fp32=softmax_last(sc.real + mask))
 
 
@@ -1035,7 +1106,7 @@ def _seam_noreq(shape2d):
                 input={"name": "scores", "shape": list(shape), "type": "int8"},
                 output={"name": "out", "shape": list(shape), "type": "float16"},
                 quant={"input": s_out, "output": None}, int8_tol=2,
-                tolerance_rationale=ADR_TOL)
+                tolerance_rationale=tol_text())
     return blob, meta, codes[0] if shape2d else codes, np.asarray(p.v, np.float16), dict(fp32=ref)
 
 
@@ -1069,7 +1140,7 @@ def build_probe_pv_t8(P):
                         {"name": "b", "shape": [H, 8, HD], "type": "int8"}],
                 output={"name": "attn", "shape": [H, 8, HD], "type": "int8"},
                 quant={"a": s_a, "b": s_b, "output": 1.0 / 127.0}, int8_tol=1,
-                tolerance_rationale=ADR_TOL, expected="COMPILE_FAIL (16 B row rule)")
+                tolerance_rationale=tol_text(), expected="COMPILE_FAIL (16 B row rule)")
     return blob, meta, a, o.c, dict(second=b)
 
 
@@ -1083,16 +1154,86 @@ SPECS = {"fc_proj": build_fc_proj, "rmsnorm": build_rmsnorm, "swiglu": build_swi
          "probe_pv_t8": build_probe_pv_t8}
 
 
+def wq_chain():
+    """Weights quantised at the active tier, activations EXACT (float64 chain).
+
+    The attribution half of ticket 04c: chain_f32() is the independent reference,
+    so running it on dequantised weights isolates the weight error from the int8
+    activation error without touching the graph.  Compare with the layer golden's
+    cosine (which carries both) to see which side the remaining error sits on.
+    """
+    P = fixture()
+    Pq = dict(P)
+    for name in ("Wq", "Wk", "Wv", "Wo", "Wg", "Wu", "Wd"):
+        Wf = np.asarray(P[name], np.float64)
+        q, s = sw_weights(Wf)
+        Pq[name] = q.astype(np.float64) * s[:, None].astype(np.float64)
+    for bits in (4, 8):
+        set_tier(bits)
+        Pq = dict(P)
+        for name in ("Wq", "Wk", "Wv", "Wo", "Wg", "Wu", "Wd"):
+            Wf = np.asarray(P[name], np.float64)
+            q, s = sw_weights(Wf, bits)
+            Pq[name] = q.astype(np.float64) * s[:, None].astype(np.float64)
+        exact = chain_f32(P)
+        wq = chain_f32(Pq)
+        print("weights-only int%d: cosine(out)=%.7f  rel_l2(out)=%.4f%%  "
+              "cosine(down)=%.7f"
+              % (bits, cosine(wq["out"], exact["out"]),
+                 100.0 * float(np.linalg.norm(wq["out"] - exact["out"])
+                               / np.linalg.norm(exact["out"])),
+                 cosine(wq["down"], exact["down"])))
+    return 0
+
+
+def weight_error_table():
+    """Per-matrix weight quantisation error, int4 vs int8 (ticket 04c item 3).
+
+    Same per-output-channel symmetric scheme in both rows; the only difference is
+    the code range (-8..7 vs -127..127), i.e. exactly what --w-bits switches.
+    """
+    P = fixture()
+    mats = [("Wq", P["Wq"]), ("Wk", P["Wk"]), ("Wv", P["Wv"]), ("Wo", P["Wo"]),
+            ("Wg", P["Wg"]), ("Wu", P["Wu"]), ("Wd", P["Wd"])]
+    print("matrix      bits  codes      rel_l2      cosine    max_abs   params")
+    for bits in (4, 8):
+        for name, Wm in mats:
+            Wf = np.asarray(Wm, np.float64)
+            q, s = sw_weights(Wf, bits)
+            dq = q.astype(np.float64) * s[:, None].astype(np.float64)
+            rel = float(np.linalg.norm(dq - Wf) / np.linalg.norm(Wf))
+            print("%-10s  %2d  %d..%d  %8.4f%%  %9.7f  %8.4f  %d"
+                  % (name, bits, -wq_max(bits), wq_max(bits), 100.0 * rel,
+                     cosine(dq, Wf), float(np.abs(dq - Wf).max()), Wf.size))
+    ch = chain_f32(P)
+    a8, s_a = s8(ch["n1"])
+    print("(activation n1, per-tensor int8: rel_l2 %.4f%%)"
+          % (100.0 * float(np.linalg.norm(a8 * s_a - ch["n1"]) / np.linalg.norm(ch["n1"]))))
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("spec", nargs="?")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--out", default=None)
     ap.add_argument("--upto", default="out", choices=STAGES)
+    ap.add_argument("--w-bits", type=int, default=4, choices=(4, 8),
+                    help="weight precision tier: 4 = ticket 04 (int4 packed), "
+                         "8 = ticket 04c (int8 per-channel)")
+    ap.add_argument("--weights-report", action="store_true",
+                    help="print the per-matrix weight quantisation error, both tiers")
+    ap.add_argument("--wq-chain", action="store_true",
+                    help="cosine of the fp64 chain run on quantised weights only")
     ap.add_argument("--diag", action="store_true", help="compare out_device.bin to the fp32 chain")
     a = ap.parse_args()
+    set_tier(a.w_bits)
+    if a.weights_report:
+        return weight_error_table()
+    if a.wq_chain:
+        return wq_chain()
     if a.diag:
-        return diag(a.out or ("ops/w4a8_" + (a.spec or "layer")))
+        return diag(a.out or ("ops/%s_" % FORM + (a.spec or "layer")))
     if a.list or not a.spec:
         print(" ".join(SPECS))
         return 0
@@ -1100,7 +1241,7 @@ def main():
         raise SystemExit("unknown spec %s" % a.spec)
     fn = SPECS[a.spec]
     blob, meta, x, y, extra = fn(fixture(), a.upto) if a.spec == "layer" else fn(fixture())
-    d = a.out or ("ops/w4a8_" + a.spec)
+    d = a.out or ("ops/%s_" % FORM + a.spec)
     os.makedirs(os.path.join(d, "golden"), exist_ok=True)
     open(os.path.join(d, "model.tflite"), "wb").write(blob)
     x.tofile(os.path.join(d, "golden", "input.bin"))
@@ -1109,6 +1250,12 @@ def main():
         extra["second"].tofile(os.path.join(d, "golden", "input1.bin"))
     meta["tflite"] = "model.tflite"
     meta["tflite_bytes"] = len(blob)
+    meta["precision_tier"] = dict(
+        weights="int%d, symmetric per-output-channel" % W_BITS,
+        activations="int8, symmetric per-tensor (s = max|v|/127)",
+        bias="int32 per-channel (s[n] = s_a * s_w[n])",
+        requant="tools/quant_contract.py: two integer roundings, per-channel multipliers",
+        builder="tools/build_w4a8.py --w-bits %d" % W_BITS)
     if a.spec == "layer":
         meta["fp32_ref"] = STAGE_KEY[a.upto]
     elif a.spec in REF_KEY:

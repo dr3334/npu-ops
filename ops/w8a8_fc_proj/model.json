@@ -1,0 +1,63 @@
+{
+  "op": "FULLY_CONNECTED",
+  "form": "w8a8",
+  "shape": {
+    "T": 16,
+    "K": 896,
+    "N": 896
+  },
+  "dtype": "int8",
+  "weights_dtype": "int8",
+  "ops_version": 9,
+  "input": {
+    "name": "input",
+    "shape": [
+      16,
+      896
+    ],
+    "type": "int8"
+  },
+  "output": {
+    "name": "out",
+    "shape": [
+      16,
+      896
+    ],
+    "type": "int8"
+  },
+  "quant": {
+    "input": 0.008275823772916035,
+    "output": 0.20120934710087304,
+    "weights_pc_min": 0.0013908325927332044,
+    "weights_pc_max": 0.0027028482872992754,
+    "weights_bytes": 802816,
+    "weights_elems": 802816
+  },
+  "int8_tol": 1,
+  "tolerance_rationale": "ADR 0005 (2026-11-13 revision): the operator criterion applies to 8-bit and wider -- |delta| <= 1 code AND cosine >= 0.9999. 8W8A uses int8 weights, per-channel s[n]=max|W[n,:]|/127, int32 per-channel bias, and the two-step requant of tools/quant_contract.py; int8_tol=1 is registered here (the ADR allowance), while the ticket expects bit-exactness -- tools/compare.py prints the exact counts, so 0 codes is reported as 0/14336, never inferred from PASS.",
+  "tflite": "model.tflite",
+  "tflite_bytes": 828608,
+  "precision_tier": {
+    "weights": "int8, symmetric per-output-channel",
+    "activations": "int8, symmetric per-tensor (s = max|v|/127)",
+    "bias": "int32 per-channel (s[n] = s_a * s_w[n])",
+    "requant": "tools/quant_contract.py: two integer roundings, per-channel multipliers",
+    "builder": "tools/build_w4a8.py --w-bits 8"
+  },
+  "fp32_ref": "q_proj_pre_rope",
+  "quality_criterion": {
+    "cosine_min": 0.9999,
+    "source": "ADR 0005 (operator-level)",
+    "code_criterion": "device vs quantised golden: |delta| <= int8_tol codes"
+  },
+  "accuracy_vs_fp32": {
+    "reference": "independent float64 chain (tools/build_w4a8.py chain_f32)",
+    "cosine": 0.9999718248569212,
+    "rel_l2": 0.007506731940159593,
+    "max_abs": 0.11607110385741315,
+    "max_abs_over_maxabs_out": 0.004542222980122297,
+    "out_scale": 0.20120934710087304,
+    "one_code_real": 0.20120934710087304,
+    "note": "int8 quantisation error of the whole 4W8A path, no device involved"
+  }
+}

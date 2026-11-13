@@ -31,12 +31,19 @@
     "weights_pc_min": 0.02523367665708065,
     "weights_pc_max": 0.0490373894572258,
     "weights_bytes": 401408,
-    "weights_int4_elems": 802816
+    "weights_elems": 802816
   },
   "int8_tol": 1,
   "tolerance_rationale": "ADR 0005: the 4-bit tier does not promise bit-exactness; the operator criterion is |delta| <= 1 code and cosine >= 0.9999. Per-channel multipliers are outside reports/Q02-int8-bitexact.md (tensor-level only), so int8_tol=1.",
   "tflite": "model.tflite",
   "tflite_bytes": 427200,
+  "precision_tier": {
+    "weights": "int4, symmetric per-output-channel",
+    "activations": "int8, symmetric per-tensor (s = max|v|/127)",
+    "bias": "int32 per-channel (s[n] = s_a * s_w[n])",
+    "requant": "tools/quant_contract.py: two integer roundings, per-channel multipliers",
+    "builder": "tools/build_w4a8.py --w-bits 4"
+  },
   "fp32_ref": "q_proj_pre_rope",
   "quality_criterion": {
     "cosine_min": 0.9999,
