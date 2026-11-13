@@ -37,3 +37,6 @@ probe/apusctl_run
 probe/assets/*_demo
 probe/npu_hold
 probe/apusctl
+
+# 冻结权重夹具的数组产物（可由 tools/gen_qwen25_weights.py 逐字节复现；manifest.json 入库）
+*.npz
