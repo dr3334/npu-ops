@@ -20,7 +20,7 @@
 | 板端 | `compare.txt` **PASS**：max_abs **2.441e-04**（= max\|out\|=0.5264 处 **1 个 fp16 码**）、rmse 7.030e-05、rel_l2 5.476e-04 |
 | 噪声底 | **0.000e+00**（同一 `.dla`、同一输入连跑两次，输出**逐字节相同**，硬件确定性） |
 | 阈值 | 跑**之前**登记 `atol=2e-3, rtol=1e-2`（`tolerance_revision=repo-fp16-default`）；实测相对误差 4.64e-4，**比"噪声底退化后的最紧口径（3×1 ULP=1.39e-3）还小 3×**，事后未调阈值 |
-| 权重驻留实测 | 三个大张量各 **8,716,288 B（8.3125 MiB）**，合计 **26,148,864 B（24.94 MiB）**；`.tflite` 26,171,640 B、`.dla` 26,155,122 B；板端 push 26,155,122 B **0.68 s（36.7 MB/s）**；编译期表现为 `Static 24M`（DRAM），**不进 L1** |
+| 权重驻留实测 | 三个大张量各 **8,716,288 B（8.3125 MiB）**，合计 **26,148,864 B（24.94 MiB）**；`.tflite` 26,171,640 B、`.dla` 26,155,123 B；板端 push 26,155,123 B **0.68 s（36.7 MB/s）**；编译期表现为 `Static 24M`（DRAM），**不进 L1** |
 | 单次推理 | 2.155 ms/inf（run1）/ 2.226 ms/inf（run2），`-c 3` 平均，仅记录不作结论 |
 | 票面 checklist | **5/5**（§8） |
 
@@ -48,8 +48,10 @@
 | 产物 | bytes | sha256[:16] |
 |---|---|---|
 | `ops/swiglu_ffn_t8_fp16/model.tflite` | 26,171,640 | –（不入 git） |
-| `ops/swiglu_ffn_t8_fp16/model.dla` | 26,155,122 | `3c548ea09ad7e947` |
+| `ops/swiglu_ffn_t8_fp16/model.dla` | 26,155,123 | `3c548ea09ad7e947` |
 | `ops/_swiglu_ffn_t8_fp16_nosilu_ctrl/model.dla`（对照） | 26,154,484 | `0d66996a703c1425` |
+
+> **.dla 不可字节复现：同一 tflite 连编多次 SIZE/SHA256 会差几个字节，以该目录 model.compile.log 为准；回归只比数值**（上表 `.dla` bytes 即 `SIZE`）。
 
 设备状态门（AGENTS §3.4）：批**前** `healthcheck.sh --quick` → **PASS**，批**后** → **PASS**；
 批后 `dmesg | grep -E 'apusys.*(timeout|fail|error)|mdw.*(timeout|fail)'` → **0 行**。
@@ -148,7 +150,7 @@ Total Memory:
   DRAM: 24M
   L1:   228K
 EXIT=0
-SIZE=26155122
+SIZE=26155123
 ```
 
 **判定**：**P1、P3、P4 成立**。
@@ -162,8 +164,8 @@ SIZE=26155122
 3. **1 个 Execution Step、无 bridge、`Target: MDLA_5_0`**：`--disallow-bridge` 下 `EXIT=0`。
 4. **`Temp = 0`**：中间张量 `gate/up/sig/s/y`（各 `[8,4864]` fp16 = **77.8 KB**）全在片内，不落 DRAM；
    DRAM 只有 Input/Output 各 14 KB（`8·896·2`）与 **Static 24M**（三个权重张量）。
-5. **权重驻留不是"复制一份"**：`.tflite` 26,171,640 B、`.dla` 26,155,122 B，两者几乎相等
-   （dla 比 tflite 小 16,518 B = 去掉 flatbuffer 元数据）⇒ 权重是**原样搬进 `.dla` 的静态区**。
+5. **权重驻留不是"复制一份"**：`.tflite` 26,171,640 B、`.dla` 26,155,123 B，两者几乎相等
+   （dla 比 tflite 小 16,517 B = 去掉 flatbuffer 元数据）⇒ 权重是**原样搬进 `.dla` 的静态区**。
 
 ### 4.2 no-silu 对照：silu 的代价 = 恰好 2 层（回答"对层数的影响"）
 
@@ -233,12 +235,12 @@ PASS
 | **三个合计** | – | **26,148,864** | **24.9375** | – |
 | 三个零 bias（格式需要） | [4864]/[4864]/[896] | 11,264 | 0.011 | 0.04 % |
 | `.tflite` 全文件 | – | 26,171,640 | 24.96 | – |
-| `.dla` 全文件 | – | 26,155,122 | 24.94 | – |
+| `.dla` 全文件 | – | 26,155,123 | 24.94 | – |
 
 驻留方式（实测，不是推断）：
 
 - 编译期：`Static 24M`（DRAM），**L1 只用 228K** ⇒ 26 MB 权重**不进片内 SRAM**，每次推理从 DRAM 读；
-- 板端搬运：`adb push` 26,155,122 B **0.68 s（36.7 MB/s）**，`.dla` 就是权重的载体（tflite 与 dla 几乎同大小）；
+- 板端搬运：`adb push` 26,155,123 B **0.68 s（36.7 MB/s）**，`.dla` 就是权重的载体（tflite 与 dla 几乎同大小）；
 - 每层块的权重预算（给票 09/10）：一层 decoder 的 FFN 段 = **26.15 MB**；
   **24 层 = 627,572,736 B ≈ 598 MiB**（纯线性外推，未测），再加 embed/LM head 272 MB ⇒ 约 **860 MiB**；
   与 NOTES §6 的 `/data` 6.4 GB / 空闲 RAM ~273 MB 对照：**磁盘够、常驻内存不够**，整块/多层方案必须

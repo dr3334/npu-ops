@@ -24,7 +24,7 @@
 | 图 | `scores[14,8,8] --MUL(1/8 const)--> --ADD(mask)--> SOFTMAX(beta=1)--> probs[14,8,8]`（fp16） |
 | 掩码 | 有限负常数 **−4096 = −2¹²**（0 在可见位置），**加在 scale 之后**；−inf / −10000 均不用（§3.4） |
 | 两个运行时输入 | `input.bin` = 原始 `q·k`，`input1.bin` = 掩码 → 同一个 `.dla` 能跑"真掩码 / 双倍幅度 / 全 0"三档 |
-| 编译 | **EXIT=0**，`ElementWiseMulLayer + ElementWiseAddLayer + SoftMaxLayer`，**1 Execution Step @ MDLA_5_0**，无 bridge；`SIZE=5232`（常量掩码形态 `SIZE=6868`，同样 1 步） |
+| 编译 | **EXIT=0**，`ElementWiseMulLayer + ElementWiseAddLayer + SoftMaxLayer`，**1 Execution Step @ MDLA_5_0**，无 bridge；`SIZE=5233`（常量掩码形态 `SIZE=6868`，同样 1 步） |
 | 板端主判据 | `max_abs 4.883e-04`、`rmse 8.165e-05`、`rel_l2 3.125e-04`、nan/inf **0/0**、**PASS** |
 | 噪声底（同 .dla 同输入两次） | **0.000e+00**（0/896 个 fp16 code 不同）；再加 run1 vs run3 也是 0 |
 | 阈值 | `atol=1e-3` / `rtol=5e-3`（板端之前登记在 `model.json`；实测最大偏差是它的 1/2 与 1/7.6） |
@@ -221,11 +221,11 @@ ExecutionStep
    ├ SoftMaxLayer<2>{SOFTMAX}
    └ Output: OpResult (external)
 DRAM [0]: MDLA 5.0  Input 3.5K  Output 1.8K  Temp 0  Static 16  Code 1.4K  Total 6.7K
-EXIT=0   SIZE=5232   SHA256=cc3d62b9199efa1f…
+EXIT=0   SIZE=5233   SHA256=cc3d62b9199efa1f…
 ```
 
 常量掩码形态（`model_constmask.compile.log`）层清单**完全相同**、同样 1 步：`EXIT=0 SIZE=6868`。
-（`.dla` 的 SIZE/SHA256 只作"那一次产物"的标识，不是复现依据——`docs/OP-elementwise.md` 已实测同 tflite 连编三次哈希不同。）
+（**.dla 不可字节复现：同一 tflite 连编多次 SIZE/SHA256 会差几个字节，以该目录 model.compile.log 为准；回归只比数值**。`docs/OP-elementwise.md` 已实测同 tflite 连编三次哈希不同。）
 
 ### 4.2 板端主判据：`ops/masked_softmax_t8_fp16/compare.txt`
 

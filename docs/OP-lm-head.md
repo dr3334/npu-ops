@@ -14,7 +14,7 @@
 | **op / 图** | `ops/lm_head_t8_fp16`：`x[8,896] fp16` → **4×FC（N=37984，W = `embed.weight` tied，b = 0）** → **CONCAT(axis=1)** → `logits[8,151936] fp16` |
 | **单体 FC（N=151936）** | ❌ **编译期硬上限**（不是内存问题）：`MDLA: Dimension should be <= 65535. Operand: 1 got <151936 x 896>`，`EXIT=1`、无 `.dla`（`fail_monolithic.compile.log`） |
 | **边界探针** | `FC 8×896×65535` **EXIT=0**；`8×896×65536` **EXIT=1** ⇒ 上限恰为 **65535**；`CONCAT→[8,151936]` 与 `RESHAPE→[8,151936]` 都能编译（§4） |
-| **分块后编译** | `EXIT=0`、`Target: MDLA_5_0`、**1 个执行步 / 5 层**（4×FullyConnected + 1×Concat）、**无 bridge**、`.dla` **272,274,706 B**、29.8 s |
+| **分块后编译** | `EXIT=0`、`Target: MDLA_5_0`、**1 个执行步 / 5 层**（4×FullyConnected + 1×Concat）、**无 bridge**、`.dla` **272,274,707 B**、29.8 s |
 | **板端** | `compare.txt` **PASS**：`max_abs 9.766e-04`、`rmse 6.245e-06`、`rel_l2 1.368e-05`；相对口径 `max_abs/max|exp| = 4.44e-4`；**99.77% 逐位相同**、99.98% 在 1 ULP 内 |
 | **噪声底** | **0.000e+00**（3 次运行两两比较，121.5 万个数全等）⇒ 硬件确定性；阈值沿用**预登记**的 `atol=rtol=4.29153e-3`（`4·2^-11·max|exp|`，≈4.4 ULP @ max） |
 | **tied 只物化一份** | 加载器 `lm_head.weight is embed.weight` 断言通过 + 模型常量字节 = **272,269,312（权重）+ 303,872（零 bias）恰好一份**（`tied_materialised_once: true`） |
@@ -181,9 +181,11 @@ export NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock"
 | 模型 | 结果 | 证据 |
 |---|---|---|
 | 单体 `FC 8×896×151936` | **EXIT=1**，`Dimension should be <= 65535`（Operand 与 Result 各一条），`SIZE=0`、无 `.dla` | `ops/lm_head_t8_fp16/fail_monolithic.compile.log` |
-| **分块 ×4 + CONCAT** | **EXIT=0**，`1 Execution Step`、`Target: MDLA_5_0`、5 层（`FullyConnectedLayer<0..3>` + `ConcatLayer<4>`）、无 bridge、`DRAM Static 259M / Total 261M`、`SIZE=272,274,706`、29.8 s | `ops/lm_head_t8_fp16/model.compile.log` |
+| **分块 ×4 + CONCAT** | **EXIT=0**，`1 Execution Step`、`Target: MDLA_5_0`、5 层（`FullyConnectedLayer<0..3>` + `ConcatLayer<4>`）、无 bridge、`DRAM Static 259M / Total 261M`、`SIZE=272,274,707`、29.8 s | `ops/lm_head_t8_fp16/model.compile.log` |
 
-`.dla` 与 `.tflite` 体积比 = 272,274,706 / 272,574,824 = **0.9989**（预测 P3 的 ±2% 成立）。
+`.dla` 与 `.tflite` 体积比 = 272,274,707 / 272,574,824 = **0.9989**（预测 P3 的 ±2% 成立）。
+
+> **.dla 不可字节复现：同一 tflite 连编多次 SIZE/SHA256 会差几个字节，以该目录 model.compile.log 为准；回归只比数值**
 
 ### 4.2 边界探针（`ops/lm_head_t8_fp16/probe/`，全部 compile-only）
 
@@ -248,7 +250,7 @@ PASS
 | 项 | 字节 | 实测 | 速率 |
 |---|---|---|---|
 | 输入 `x` | 14,336（8×896×2） | push **87 ms** | — |
-| 模型 `.dla` | **272,274,706**（272.27 MB） | push **7,780 ms** | **35.0 MB/s** |
+| 模型 `.dla` | **272,274,707**（272.27 MB） | push **7,780 ms** | **35.0 MB/s** |
 | **输出 `logits`** | **2,430,976（2.43 MB）** | pull **215 ms** | 11.3 MB/s（adb 自报 24.7–26.7 MB/s） |
 | 一次推理 | — | **8.29–9.66 ms**（repeat 3：24.87 / 25.39 / 28.98 ms） | 113–116 FPS |
 
