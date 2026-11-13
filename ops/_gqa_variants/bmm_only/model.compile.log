@@ -1,0 +1,30 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/_gqa_variants/bmm_only/model.tflite -d ops/_gqa_variants/bmm_only/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T10:19:03+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ TransposeLayer<0>{TRANSPOSE}
+   ├ TransposeLayer<1>{TRANSPOSE}
+   ├ BatchMatMulLayer<2>{BATCH_MATMUL}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     28K    1.8K    0     0       5.5K  35K
+
+Total Memory:
+  DRAM: 35K
+  L1:   28K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=10962
+SHA256=80f2f665b0344a20cdf7dcd6c5a3125397399fb2d132f462116454577c0a6b2e
