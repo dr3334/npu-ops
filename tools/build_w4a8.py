@@ -192,7 +192,8 @@ def cosine(a, b):
 # harness on the REAL weights before the tier decision is locked.  Nothing but the
 # weight values and the input rows change: same graph, same seam, same T, same
 # per-channel rule (s[n] = max|W[n,:]| / 127 for int8).
-SRC = "fixture"          # "fixture" | "real"; set by --weights
+SRC = "fixture"          # weight source: "fixture" | "real"; set by --weights
+IN_SRC = "same"          # input rows: "same" (follow SRC) | "fixture" | "real" (--input)
 REAL_DEFAULT = "/mnt/d/ai/Qwen2.5-0.5B-Instruct/model.safetensors"
 REAL_PREFIX = "model.layers.0."
 REAL_KEYS = dict(Wq="self_attn.q_proj.weight", bq="self_attn.q_proj.bias",
@@ -209,6 +210,11 @@ _real_cache = {}
 def set_source(src):
     global SRC
     SRC = src
+
+
+def set_input(src):
+    global IN_SRC
+    IN_SRC = src
 
 
 def real_path():
@@ -275,8 +281,15 @@ def real():
 
 
 def emb_weight():
-    """The embedding table the input rows come from (real checkpoint or fixture)."""
-    return real()["emb"] if SRC == "real" else qw.get("embed.weight")
+    """The embedding table the INPUT rows come from.
+
+    Defaults to the weight source.  --input splits the two on purpose (ticket 04e
+    ablation): the fixture weights on ONE side and the fixture input rows on the
+    other are different things, and only running them apart says whether the real
+    numbers are driven by the weight values or by the outlier-laden embedding rows.
+    """
+    src = SRC if IN_SRC == "same" else IN_SRC
+    return real()["emb"] if src == "real" else qw.get("embed.weight")
 
 
 # ------------------------------------------------------------------------- fixture
@@ -1093,27 +1106,41 @@ def fp32_ref(key, P):
 def diag(opdir):
     """Compare a board dump against the INDEPENDENT float64 chain.
 
-    This is the accuracy half of the two-layer criterion (ADR 0005); the code-level
-    device-vs-golden half is tools/compare.py's job.
+    Two numbers decide the tier:
+      cos(device, fp64)   the accuracy half of ADR 0005 (>= 0.9999);
+      cos(golden, fp64)   what the quantisation scheme itself costs, plus
+      |cos(device) - cos(golden)| <= 0.003, whether the device is faithful to the
+      quantised model (the ADR 2026-11-13 revision; noise floor is 0 codes here, so
+      every code difference is a model difference, not jitter).
+    Handles the fp16 stages (--upto probs ends on the fp16 side of the seam).
     """
     meta = json.load(open(os.path.join(opdir, "model.json")))
-    dev = np.fromfile(os.path.join(opdir, "out_device.bin"), np.int8)
     shape = tuple(meta["output"]["shape"])
-    dev = dev.reshape(shape)
-    s = float(meta["quant"]["output"])
-    key = meta.get("fp32_ref") or REF_KEY.get(opdir.rstrip("/").replace("\\", "/").split("/")[-1].split("_")[-1], "out")
-    ref = fp32_ref(key, fixture())
-    dq = dev.astype(np.float64) * s
-    d = dq - ref.reshape(shape)
-    cos = cosine(dq, ref)
+    f16 = meta["output"]["type"] == "float16"
+    dt = np.float16 if f16 else np.int8
+    dev = np.fromfile(os.path.join(opdir, "out_device.bin"), dt).reshape(shape)
+    exp = np.fromfile(os.path.join(opdir, "golden", "expected.bin"), dt).reshape(shape)
+    s = meta["quant"]["output"]
+    dec = (lambda a: a.astype(np.float64)) if s is None else \
+        (lambda a: a.astype(np.float64) * float(s))
+    key = meta.get("fp32_ref") or REF_KEY.get(
+        opdir.rstrip("/").replace("\\", "/").split("/")[-1].split("_")[-1], "out")
+    ref = fp32_ref(key, fixture()).reshape(shape)
+    dq, gq = dec(dev), dec(exp)
+    d = dq - ref
+    cos, cosg = cosine(dq, ref), cosine(gq, ref)
     rel = float(np.linalg.norm(d) / max(np.linalg.norm(ref), 1e-30))
-    print("op            : %s stage=%s" % (meta["op"], meta.get("stage", "-")))
+    relg = float(np.linalg.norm(gq - ref) / max(np.linalg.norm(ref), 1e-30))
+    print("op            : %s stage=%s  out=%s"
+          % (meta["op"], meta.get("stage", "-"), meta["output"]["type"]))
     print("fp32 ref      : %s  max|ref| %.4g" % (key, np.abs(ref).max()))
-    print("1 code (real) : %.4e" % s)
-    print("max_abs       : %.4e  = %.1f codes" % (np.abs(d).max(), np.abs(d).max() / s))
-    print("rel_l2        : %.4e" % rel)
-    print("cosine        : %.7f   (ADR 0005 operator criterion: >= 0.9999)"
-          % cos)
+    print("1 code (real) : %s" % ("fp16 storage" if s is None else "%.4e" % float(s)))
+    print("rel_l2        : device %.4e   golden %.4e" % (rel, relg))
+    print("cosine        : device %.7f   golden %.7f   |diff| %.4f"
+          % (cos, cosg, abs(cos - cosg)))
+    print("verdict       : cosine>=0.9999 %s   |device-golden|<=0.003 %s"
+          % ("PASS" if cos >= 0.9999 else "FAIL",
+             "PASS" if abs(cos - cosg) <= 0.003 else "FAIL"))
     return 0
 
 
@@ -1375,6 +1402,9 @@ def main():
     ap.add_argument("--w-bits", type=int, default=4, choices=(4, 8),
                     help="weight precision tier: 4 = ticket 04 (int4 packed), "
                          "8 = ticket 04c (int8 per-channel)")
+    ap.add_argument("--input", default="same", choices=("same", "fixture", "real"),
+                    help="input rows for the T=16 batch: embedding rows of the real "
+                         "checkpoint or of the fixture (default: follow --weights)")
     ap.add_argument("--weights", default="fixture", choices=("fixture", "real"),
                     help="fixture = frozen ticket-02 fixture; real = real "
                          "Qwen2.5-0.5B-Instruct layer 0, read-only (ticket 04e)")
@@ -1385,15 +1415,23 @@ def main():
     ap.add_argument("--stages", action="store_true",
                     help="device-free stage table: quantised golden vs the fp64 chain")
     ap.add_argument("--diag", action="store_true", help="compare out_device.bin to the fp32 chain")
+    ap.add_argument("--device-report", nargs="+", default=None, metavar="DIR",
+                    help="per-dir device vs fp64 table (uses --weights for the reference)")
     a = ap.parse_args()
     set_tier(a.w_bits)
     set_source(a.weights)
+    set_input(a.input)
     if a.stages:
         return stage_report()
     if a.weights_report:
         return weight_error_table()
     if a.wq_chain:
         return wq_chain()
+    if a.device_report:
+        for d in a.device_report:
+            diag(d)
+            print()
+        return 0
     if a.diag:
         return diag(a.out or ("ops/%s_" % FORM + (a.spec or "layer")))
     if a.list or not a.spec:
@@ -1417,7 +1455,8 @@ def main():
         fixture=("weights/qwen25_frozen (ticket 02 frozen fixture)" if SRC == "fixture" else None),
         safetensors=(real_path() if SRC == "real" else None),
         safetensors_dtype=(real()["_dtype"] if SRC == "real" else None),
-        input_rows=("embedding rows of token ids %s" % token_ids(T)))
+        input_rows=("embedding rows of token ids %s" % token_ids(T)),
+        input_source=(SRC if IN_SRC == "same" else IN_SRC))
     meta["precision_tier"] = dict(
         weights="int%d, symmetric per-output-channel" % W_BITS,
         activations="int8, symmetric per-tensor (s = max|v|/127)",
