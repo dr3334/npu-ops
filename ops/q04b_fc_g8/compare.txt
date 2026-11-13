@@ -1,0 +1,5 @@
+op        : FULLY_CONNECTED {'T': 16, 'K': 896, 'N': 896, 'G': 8, 'group_size': 112}  dtype=int8
+expected  : 14336 vals   device: 14336 vals   logical shape=(16, 896)
+exact     : YES   mismatched=0/14336
+contract  : int8_tol=1  max_abs_diff=0  fraction_off=0.0000%
+PASS

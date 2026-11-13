@@ -1,0 +1,146 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/q04b_layer_g4/model.tflite -d ops/q04b_layer_g4/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T14:10:42+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ ElementWiseMulLayer<0>{MUL}
+   ├ MeanLayer<1>{MEAN}
+   ├ RSqrtLayer<2>{RSQRT}
+   ├ ElementWiseMulLayer<3>{MUL}
+   ├ ElementWiseMulLayer<4>{MUL}
+   ├ SliceLayer<5>{SPLIT}
+   ├ FullyConnectedLayer<38>{FULLY_CONNECTED}
+   ├ FullyConnectedLayer<22>{FULLY_CONNECTED}
+   ├ FullyConnectedLayer<6>{FULLY_CONNECTED}
+   ├ SliceLayer<5>{SPLIT}
+   ├ FullyConnectedLayer<39>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<40>{ADD}
+   ├ FullyConnectedLayer<23>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<24>{ADD}
+   ├ FullyConnectedLayer<7>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<8>{ADD}
+   ├ SliceLayer<5>{SPLIT}
+   ├ FullyConnectedLayer<41>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<42>{ADD}
+   ├ FullyConnectedLayer<25>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<26>{ADD}
+   ├ FullyConnectedLayer<9>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<10>{ADD}
+   ├ SliceLayer<5>{SPLIT}
+   ├ FullyConnectedLayer<43>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<44>{ADD}
+   ├ ReshapeLayer<45>{RESHAPE}
+   ├ SliceLayer<48>{SPLIT}
+   ├ SliceLayer<48>{SPLIT}
+   ├ ConcatLayer<49>{CONCATENATION}
+   ├ TransposeLayer<52>{TRANSPOSE}
+   ├ FullyConnectedLayer<27>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<28>{ADD}
+   ├ ReshapeLayer<29>{RESHAPE}
+   ├ SliceLayer<30>{SPLIT}
+   ├ ElementWiseMulLayer<35>{MUL}
+   ├ ElementWiseMulLayer<31>{MUL}
+   ├ SliceLayer<30>{SPLIT}
+   ├ ElementWiseMulLayer<34>{MUL}
+   ├ ElementWiseAddLayer<36>{ADD}
+   ├ ElementWiseMulLayer<32>{MUL}
+   ├ ElementWiseSubLayer<33>{SUB}
+   ├ ConcatLayer<37>{CONCATENATION}
+   ├ SliceLayer<46>{SPLIT}
+   ├ SliceLayer<46>{SPLIT}
+   ├ ConcatLayer<47>{CONCATENATION}
+   ├ TransposeLayer<51>{TRANSPOSE}
+   ├ FullyConnectedLayer<11>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<12>{ADD}
+   ├ ReshapeLayer<13>{RESHAPE}
+   ├ SliceLayer<14>{SPLIT}
+   ├ ElementWiseMulLayer<19>{MUL}
+   ├ ElementWiseMulLayer<15>{MUL}
+   ├ SliceLayer<14>{SPLIT}
+   ├ ElementWiseMulLayer<18>{MUL}
+   ├ ElementWiseAddLayer<20>{ADD}
+   ├ ElementWiseMulLayer<16>{MUL}
+   ├ ElementWiseSubLayer<17>{SUB}
+   ├ ConcatLayer<21>{CONCATENATION}
+   ├ TransposeLayer<50>{TRANSPOSE}
+   ├ BatchMatMulLayer<53>{BATCH_MATMUL}
+   ├ DequantizeLayer<54>{DEQUANTIZE}
+   ├ ElementWiseMulLayer<55>{MUL}
+   ├ ElementWiseAddLayer<56>{ADD}
+   ├ SoftMaxLayer<57>{SOFTMAX}
+   ├ QuantizeLayer<58>{QUANTIZE}
+   ├ BatchMatMulLayer<59>{BATCH_MATMUL}
+   ├ TransposeLayer<60>{TRANSPOSE}
+   ├ ReshapeLayer<61>{RESHAPE}
+   ├ SliceLayer<62>{SPLIT}
+   ├ FullyConnectedLayer<63>{FULLY_CONNECTED}
+   ├ SliceLayer<62>{SPLIT}
+   ├ FullyConnectedLayer<64>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<65>{ADD}
+   ├ SliceLayer<62>{SPLIT}
+   ├ FullyConnectedLayer<66>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<67>{ADD}
+   ├ SliceLayer<62>{SPLIT}
+   ├ FullyConnectedLayer<68>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<69>{ADD}
+   ├ ElementWiseAddLayer<70>{ADD}
+   ├ ElementWiseMulLayer<71>{MUL}
+   ├ MeanLayer<72>{MEAN}
+   ├ RSqrtLayer<73>{RSQRT}
+   ├ ElementWiseMulLayer<74>{MUL}
+   ├ ElementWiseMulLayer<75>{MUL}
+   ├ SliceLayer<76>{SPLIT}
+   ├ FullyConnectedLayer<84>{FULLY_CONNECTED}
+   ├ FullyConnectedLayer<77>{FULLY_CONNECTED}
+   ├ SliceLayer<76>{SPLIT}
+   ├ FullyConnectedLayer<85>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<86>{ADD}
+   ├ FullyConnectedLayer<78>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<79>{ADD}
+   ├ SliceLayer<76>{SPLIT}
+   ├ FullyConnectedLayer<87>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<88>{ADD}
+   ├ FullyConnectedLayer<80>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<81>{ADD}
+   ├ SliceLayer<76>{SPLIT}
+   ├ FullyConnectedLayer<89>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<90>{ADD}
+   ├ FullyConnectedLayer<82>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<83>{ADD}
+   ├ SigmoidLayer<91>{LOGISTIC}
+   ├ ElementWiseMulLayer<92>{MUL}
+   ├ ElementWiseMulLayer<93>{MUL}
+   ├ SliceLayer<94>{SPLIT}
+   ├ FullyConnectedLayer<95>{FULLY_CONNECTED}
+   ├ SliceLayer<94>{SPLIT}
+   ├ FullyConnectedLayer<96>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<97>{ADD}
+   ├ SliceLayer<94>{SPLIT}
+   ├ FullyConnectedLayer<98>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<99>{ADD}
+   ├ SliceLayer<94>{SPLIT}
+   ├ FullyConnectedLayer<100>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<101>{ADD}
+   ├ ElementWiseAddLayer<102>{ADD}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     14K    14K     0     7.4M    49K   7.5M
+
+Total Memory:
+  DRAM: 7.5M
+  L1:   712K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=7913187
+SHA256=a0eccad7cf36c1df3814393ac9bceaf7924a9db0fc85bfc585714721e59f73ec
