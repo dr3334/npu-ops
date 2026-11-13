@@ -1,5 +1,5 @@
 op        : FULLY_CONNECTED {'M': 1, 'K': 128, 'N': 128}  dtype=int8
 expected  : 128 vals   device: 128 vals   logical shape=(1, 128)
 exact     : YES   mismatched=0/128
-contract  : int8_tol=1  max_abs_diff=0  fraction_off=0.0000%
+contract  : int8_tol=0  max_abs_diff=0  fraction_off=0.0000%
 PASS

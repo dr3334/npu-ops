@@ -49,7 +49,7 @@
   "reference": "int64_exact_requant",
   "score": "repro",
   "seed": 20261112,
-  "int8_tol": 1,
+  "int8_tol": 0,
   "spec": "bmm_qk_t16_int8_full",
   "tflite": "model.tflite",
   "tflite_bytes": 616

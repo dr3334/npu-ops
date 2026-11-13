@@ -43,7 +43,9 @@ T ∈ {8, 16, 32}；int8 与 fp16。工具链 ncc-tflite **7.3.15** / mdla5.0 / 
 
 - int8 `codes=small`（码值 ∈ {−1,0,1}，`out_scale = s_in·s_w` → 乘子恰为 1）→ `int8_tol=0`（逐位）。
   ±1 码值就是 AGENTS §3.2 的"基向量判布局"：转置/偏移错误无法存活。
-- int8 `codes=full`（全量程，乘子 1/32）→ 按 OP-MATRIX §3 的两次舍入规则登记 `int8_tol=1`。
+- int8 `codes=full`（全量程，乘子 1/32）→ golden 按 OP-MATRIX §3 的两次舍入规则实现
+  （`tools/quant_contract.py`），乘子取整（1/32 → M0=2³⁰, shift=−4），因此也是 `int8_tol=0`：
+  全量程档 17 个 op / 132 688 个板端值重放 **0 失配**（`reports/Q02-int8-bitexact.md`）。
 - fp16 → `atol=1e-2, rtol=3e-2`（K 项 fp16 累加的相对误差上界 ≈ K·2⁻¹¹ = 64·4.9e-4 ≈ 3.1e-2）。
 
 复现：

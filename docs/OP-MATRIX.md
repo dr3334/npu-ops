@@ -43,6 +43,14 @@
   out = RoundingDivideByPOT( round_half_up(acc * M0 / 2^31), shift )    # 两次舍入
   ```
   在 6912 个已记录值 / 6 个乘子上 0 失配；对未见乘子预测 0/512。这解释了 FC 全量程档的 ±1 LSB（E-003）。
+- **golden 必须与设备用同一条规则**（票 02 已落地）：实现是 `tools/quant_contract.py`，
+  FC / BMM / 动态权重 FC 的 builder 都调它；离线重放器是 `tools/verify_int8_requant.py`，
+  证据在 `reports/Q02-int8-bitexact.md`。两条硬约束：
+  - **M0 取整乘子**（1 → M0=2³⁰/shift=+1，1/32 → M0=2³⁰/shift=−4），不要从 float32 scale 乘积反算：
+    那个是 `1/32·(1+1.1e-8)`，QuantizeMultiplier 给 1073741840，在 145 296 个值上比整乘子多 69 个失配。
+  - 单次 `np.round(acc·ratio)` 不行：精确 1/32 的单次舍入在 145 296 个值上差 127 个（这就是旧的 ±1）。
+- **FC / BMM 的 int8 已无 ±1**：两个码档（乘子 1 与 1/32）在 35 个 op / 145 296 个板端值上 **0 失配**，
+  `int8_tol` 一律 0。"全量程 requant 允许 `int8_tol=1`"这句话只对 conv 的旧 rational golden 还成立（见 `docs/OP-convpool.md` §5）。
 - **AVG_POOL 用另一条规则**：对"有效元素个数"做一次 round-half-up（padding 不计入分母；
   把 padding 计入会在 432/1024 上被证伪）。
 - `fp16` 层的差异普遍是"1 个 fp16 code"，不是算法差异。
@@ -148,7 +156,9 @@ o     = p·v     ← BATCH_MATMUL(PV T=16)        mismatch 0/1024
 | 1 × **8192 × 8192** | **64 MB** | EXIT=0 | 2/8192 差 1 code | PASS |
 
 结论：**单算子 FC 在 64 MB 权重、8192×8192 的规模上依然能编译并在 MDLA 上正确执行**；
-偏差全部是 ±1 code 的 requant 舍入（`int8_tol=1` 契约），没有结构性失败。
+偏差全部是 ±1 code 的 requant 舍入，没有结构性失败。
+（表里那几行 "差 1 code" 是**旧 golden**（单次舍入）的结果；换成 §3 的两次舍入后同一批 dump 全部 0，
+见 `reports/Q02-int8-bitexact.md`。）
 
 ### 自建提交器跑大 FC：卡在映射域
 
