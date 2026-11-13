@@ -21,3 +21,17 @@ __pycache__/
 # keep these (they are small evidence):
 #   ops/*/model.json  ops/*/model.compile.log  ops/*/compare.txt  ops/*/e2e.json
 #   probe/io.log  probe/trace_*.txt  probe/mem_ioctl.dis
+
+# 编译出来的探针二进制（源码在，随时可用 NDK 重建）
+probe/npu_attn16_demo
+probe/npu_attn_demo
+probe/npu_sm_check
+probe/npu_fcc_demo
+probe/npu_fc_demo
+probe/npu_fc512_demo
+probe/npu_fc1024_demo
+probe/npu_binop_demo
+probe/npuadd_demo
+probe/npu_unop_demo
+probe/apusctl_run
+probe/assets/*_demo
