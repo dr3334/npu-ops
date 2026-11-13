@@ -308,6 +308,7 @@ static int apu_alloc_map(buf_t *b, uint32_t size, uint32_t align, int do_map) {
   mem_args_t m;
   memset(&m, 0, sizeof(m));
   put32(&m, 0, 0); put32(&m, 16, 0); put32(&m, 20, size); put32(&m, 24, align);
+
   if (ioctl(g_fd, APU_MEM, &m) < 0) { perror("mem alloc"); return -1; }
   memset(b, 0, sizeof(*b));
   b->handle = get64(&m, 0);
@@ -466,6 +467,12 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
   }
 
   /* 写回主机 -> 设备前同步 A/B（START|WRITE + END|WRITE） */
+  /* 命令缓冲同样要 flush：它们也是 dma-buf，之前漏了同步，导致偶发读到陈旧命令流 */
+  for (int k2 = 0; k2 < 3; k2++) {
+    if (!cb[k2].handle) continue;
+    dma_buf_sync(cb[k2].handle, (1u << 30) | 2u);
+    dma_buf_sync(cb[k2].handle, (1u << 31) | 2u);
+  }
   dma_buf_sync(a1.handle, (1u << 30) | 2u);
   dma_buf_sync(a1.handle, (1u << 31) | 2u);
   if (plan->n_inputs == 2) {
