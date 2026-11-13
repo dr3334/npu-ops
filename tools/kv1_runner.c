@@ -210,6 +210,11 @@ typedef struct {
     const char *outdir;
     int m0;
     int probe_only;
+    int noconv;
+    int rebind;
+    int poison;
+    const char *dumpcache;
+    int pingpong;        /* bind a second dma-buf per step: forces a real re-transfer */   /* optional: dump the KV input buffers here when done */
     int verbose;
     const char *json;
 } Args;
@@ -257,6 +262,7 @@ int main(int argc, char **argv) {
     A.kv_idx[0] = 6; A.kv_idx[1] = 7; A.nkv = 2;
     A.count = 1;
     A.m0 = 0;
+    A.poison = -1;
 
     for (int i = 1; i < argc; i++) {
         const char *k = argv[i];
@@ -280,6 +286,11 @@ int main(int argc, char **argv) {
         else if (!strcmp(k, "--m0"))      { A.m0 = atoi(v); i++; }
         else if (!strcmp(k, "--sync"))    { g_sync = atoi(v); i++; }
         else if (!strcmp(k, "--probe"))   { A.probe_only = 1; }
+        else if (!strcmp(k, "--noconv"))  { A.noconv = 1; }
+        else if (!strcmp(k, "--rebind"))  { A.rebind = 1; }
+        else if (!strcmp(k, "--poison"))  { A.poison = atoi(v); i++; }
+        else if (!strcmp(k, "--dumpcache")) { A.dumpcache = v; i++; }
+        else if (!strcmp(k, "--pingpong"))  { A.pingpong = 1; }
         else if (!strcmp(k, "--verbose")) { A.verbose = 1; }
         else if (!strcmp(k, "--json"))    { A.json = v; i++; }
         else if (!strcmp(k, "--help")) {
@@ -303,8 +314,8 @@ int main(int argc, char **argv) {
     eo.deviceKind = kEnvOptHardware;
     eo.MDLACoreOption = Auto;
     eo.CPUThreadNum = 1;
-    eo.suppressInputConversion = false;
-    eo.suppressOutputConversion = false;
+    eo.suppressInputConversion = A.noconv ? true : false;
+    eo.suppressOutputConversion = A.noconv ? true : false;
     int rc = -1;
     if (p_create_opt) rc = p_create_opt(NULL, &eo, &g_rt);
     if (rc != 0 || !g_rt) rc = p_create(&eo, &g_rt);
@@ -386,6 +397,16 @@ int main(int argc, char **argv) {
         attr.ionFd = -1;
         rc = p_setout(g_rt, i, outb[i].ptr, outb[i].len, attr);
         if (rc != 0) die("setOutput(%zu) rc=%d", i, rc);
+    }
+    Buf kv2[MAXIO];
+    if (A.pingpong) {
+        for (int t = 0; t < A.nkv; t++) {
+            int i2 = A.kv_idx[t];
+            int e2 = dmabuf_alloc(A.kv_heap, inb[i2].len, &kv2[t]);
+            if (e2 != 0) die("second dma-buf alloc failed: %s", strerror(-e2));
+            memcpy(kv2[t].ptr, inb[i2].ptr, inb[i2].len);
+            printf("[pingpong] alt buffer for in%d fd=%d\n", i2, kv2[t].fd);
+        }
     }
     if (A.probe_only) {
         printf("[probe] binding accepted; not invoking\n");
@@ -472,10 +493,40 @@ int main(int argc, char **argv) {
                 Buf *dst = &inb[A.kv_idx[t]];
                 const uint8_t *src = (const uint8_t *)outb[oj].ptr;
                 dmabuf_sync(dst, 1, DMA_BUF_SYNC_WRITE);
-                for (int q = 0; q < 48; q++)
-                    memcpy((uint8_t *)dst->ptr + (size_t)q * slab + (size_t)m * row_bytes,
-                           src + (size_t)q * row_bytes, row_bytes);
+                /* the KV *output* is [48, T, 64]: slab stride is T*128, row 0 is the token */
+                size_t oslab = out_size[oj] / 48;
+                if (A.poison >= 0) {
+                    int16_t v16 = (int16_t)A.poison;
+                    for (int q = 0; q < 48; q++) {
+                        int16_t *d16 = (int16_t *)((uint8_t *)dst->ptr + (size_t)q * slab +
+                                                   (size_t)m * row_bytes);
+                        for (int r = 0; r < 64; r++) d16[r] = v16;
+                    }
+                } else {
+                    for (int q = 0; q < 48; q++)
+                        memcpy((uint8_t *)dst->ptr + (size_t)q * slab + (size_t)m * row_bytes,
+                               src + (size_t)q * oslab, row_bytes);
+                }
                 dmabuf_sync(dst, 0, DMA_BUF_SYNC_WRITE);
+            }
+            if (A.pingpong) {
+                for (int t = 0; t < A.nkv; t++) {
+                    int i2 = A.kv_idx[t];
+                    memcpy(kv2[t].ptr, inb[i2].ptr, inb[i2].len);
+                    BufferAttribute at2;
+                    at2.ionFd = kv2[t].fd;
+                    rc = p_setin(g_rt, (uint64_t)i2, kv2[t].ptr, kv2[t].len, at2);
+                    if (rc != 0) die("pingpong setInput(%d) rc=%d", i2, rc);
+                }
+            }
+            if (A.rebind) {
+                for (int t = 0; t < A.nkv; t++) {
+                    BufferAttribute at;
+                    at.ionFd = inb[A.kv_idx[t]].fd;
+                    rc = p_setin(g_rt, (uint64_t)A.kv_idx[t], inb[A.kv_idx[t]].ptr,
+                                 inb[A.kv_idx[t]].len, at);
+                    if (rc != 0) die("re-setInput(%d) rc=%d", A.kv_idx[t], rc);
+                }
             }
         }
     }
@@ -498,6 +549,17 @@ int main(int argc, char **argv) {
            total, sum / total, sorted[total / 2], sorted[total / 10],
            sorted[(total * 9) / 10], sorted[0], sorted[total - 1]);
 
+    if (A.dumpcache) {
+        char q[600];
+        for (int t = 0; t < A.nkv; t++) {
+            snprintf(q, sizeof q, "%s.%d.bin", A.dumpcache, t);
+            FILE *f = fopen(q, "wb");
+            if (!f) die("write %s failed", q);
+            fwrite(inb[A.kv_idx[t]].ptr, 1, inb[A.kv_idx[t]].len, f);
+            fclose(f);
+            printf("[dumpcache] %s %zu B\n", q, inb[A.kv_idx[t]].len);
+        }
+    }
     show_io("after");
     if (js) fclose(js);
     p_release(g_rt);

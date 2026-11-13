@@ -38,3 +38,24 @@
 - **逐 token 正确性**（8 步，每步都记）：`|Δcos(device, 量化 golden)| ≤ 8.2e-5`（门 0.003）、码级 max ≤370（门 1200）、噪声底 0 字节；vs 独立 fp64 链 hidden/logits cosine **0.9727–0.9985**、**argmax 6/8**。prefill 的 `|Δcos|` 2.24e-5、cos 0.996148。
 
 结论：本 ADR 的形态判断被证实——**「两张图 + 一份 bin」可行、KV 是 host 侧状态、权重可以真正常驻**；剩余差距是**工程**（KV 常驻、T=1 的绕法、padding 成本），不是形态问题。
+
+## 订正（2026-11-13，票 kv1 之后）：KV 常驻这一块砖不成立
+
+上一节结尾断言「用 RuntimeAPI 把缓存指针常驻，per-token 拷贝可以从 25 MB 降到 O(256 B/层)」。
+实测否掉了它（docs/OP-kv1-resident-kv.md）：
+
+- `NeuronRuntime_setInput(handle, ptr, len, {ionFd})` 确实能把**用户自己的 dma-buf** 绑成图输入
+  （rc=0，图正常跑，第一次推理结果与 CLI 逐字节相同）；
+- 但绑上之后**图输入不再被读**：host 就地写新行（读回 buffer 证明正好落下 6,144 B）、
+  甚至另分配一块 dma-buf 重新 `setInput`，下一次 invoke 的输出**都逐字节不变**
+  （毒化 0 vs 20000 的 step1 输出 sha256 相同；ping-pong 换 fd 也相同）；
+- 控制实验排除了"我们写错行"：把同一份 cache 预先写进**文件**再起进程，runner 与 CLI 的 step 1
+  逐字节一致。=> 行映射、mask、比较链都对，**只有进程内更新不成立**。
+
+因此「KV 常驻设备、每 token 只写新行」在 RuntimeAPI v1 上做不到。能拿到的只有这两条，
+都是配对交替测出来的比值（同文 §5）：常驻进程 + KV 在 dma-buf 比 CLI **快 1.23×**，
+KV 在 dma-buf 比 KV 在匿名内存 **快 1.08×**（−3.9 ms/invoke）。
+
+下面「KV 的归属」那一条要改口径：它不是**工程**问题而是**执行形态**问题——要 in-place 就得让图自己
+持有 KV（厂商 `libmtk_llm` 那条路），TFLite 函数式图表达不了；唯一没验证的替代是 RuntimeV2 的
+每请求 `IOBuffer{fd, offset}`（`RuntimeV2.h:23-37`），本票未测。

@@ -1,0 +1,44 @@
+  A_rc=0
+  A n=100 total_ms=6272
+  [io before] rchar: 42594329
+  [io before] wchar: 105
+  [io before] syscr: 105
+  [io before] read_bytes: 0
+  [time] n=100 mean=49.841 ms median=48.981 ms p10=47.199 p90=54.095 min=44.729 max=56.415
+  [io after] rchar: 42594430
+  [io after] wchar: 112745
+  [io after] syscr: 107
+  [io after] read_bytes: 0
+  B n=100 total_ms=5325
+  [io before] rchar: 42594329
+  [io before] wchar: 105
+  [io before] syscr: 105
+  [io before] read_bytes: 0
+  [time] n=100 mean=53.809 ms median=53.225 ms p10=50.202 p90=59.471 min=47.740 max=61.700
+  [io after] rchar: 42594430
+  [io after] wchar: 112745
+  [io after] syscr: 107
+  [io after] read_bytes: 0
+  C n=100 total_ms=5710
+  [io before] rchar: 42594329
+  [io before] wchar: 105
+  [io before] syscr: 105
+  [io before] read_bytes: 0
+  [time] n=100 mean=54.050 ms median=53.355 ms p10=50.429 p90=59.213 min=44.162 max=61.164
+  [io after] rchar: 42594430
+  [io after] wchar: 112745
+  [io after] syscr: 107
+  [io after] read_bytes: 0
+  C n=100 total_ms=5796
+  [io before] rchar: 42594329
+  [io before] wchar: 105
+  [io before] syscr: 105
+  [io before] read_bytes: 0
+  [time] n=100 mean=50.500 ms median=50.138 ms p10=47.592 p90=54.389 min=44.069 max=56.236
+  [io after] rchar: 42594430
+  [io after] wchar: 112745
+  [io after] syscr: 107
+  [io after] read_bytes: 0
+  B n=100 total_ms=5351
+  A_rc=0
+  A n=100 total_ms=6152

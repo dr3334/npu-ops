@@ -7,8 +7,11 @@
 #   BASE   neuronrt CLI, KV cache owned by the host  (ticket 06 path, unchanged)
 #   KVRES  tools/kv1_runner, KV cache in one persistent dma-buf, bound once with
 #          NeuronRuntime_setInput(..., BufferAttribute{ionFd}) and updated in place.
-# Acceptance: byte-identical outputs at every phase, and KVRES writes only the new KV
-# row (48 slabs x 128 B = 6 KB per tensor) instead of re-feeding the whole 24 MiB cache.
+# The KVRES phase currently FAILS the byte comparison from phase 1 onwards: RuntimeAPI v1 latches a
+# graph input at its first inference, so host writes into the bound dma-buf (and even re-binding a
+# different dma-buf) never reach the device.  Phase 0 is byte-identical, which is exactly the
+# evidence: see docs/OP-kv1-resident-kv.md §4.  Keep this script: when a per-request-buffer API
+# (RuntimeV2) is tried, this is the harness that decides it.
 set -uo pipefail
 
 STEPS=8

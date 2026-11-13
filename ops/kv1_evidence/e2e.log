@@ -1,0 +1,257 @@
+D:/deepseek_ workspace/mtk/wt-kv1/ops/q06_shared.bin: 1 file pushed, 0 skipped. 45.5 MB/s (16674816 bytes in 0.349s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/q06_prefill_t16_24l/model_shared.dla: 1 file pushed, 0 skipped. 32.1 MB/s (1491484 bytes in 0.044s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/q06_decode_t8_c2048_24l/model_shared.dla: 1 file pushed, 0 skipped. 34.9 MB/s (1554144 bytes in 0.042s)
+D:/deepseek_ workspace/mtk/wt-kv1/out/kv1/kv1_runner: 1 file pushed, 0 skipped. 0.5 MB/s (20776 bytes in 0.036s)
+[bin] ops/q06_shared.bin sha256=a3571b57e4a259e8f6891e5a9059e7294133a2506ac5c5da1ddce8ec94247671
+--- phase 0: prefill once (CLI) -> seeds the cache of all 24 layers ---
+D:/deepseek_ workspace/mtk/wt-kv1/ops/q06_prefill_t16_24l/golden/x.bin: 1 file pushed, 0 skipped. 23.8 MB/s (28672 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/q06_prefill_t16_24l/golden/mask.bin: 1 file pushed, 0 skipped. 0.2 MB/s (7168 bytes in 0.037s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/q06_prefill_t16_24l/golden/cos14.bin: 1 file pushed, 0 skipped. 0.4 MB/s (14336 bytes in 0.037s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/q06_prefill_t16_24l/golden/sin14.bin: 1 file pushed, 0 skipped. 22.5 MB/s (14336 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/q06_prefill_t16_24l/golden/cos2.bin: 1 file pushed, 0 skipped. 2.1 MB/s (2048 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/q06_prefill_t16_24l/golden/sin2.bin: 1 file pushed, 0 skipped. 0.1 MB/s (2048 bytes in 0.036s)
+[prefill] rc=0 ms=170
+/data/local/tmp/npuops/q06/live/out_hidden.bin: 1 file pulled, 0 skipped. 3.7 MB/s (28672 bytes in 0.007s)
+/data/local/tmp/npuops/q06/live/out_k.bin: 1 file pulled, 0 skipped. 13.6 MB/s (98304 bytes in 0.007s)
+/data/local/tmp/npuops/q06/live/out_v.bin: 1 file pulled, 0 skipped. 2.8 MB/s (98304 bytes in 0.034s)
+--- phase 1: seed both caches from that prefill output, write phase-0 inputs ---
+prefill: hidden codes {'codes_max': 411, 'codes_mean': 38.80482700892857, 'exact': 171, 'n': 14336, 'cos': 0.9999775897904074, 'rel_l2': 0.006694880801524404}  |dcos| vs fp64 0.996148  logits cos 0.9954812
+--- phase 2: BASE = neuronrt CLI, host-owned cache, 8 phases ---
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/x.bin: 1 file pushed, 0 skipped. 12.3 MB/s (14336 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/mask.bin: 1 file pushed, 0 skipped. 116.0 MB/s (460544 bytes in 0.004s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos14.bin: 1 file pushed, 0 skipped. 19.8 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin14.bin: 1 file pushed, 0 skipped. 21.3 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos2.bin: 1 file pushed, 0 skipped. 2.7 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin2.bin: 1 file pushed, 0 skipped. 2.7 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/k_in.bin: 1 file pushed, 0 skipped. 408.2 MB/s (12582912 bytes in 0.029s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/v_in.bin: 1 file pushed, 0 skipped. 460.1 MB/s (12582912 bytes in 0.026s)
+/data/local/tmp/npuops/q06/live/out_hidden.bin: 1 file pulled, 0 skipped. 2.0 MB/s (14336 bytes in 0.007s)
+/data/local/tmp/npuops/q06/live/out_k.bin: 1 file pulled, 0 skipped. 5.7 MB/s (49152 bytes in 0.008s)
+/data/local/tmp/npuops/q06/live/out_v.bin: 1 file pulled, 0 skipped. 9.0 MB/s (49152 bytes in 0.005s)
+step 0 pos 16: codes max  370 mean  84.56 | cos(dev,gold) 0.9999187  cos(dev,fp64) 0.9962753  logits cos 0.9962701 hit 0
+[base step 0] rc=0 ms=1362  host_push=1281ms run+pull=1667ms
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/x.bin: 1 file pushed, 0 skipped. 10.1 MB/s (14336 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/mask.bin: 1 file pushed, 0 skipped. 11.3 MB/s (460544 bytes in 0.039s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos14.bin: 1 file pushed, 0 skipped. 15.5 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin14.bin: 1 file pushed, 0 skipped. 15.0 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos2.bin: 1 file pushed, 0 skipped. 2.3 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin2.bin: 1 file pushed, 0 skipped. 2.9 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/k_in.bin: 1 file pushed, 0 skipped. 203.8 MB/s (12582912 bytes in 0.059s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/v_in.bin: 1 file pushed, 0 skipped. 266.2 MB/s (12582912 bytes in 0.045s)
+/data/local/tmp/npuops/q06/live/out_hidden.bin: 1 file pulled, 0 skipped. 0.5 MB/s (14336 bytes in 0.026s)
+/data/local/tmp/npuops/q06/live/out_k.bin: 1 file pulled, 0 skipped. 4.5 MB/s (49152 bytes in 0.010s)
+/data/local/tmp/npuops/q06/live/out_v.bin: 1 file pulled, 0 skipped. 8.7 MB/s (49152 bytes in 0.005s)
+step 1 pos 17: codes max  135 mean  27.76 | cos(dev,gold) 0.9999912  cos(dev,fp64) 0.9925773  logits cos 0.9926247 hit 1
+[base step 1] rc=0 ms=249  host_push=1459ms run+pull=773ms
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/x.bin: 1 file pushed, 0 skipped. 10.3 MB/s (14336 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/mask.bin: 1 file pushed, 0 skipped. 11.2 MB/s (460544 bytes in 0.039s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos14.bin: 1 file pushed, 0 skipped. 20.1 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin14.bin: 1 file pushed, 0 skipped. 14.6 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos2.bin: 1 file pushed, 0 skipped. 2.8 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin2.bin: 1 file pushed, 0 skipped. 2.8 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/k_in.bin: 1 file pushed, 0 skipped. 189.4 MB/s (12582912 bytes in 0.063s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/v_in.bin: 1 file pushed, 0 skipped. 430.3 MB/s (12582912 bytes in 0.028s)
+/data/local/tmp/npuops/q06/live/out_hidden.bin: 1 file pulled, 0 skipped. 1.9 MB/s (14336 bytes in 0.007s)
+/data/local/tmp/npuops/q06/live/out_k.bin: 1 file pulled, 0 skipped. 5.2 MB/s (49152 bytes in 0.009s)
+/data/local/tmp/npuops/q06/live/out_v.bin: 1 file pulled, 0 skipped. 11.8 MB/s (49152 bytes in 0.004s)
+step 2 pos 18: codes max  143 mean  36.90 | cos(dev,gold) 0.9999866  cos(dev,fp64) 0.9930829  logits cos 0.9931482 hit 1
+[base step 2] rc=0 ms=283  host_push=1106ms run+pull=747ms
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/x.bin: 1 file pushed, 0 skipped. 40.3 MB/s (14336 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/mask.bin: 1 file pushed, 0 skipped. 203.3 MB/s (460544 bytes in 0.002s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos14.bin: 1 file pushed, 0 skipped. 20.4 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin14.bin: 1 file pushed, 0 skipped. 15.2 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos2.bin: 1 file pushed, 0 skipped. 3.0 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin2.bin: 1 file pushed, 0 skipped. 3.5 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/k_in.bin: 1 file pushed, 0 skipped. 438.2 MB/s (12582912 bytes in 0.027s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/v_in.bin: 1 file pushed, 0 skipped. 388.9 MB/s (12582912 bytes in 0.031s)
+/data/local/tmp/npuops/q06/live/out_hidden.bin: 1 file pulled, 0 skipped. 2.7 MB/s (14336 bytes in 0.005s)
+/data/local/tmp/npuops/q06/live/out_k.bin: 1 file pulled, 0 skipped. 1.9 MB/s (49152 bytes in 0.024s)
+/data/local/tmp/npuops/q06/live/out_v.bin: 1 file pulled, 0 skipped. 8.6 MB/s (49152 bytes in 0.005s)
+step 3 pos 19: codes max   98 mean  21.68 | cos(dev,gold) 0.9999948  cos(dev,fp64) 0.9949258  logits cos 0.9949061 hit 1
+[base step 3] rc=0 ms=265  host_push=1149ms run+pull=597ms
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/x.bin: 1 file pushed, 0 skipped. 26.6 MB/s (14336 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/mask.bin: 1 file pushed, 0 skipped. 187.6 MB/s (460544 bytes in 0.002s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos14.bin: 1 file pushed, 0 skipped. 19.7 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin14.bin: 1 file pushed, 0 skipped. 20.3 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos2.bin: 1 file pushed, 0 skipped. 2.3 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin2.bin: 1 file pushed, 0 skipped. 3.0 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/k_in.bin: 1 file pushed, 0 skipped. 374.7 MB/s (12582912 bytes in 0.032s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/v_in.bin: 1 file pushed, 0 skipped. 313.8 MB/s (12582912 bytes in 0.038s)
+/data/local/tmp/npuops/q06/live/out_hidden.bin: 1 file pulled, 0 skipped. 1.4 MB/s (14336 bytes in 0.010s)
+/data/local/tmp/npuops/q06/live/out_k.bin: 1 file pulled, 0 skipped. 4.7 MB/s (49152 bytes in 0.010s)
+/data/local/tmp/npuops/q06/live/out_v.bin: 1 file pulled, 0 skipped. 9.1 MB/s (49152 bytes in 0.005s)
+step 4 pos 20: codes max  144 mean  34.31 | cos(dev,gold) 0.9999855  cos(dev,fp64) 0.9945539  logits cos 0.9945727 hit 1
+[base step 4] rc=0 ms=254  host_push=1288ms run+pull=656ms
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/x.bin: 1 file pushed, 0 skipped. 43.4 MB/s (14336 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/mask.bin: 1 file pushed, 0 skipped. 248.6 MB/s (460544 bytes in 0.002s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos14.bin: 1 file pushed, 0 skipped. 21.2 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin14.bin: 1 file pushed, 0 skipped. 18.2 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos2.bin: 1 file pushed, 0 skipped. 3.0 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin2.bin: 1 file pushed, 0 skipped. 3.3 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/k_in.bin: 1 file pushed, 0 skipped. 450.6 MB/s (12582912 bytes in 0.027s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/v_in.bin: 1 file pushed, 0 skipped. 417.5 MB/s (12582912 bytes in 0.029s)
+/data/local/tmp/npuops/q06/live/out_hidden.bin: 1 file pulled, 0 skipped. 2.2 MB/s (14336 bytes in 0.006s)
+/data/local/tmp/npuops/q06/live/out_k.bin: 1 file pulled, 0 skipped. 6.7 MB/s (49152 bytes in 0.007s)
+/data/local/tmp/npuops/q06/live/out_v.bin: 1 file pulled, 0 skipped. 2.2 MB/s (49152 bytes in 0.021s)
+step 5 pos 21: codes max   67 mean  17.93 | cos(dev,gold) 0.9999969  cos(dev,fp64) 0.9984568  logits cos 0.9984640 hit 1
+[base step 5] rc=0 ms=259  host_push=1093ms run+pull=568ms
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/x.bin: 1 file pushed, 0 skipped. 39.5 MB/s (14336 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/mask.bin: 1 file pushed, 0 skipped. 259.9 MB/s (460544 bytes in 0.002s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos14.bin: 1 file pushed, 0 skipped. 20.9 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin14.bin: 1 file pushed, 0 skipped. 17.2 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos2.bin: 1 file pushed, 0 skipped. 3.2 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin2.bin: 1 file pushed, 0 skipped. 3.0 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/k_in.bin: 1 file pushed, 0 skipped. 418.0 MB/s (12582912 bytes in 0.029s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/v_in.bin: 1 file pushed, 0 skipped. 396.6 MB/s (12582912 bytes in 0.030s)
+/data/local/tmp/npuops/q06/live/out_hidden.bin: 1 file pulled, 0 skipped. 2.2 MB/s (14336 bytes in 0.006s)
+/data/local/tmp/npuops/q06/live/out_k.bin: 1 file pulled, 0 skipped. 6.2 MB/s (49152 bytes in 0.008s)
+/data/local/tmp/npuops/q06/live/out_v.bin: 1 file pulled, 0 skipped. 8.0 MB/s (49152 bytes in 0.006s)
+step 6 pos 22: codes max  152 mean  36.43 | cos(dev,gold) 0.9999853  cos(dev,fp64) 0.9727470  logits cos 0.9727467 hit 0
+[base step 6] rc=0 ms=279  host_push=1054ms run+pull=618ms
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/x.bin: 1 file pushed, 0 skipped. 43.0 MB/s (14336 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/mask.bin: 1 file pushed, 0 skipped. 265.0 MB/s (460544 bytes in 0.002s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos14.bin: 1 file pushed, 0 skipped. 20.2 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin14.bin: 1 file pushed, 0 skipped. 22.4 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/cos2.bin: 1 file pushed, 0 skipped. 3.5 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/sin2.bin: 1 file pushed, 0 skipped. 3.6 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/k_in.bin: 1 file pushed, 0 skipped. 486.9 MB/s (12582912 bytes in 0.025s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seq_base/live/v_in.bin: 1 file pushed, 0 skipped. 461.9 MB/s (12582912 bytes in 0.026s)
+/data/local/tmp/npuops/q06/live/out_hidden.bin: 1 file pulled, 0 skipped. 2.4 MB/s (14336 bytes in 0.006s)
+/data/local/tmp/npuops/q06/live/out_k.bin: 1 file pulled, 0 skipped. 7.1 MB/s (49152 bytes in 0.007s)
+/data/local/tmp/npuops/q06/live/out_v.bin: 1 file pulled, 0 skipped. 11.9 MB/s (49152 bytes in 0.004s)
+step 7 pos 23: codes max  249 mean  59.76 | cos(dev,gold) 0.9999623  cos(dev,fp64) 0.9967719  logits cos 0.9967722 hit 1
+[base step 7] rc=0 ms=260  host_push=882ms run+pull=567ms
+--- phase 3: KVRES = one process, KV in a dma-buf, $STEPS invokes ---
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seed_k.bin: 1 file pushed, 0 skipped. 194.7 MB/s (12582912 bytes in 0.062s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_seed_v.bin: 1 file pushed, 0 skipped. 202.7 MB/s (12582912 bytes in 0.059s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step00/x.bin: 1 file pushed, 0 skipped. 18.7 MB/s (14336 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step00/mask.bin: 1 file pushed, 0 skipped. 11.2 MB/s (460544 bytes in 0.039s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step00/cos14.bin: 1 file pushed, 0 skipped. 0.2 MB/s (7168 bytes in 0.037s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step00/sin14.bin: 1 file pushed, 0 skipped. 0.2 MB/s (7168 bytes in 0.036s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step00/cos2.bin: 1 file pushed, 0 skipped. 2.1 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step00/sin2.bin: 1 file pushed, 0 skipped. 0.0 MB/s (1024 bytes in 0.037s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step01/x.bin: 1 file pushed, 0 skipped. 17.8 MB/s (14336 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step01/mask.bin: 1 file pushed, 0 skipped. 11.3 MB/s (460544 bytes in 0.039s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step01/cos14.bin: 1 file pushed, 0 skipped. 11.5 MB/s (7168 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step01/sin14.bin: 1 file pushed, 0 skipped. 7.4 MB/s (7168 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step01/cos2.bin: 1 file pushed, 0 skipped. 1.2 MB/s (1024 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step01/sin2.bin: 1 file pushed, 0 skipped. 0.0 MB/s (1024 bytes in 0.036s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step02/x.bin: 1 file pushed, 0 skipped. 40.8 MB/s (14336 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step02/mask.bin: 1 file pushed, 0 skipped. 262.2 MB/s (460544 bytes in 0.002s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step02/cos14.bin: 1 file pushed, 0 skipped. 22.4 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step02/sin14.bin: 1 file pushed, 0 skipped. 21.9 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step02/cos2.bin: 1 file pushed, 0 skipped. 3.2 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step02/sin2.bin: 1 file pushed, 0 skipped. 3.0 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step03/x.bin: 1 file pushed, 0 skipped. 39.3 MB/s (14336 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step03/mask.bin: 1 file pushed, 0 skipped. 268.6 MB/s (460544 bytes in 0.002s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step03/cos14.bin: 1 file pushed, 0 skipped. 20.7 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step03/sin14.bin: 1 file pushed, 0 skipped. 20.9 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step03/cos2.bin: 1 file pushed, 0 skipped. 2.9 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step03/sin2.bin: 1 file pushed, 0 skipped. 3.4 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step04/x.bin: 1 file pushed, 0 skipped. 44.1 MB/s (14336 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step04/mask.bin: 1 file pushed, 0 skipped. 251.4 MB/s (460544 bytes in 0.002s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step04/cos14.bin: 1 file pushed, 0 skipped. 23.3 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step04/sin14.bin: 1 file pushed, 0 skipped. 22.2 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step04/cos2.bin: 1 file pushed, 0 skipped. 3.0 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step04/sin2.bin: 1 file pushed, 0 skipped. 3.4 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step05/x.bin: 1 file pushed, 0 skipped. 43.4 MB/s (14336 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step05/mask.bin: 1 file pushed, 0 skipped. 257.1 MB/s (460544 bytes in 0.002s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step05/cos14.bin: 1 file pushed, 0 skipped. 21.2 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step05/sin14.bin: 1 file pushed, 0 skipped. 22.7 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step05/cos2.bin: 1 file pushed, 0 skipped. 3.1 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step05/sin2.bin: 1 file pushed, 0 skipped. 3.1 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step06/x.bin: 1 file pushed, 0 skipped. 43.3 MB/s (14336 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step06/mask.bin: 1 file pushed, 0 skipped. 201.5 MB/s (460544 bytes in 0.002s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step06/cos14.bin: 1 file pushed, 0 skipped. 21.5 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step06/sin14.bin: 1 file pushed, 0 skipped. 20.1 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step06/cos2.bin: 1 file pushed, 0 skipped. 3.1 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step06/sin2.bin: 1 file pushed, 0 skipped. 3.0 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step07/x.bin: 1 file pushed, 0 skipped. 32.3 MB/s (14336 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step07/mask.bin: 1 file pushed, 0 skipped. 212.9 MB/s (460544 bytes in 0.002s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step07/cos14.bin: 1 file pushed, 0 skipped. 20.6 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step07/sin14.bin: 1 file pushed, 0 skipped. 22.4 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step07/cos2.bin: 1 file pushed, 0 skipped. 3.3 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv1/ops/kv1_plan/step07/sin2.bin: 1 file pushed, 0 skipped. 3.3 MB/s (1024 bytes in 0.000s)
+[setInput  6] rc=0 ionFd=16 0.076 ms
+[setInput  7] rc=0 ionFd=17 0.109 ms
+[io before] rchar: 42601497
+[io before] wchar: 105
+[io before] syscr: 112
+[io before] read_bytes: 0
+[kv-out] output 1 size=49152 (T=8) -> KV slot 0
+[kv-out] output 2 size=49152 (T=8) -> KV slot 1
+[kv] cache=12582912 B  slab=262144 B (2048 rows)  row=128 B  m0=16
+[time] n=8 mean=48.642 ms median=48.725 ms p10=44.886 p90=52.565 min=44.886 max=52.565
+[io after] rchar: 46040446
+[io after] wchar: 901225
+[io after] syscr: 198
+[io after] read_bytes: 0
+/data/local/tmp/npuops/kv1/out8/step00/hidden.bin: 1 file pulled, 0 skipped. 2.0 MB/s (14336 bytes in 0.007s)
+/data/local/tmp/npuops/kv1/out8/step00/k_out.bin: 1 file pulled, 0 skipped. 6.1 MB/s (49152 bytes in 0.008s)
+/data/local/tmp/npuops/kv1/out8/step00/v_out.bin: 1 file pulled, 0 skipped. 10.3 MB/s (49152 bytes in 0.005s)
+/data/local/tmp/npuops/kv1/out8/step01/hidden.bin: 1 file pulled, 0 skipped. 3.9 MB/s (14336 bytes in 0.003s)
+/data/local/tmp/npuops/kv1/out8/step01/k_out.bin: 1 file pulled, 0 skipped. 1.7 MB/s (49152 bytes in 0.027s)
+/data/local/tmp/npuops/kv1/out8/step01/v_out.bin: 1 file pulled, 0 skipped. 2.4 MB/s (49152 bytes in 0.020s)
+/data/local/tmp/npuops/kv1/out8/step02/hidden.bin: 1 file pulled, 0 skipped. 3.6 MB/s (14336 bytes in 0.004s)
+/data/local/tmp/npuops/kv1/out8/step02/k_out.bin: 1 file pulled, 0 skipped. 7.8 MB/s (49152 bytes in 0.006s)
+/data/local/tmp/npuops/kv1/out8/step02/v_out.bin: 1 file pulled, 0 skipped. 11.5 MB/s (49152 bytes in 0.004s)
+/data/local/tmp/npuops/kv1/out8/step03/hidden.bin: 1 file pulled, 0 skipped. 2.5 MB/s (14336 bytes in 0.005s)
+/data/local/tmp/npuops/kv1/out8/step03/k_out.bin: 1 file pulled, 0 skipped. 10.6 MB/s (49152 bytes in 0.004s)
+/data/local/tmp/npuops/kv1/out8/step03/v_out.bin: 1 file pulled, 0 skipped. 8.9 MB/s (49152 bytes in 0.005s)
+/data/local/tmp/npuops/kv1/out8/step04/hidden.bin: 1 file pulled, 0 skipped. 4.0 MB/s (14336 bytes in 0.003s)
+/data/local/tmp/npuops/kv1/out8/step04/k_out.bin: 1 file pulled, 0 skipped. 10.8 MB/s (49152 bytes in 0.004s)
+/data/local/tmp/npuops/kv1/out8/step04/v_out.bin: 1 file pulled, 0 skipped. 10.0 MB/s (49152 bytes in 0.005s)
+/data/local/tmp/npuops/kv1/out8/step05/hidden.bin: 1 file pulled, 0 skipped. 3.6 MB/s (14336 bytes in 0.004s)
+/data/local/tmp/npuops/kv1/out8/step05/k_out.bin: 1 file pulled, 0 skipped. 8.6 MB/s (49152 bytes in 0.005s)
+/data/local/tmp/npuops/kv1/out8/step05/v_out.bin: 1 file pulled, 0 skipped. 10.7 MB/s (49152 bytes in 0.004s)
+/data/local/tmp/npuops/kv1/out8/step06/hidden.bin: 1 file pulled, 0 skipped. 3.9 MB/s (14336 bytes in 0.004s)
+/data/local/tmp/npuops/kv1/out8/step06/k_out.bin: 1 file pulled, 0 skipped. 11.3 MB/s (49152 bytes in 0.004s)
+/data/local/tmp/npuops/kv1/out8/step06/v_out.bin: 1 file pulled, 0 skipped. 12.5 MB/s (49152 bytes in 0.004s)
+/data/local/tmp/npuops/kv1/out8/step07/hidden.bin: 1 file pulled, 0 skipped. 3.3 MB/s (14336 bytes in 0.004s)
+/data/local/tmp/npuops/kv1/out8/step07/k_out.bin: 1 file pulled, 0 skipped. 9.6 MB/s (49152 bytes in 0.005s)
+/data/local/tmp/npuops/kv1/out8/step07/v_out.bin: 1 file pulled, 0 skipped. 8.1 MB/s (49152 bytes in 0.006s)
+--- phase 4: byte comparison BASE vs KVRES (8 phases x 3 tensors) ---
+step 00: hidden=IDENTICAL k=IDENTICAL v=IDENTICAL
+step 01: hidden=DIFFERS(14239) k=DIFFERS(39185) v=DIFFERS(48815)
+step 02: hidden=DIFFERS(14241) k=DIFFERS(39730) v=DIFFERS(48844)
+step 03: hidden=DIFFERS(14256) k=DIFFERS(39982) v=DIFFERS(48866)
+step 04: hidden=DIFFERS(14253) k=DIFFERS(40624) v=DIFFERS(48824)
+step 05: hidden=DIFFERS(14252) k=DIFFERS(40399) v=DIFFERS(48852)
+step 06: hidden=DIFFERS(14256) k=DIFFERS(40875) v=DIFFERS(48823)
+step 07: hidden=DIFFERS(14245) k=DIFFERS(40663) v=DIFFERS(48822)
+[cmp] identical=3 differ=21
+--- phase 5: score KVRES outputs against the same numpy golden as BASE ---
+step 0 pos 16: codes max  370 mean  84.56 | cos(dev,gold) 0.9999187  cos(dev,fp64) 0.9962753  logits cos 0.9962701 hit 0
+step 1 pos 17: codes max 39573 mean 9831.44 | cos(dev,gold) -0.0711919  cos(dev,fp64) -0.0650826  logits cos -0.0626987 hit 0
+step 2 pos 18: codes max 48174 mean 9600.36 | cos(dev,gold) 0.0049629  cos(dev,fp64) 0.0058465  logits cos 0.0130890 hit 0
+step 3 pos 19: codes max 41265 mean 9664.06 | cos(dev,gold) -0.0330224  cos(dev,fp64) -0.0314993  logits cos -0.0327259 hit 0
+step 4 pos 20: codes max 34634 mean 9039.25 | cos(dev,gold) 0.0038081  cos(dev,fp64) 0.0063037  logits cos 0.0039825 hit 0
+step 5 pos 21: codes max 39577 mean 9563.47 | cos(dev,gold) 0.0163648  cos(dev,fp64) 0.0129967  logits cos 0.0114053 hit 0
+step 6 pos 22: codes max 37603 mean 9837.48 | cos(dev,gold) -0.0639854  cos(dev,fp64) -0.0483856  logits cos -0.0497474 hit 0
+step 7 pos 23: codes max 41704 mean 9504.10 | cos(dev,gold) -0.0046070  cos(dev,fp64) -0.0060254  logits cos -0.0049449 hit 0
+--- report: BASE (neuronrt, host KV) ---
+prefill : hidden codes max 411  |dcos| vs fp64 0.996148  logits cos 0.9954812
+step   pos codmax codmean   absdcos     rel_l2 cos(d,gold) cos(d,fp64) cos(logit) cos(g,fp64)    hit
+   0    16    370  84.56   0.00008     0.0128  0.9999187  0.9962753  0.9962701  0.9963359      0
+   1    17    135  27.76   0.00001     0.0042  0.9999912  0.9925773  0.9926247  0.9925927      1
+   2    18    143  36.90   0.00001     0.0052  0.9999866  0.9930829  0.9931482  0.9932280      1
+   3    19     98  21.68   0.00001     0.0032  0.9999948  0.9949258  0.9949061  0.9948966      1
+   4    20    144  34.31   0.00001     0.0054  0.9999855  0.9945539  0.9945727  0.9946039      1
+   5    21     67  17.93   0.00000     0.0025  0.9999969  0.9984568  0.9984640  0.9984461      1
+   6    22    152  36.43   0.00001     0.0054  0.9999853  0.9727470  0.9727467  0.9729822      0
+   7    23    249  59.76   0.00004     0.0087  0.9999623  0.9967719  0.9967722  0.9967921      1
+summary : abs(dcos) max 0.00008 (gate 0.003)  codes max 370 (gate 1200)  rel_l2 max 0.0128 (gate 0.05)  logits cos last 0.9967722  token hits 6/8
+--- report: KVRES (kv1_runner, dma-buf KV) ---
+prefill : hidden codes max 411  |dcos| vs fp64 0.996148  logits cos 0.9954812
+step   pos codmax codmean   absdcos     rel_l2 cos(d,gold) cos(d,fp64) cos(logit) cos(g,fp64)    hit
+   0    16    370  84.56   0.00008     0.0128  0.9999187  0.9962753  0.9962701  0.9963359      0
+   1    17  39573 9831.44   1.07119     1.4686 -0.0711919 -0.0650826 -0.0626987  0.9925927      0
+   2    18  48174 9600.36   0.99504     1.3741  0.0049629  0.0058465  0.0130890  0.9932280      0
+   3    19  41265 9664.06   1.03302     1.4262 -0.0330224 -0.0314993 -0.0327259  0.9948966      0
+   4    20  34634 9039.25   0.99619     1.4466  0.0038081  0.0063037  0.0039825  0.9946039      0
+   5    21  39577 9563.47   0.98364     1.3660  0.0163648  0.0129967  0.0114053  0.9984461      0
+   6    22  37603 9837.48   1.06399     1.4562 -0.0639854 -0.0483856 -0.0497474  0.9729822      0
+   7    23  41704 9504.10   1.00461     1.3973 -0.0046070 -0.0060254 -0.0049449  0.9967921      0
+summary : abs(dcos) max 1.07119 (gate 0.003)  codes max 48174 (gate 1200)  rel_l2 max 1.4686 (gate 0.05)  logits cos last -0.0049449  token hits 0/8
+done
+EXIT=True
