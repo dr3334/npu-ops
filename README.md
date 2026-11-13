@@ -14,6 +14,41 @@ probe/                ioctl 探测：iolog.c(PRE/POST shim) · parse_io.py · io
                       apusys.ko + mem_ioctl.dis(反汇编) · trace_ioctl/io.log/trace_kernel
 ```
 
+## 现在的进度与方向（2026-11-13）
+
+这个仓库现在跑三条线，按「离可用多远」排序：
+
+### 1. 厂商路径：Qwen2.5-0.5B 的 decoder 已经能整块跑（研究形态）
+
+| 项 | 结果 |
+|---|---|
+| 1 层 decoder 整块（自包含，`[T,896]` 进/出） | **61 层 / 单执行步 / 无 bridge**；T=8 板端 9.5 ULP、T=128 板端 35.5 ULP（都贴 fp16 下限） |
+| 24 层 | **一个 `.dla` 装 1440 层 / 单执行步** + 外部共享权重 bin 16.9 MB（`extract-shared`）；prefill T=8 **17.5 ms** / T=16 22.8 / T=128 94.6 ms |
+| decode + KV | 双图共用一份 bin；8 个 token **逐步**过实现门；KV 常驻走 `RuntimeV2`（host 只写 12 KB/token），端到端 **62.9 ms/token**（比每 token 起进程快 **19–30×**） |
+| KV 上限 | 24 层 decode 最大 **C=8192**（878 s 编译）——撞的是编译期内存规划，不是设备内存 |
+
+### 2. 量化档：判据从「±1 码」升级到逐位
+
+- int8 requant 规则反推完成（`round_half_up(acc·M0/2^31)` → `RoundingDivideByPOT`），**145,296 个板端值 0 失配**；17 个 op 从 `int8_tol=1` 收为逐位。
+- 真权重单层档位矩阵：4W8A 0.8776 · 4W16A 0.9733 · 8W8A 0.8971 · **8W16A 0.99986**（主档，int8 权重 + int16 激活）。
+- LM head 不再需要分块：`--gno=LTS --fc-to-conv` 让单体 `FC(8×896×151936)` 编过（1 步 / 3 层 / 板端 PASS 9.19 ms）。
+
+### 3. 自建库：**当前的主攻方向**
+
+目标不是「用 `.dla` + 厂商 runtime 跑通」，而是**用我们自己的库在 NPU 上算出结果**（`docs/OWN-SUBMITTER.md`）。
+
+- 已交付：逐元素算子库 `tools/npu_lib/` —— `Graph` / `DType` / `add|mul|sub` / `compile()` / `run()` / `verify()`；**add·mul·sub × 64 / 896 / 96 板端 9/9 PASS**（同源逐字节 + CPU golden 逐位，两道门都过）。
+- 运行期**零厂商库**：`probe/npu_run` 静态链接（`DT_NEEDED=0`）、`/proc/<pid>/maps` 里 `neuron|mdla` 0 命中、源码只有 `open(/dev/apusys)` + 3 个 ioctl。厂商 runtime 只在 `compile()` 的「抓一次命令流资产」出现（`ADR 0002` 的命令捕获）。
+- 下一步（按依赖顺序）：① **模板补丁**——换形状不跑 ncc（已实测 64→896 的命令流只差 54 字节）② 一张图多算子（RMSNorm 本身就是 6 个算子串联）③ int16/fp16 精度档 ④ **常量权重 FC 的 IoVA 契约** ⑤ 命令自生成（L4）。
+
+### 诚实的边界
+
+- 只有 **prefill 的单次前向**：没有采样 / tokenizer / KV cache 的数值对拍；真实权重端到端未做。
+- 24 层是「**权重复用**」（夹具只有 layer0/layer1 两套），不是真实 24 层权重。
+- 自建库只覆盖逐元素；FC / BMM / SoftMax 的资产在 `probe/` 里，尚未进库。
+- 长上下文（≥16K）在本栈做不到：24 层单图在 C=8192 就撞编译墙，只有拆图 / 降 opt / 窗口滚动三条未测路。
+
+文档入口：`docs/OP-MATRIX.md`（算子能力矩阵）、`docs/OP-block.md` / `docs/OP-decoder-layer.md`（整块）、`docs/OP-infra` 系列见 `docs/OP-ncc-flags.md`（编译选项）、`docs/OP-kv-maxlen.md`（KV 上限）、`docs/OWN-SUBMITTER-LIB.md`（自建库接口）、`reports/npu-lib-matrix.md`（库的板端矩阵）。
 ## 快速开始
 
 设备已连（`adb devices` 能看到 `0123456789ABCDEF`），SDK 在工作区同级 `neuropilot-sdk-basic-7.0.8-build20240807/`：
