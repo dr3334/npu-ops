@@ -8,7 +8,7 @@
 > 设备 mt6897 / Android 16（`0123456789ABCDEF`），板端全部持 `/d/deepseek_ workspace/mtk/.npu-board.lock`
 > （会话前后各一次 `healthcheck --quick`，两次都 PASS）。
 > 交付：`tools/build_w4a8.py`（新增 `--a-bits 8|16`、`--seam f16|native|native_sym`、15 个 `p16_*` 探针、
-> requant 溢出护栏）、`tools/compare_i16.py` + `tools/e2e_i16.sh`（int16 对拍，见 §12）、
+> 两个实现坑的留痕：掩码标量广播、1/8 与掩码的先后）、`tools/compare_i16.py` + `tools/e2e_i16.sh`（int16 对拍，见 §12）、
 > `ops/w4a16_{fc_proj,rmsnorm,swiglu,bmm_qk,bmm_pv}/`、`ops/decoder_layer_t16_w4a16/`、
 > `ops/decoder_layer_t16_w4a16_native/`、`ops/_w4a16_probe/*`、本文。
 > 公共工具（e2e/compare/compile/devlock/build_ops/quant_contract）**一行未改**。
