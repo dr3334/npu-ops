@@ -1,0 +1,8 @@
+== ops/two_layer_logits_t8_fp16 (logits) ==
+registered tolerance : A(atol=rtol)=0.0154724  B(self)=0.00161457  (max|logits| = 0.8267, floor_self = 0.000e+00, floor_chain = 3.868e-03)
+A. propagation (vs CPU chain)  max_abs=3.6621e-03 (7.50 ULP, rel 4.430e-03)  rmse=6.421e-04  rel_l2=4.353e-03  threshold=2.8263e-02  -> PASS
+B. own error (ref from board input) max_abs=2.4414e-04 (0.50 ULP, rel 2.950e-04)  rmse=1.903e-06  rel_l2=1.289e-05  threshold=2.9508e-03  -> PASS
+C. dev vs fp16-sim (semantics) max_abs=2.4414e-04 (0.50 ULP, rel 2.950e-04)  rmse=1.903e-06  rel_l2=1.289e-05  threshold=2.8278e-02  -> PASS
+   bit-identical codes vs CPU chain: 83761/1215488
+   noise floor (same .dla, same input, 2 runs): max|r1-r2| = 0.0000e+00  (0/1215488 codes differing)
+   VERDICT: propagation PASS / own-error PASS

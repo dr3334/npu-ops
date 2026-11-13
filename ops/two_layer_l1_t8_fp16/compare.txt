@@ -1,0 +1,9 @@
+op        : TWO_LAYER_L1_T8_FP16 {'T': 8, 'D': 896, 'Hq': 14, 'Hkv': 2, 'HD': 64, 'I': 4864, 'layer': 1}  dtype=fp16
+expected  : 7168 vals   device: 7168 vals   logical shape=(8, 896)
+max_abs   : 6.348e-03
+rmse      : 1.404e-03
+rel_l2    : 4.353e-03
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-1.268,1.263]  dev [-1.27,1.264]
+tol       : atol=0.0254135 rtol=0.0254135
+PASS

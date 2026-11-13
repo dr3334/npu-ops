@@ -1,0 +1,120 @@
+===== device capacity before =====
+/dev/block/dm-55 194G 188G  5.7G  98% /mnt/pass_through/0/emulated
+MemTotal:       11319740 kB
+MemAvailable:    6125536 kB
+===== healthcheck --quick (before) =====
+device present                             OK
+device identity                            mt6897/16
+/dev/apusys node                           OK
+neuronrt present                           OK
+known-good op (fc_1x64x64_int8)            PASS
+[restore] cleaned ops/fc_1x64x64_int8
+
+HEALTHCHECK: PASS
+healthcheck_before_rc=0
+===== l0 : e2e run 1 =====
+===== l0 : e2e run 2 (same .dla, same input -> noise floor) =====
+e2e rc: run1=0 run2=0
+op        : TWO_LAYER_L0_T8_FP16 {'T': 8, 'D': 896, 'Hq': 14, 'Hkv': 2, 'HD': 64, 'I': 4864, 'layer': 0}  dtype=fp16
+expected  : 7168 vals   device: 7168 vals   logical shape=(8, 896)
+max_abs   : 2.319e-03
+rmse      : 4.801e-04
+rel_l2    : 3.690e-03
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-0.4626,0.4836]  dev [-0.4626,0.4839]
+tol       : atol=0.0090332 rtol=0.0090332
+PASS
+l0 e2e: PASS
+===== l0 : timed reload round =====
+D:/deepseek_ workspace/mtk/wt-t10/ops/two_layer_l0_t8_fp16/model.dla: 1 file pushed, 0 skipped. 37.4 MB/s (29913362 bytes in 0.763s)
+D:/deepseek_ workspace/mtk/wt-t10/ops/two_layer_l0_t8_fp16/golden/input.bin: 1 file pushed, 0 skipped. 46.5 MB/s (14336 bytes in 0.000s)
+Inference repeats for 3 times.
+Total inference time = 6.74 ms (2.24667 ms/inf)
+Avg. FPS : 423
+/data/local/tmp/npuops/dla/two_layer_l0_t8_fp16.out.bin: 1 file pulled, 0 skipped. 4.2 MB/s (14336 bytes in 0.003s)
+[l0] push_dla=944ms push_in=86ms run=154ms (inference 6.74ms -> load+startup ~147ms) pull=85ms size=29913362B
+===== l0 : diagnostics (propagation vs own error) =====
+== ops/two_layer_l0_t8_fp16 (l0) ==
+registered tolerance : A(atol=rtol)=0.0090332  B(self)=0.0090332  (max|h1| = 0.4836, floor_self = 2.258e-03, floor_chain = 0.000e+00)
+A. propagation (vs CPU chain)  max_abs=2.3193e-03 (9.50 ULP, rel 4.796e-03)  rmse=4.801e-04  rel_l2=3.690e-03  threshold=1.3402e-02  -> PASS
+B. own error (ref from board input) max_abs=2.3193e-03 (9.50 ULP, rel 4.796e-03)  rmse=4.801e-04  rel_l2=3.690e-03  threshold=1.3402e-02  -> PASS
+C. dev vs fp16-sim (semantics) max_abs=1.7090e-03 (7.00 ULP, rel 3.530e-03)  rmse=2.081e-04  rel_l2=1.599e-03  threshold=1.3406e-02  -> PASS
+   bit-identical codes vs CPU chain: 791/7168
+   noise floor (same .dla, same input, 2 runs): max|r1-r2| = 0.0000e+00  (0/7168 codes differing)
+   VERDICT: propagation PASS / own-error PASS
+[handoff] ops/two_layer_l0_t8_fp16/out_device.bin -> ops/two_layer_l1_t8_fp16/golden/input.bin  (byte-identical, 14336 B, sha256 390520c4e842c74a)
+===== l1 : e2e run 1 =====
+===== l1 : e2e run 2 (same .dla, same input -> noise floor) =====
+e2e rc: run1=0 run2=0
+op        : TWO_LAYER_L1_T8_FP16 {'T': 8, 'D': 896, 'Hq': 14, 'Hkv': 2, 'HD': 64, 'I': 4864, 'layer': 1}  dtype=fp16
+expected  : 7168 vals   device: 7168 vals   logical shape=(8, 896)
+max_abs   : 6.348e-03
+rmse      : 1.404e-03
+rel_l2    : 4.353e-03
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-1.268,1.263]  dev [-1.27,1.264]
+tol       : atol=0.0254135 rtol=0.0254135
+PASS
+l1 e2e: PASS
+===== l1 : timed reload round =====
+D:/deepseek_ workspace/mtk/wt-t10/ops/two_layer_l1_t8_fp16/model.dla: 1 file pushed, 0 skipped. 40.0 MB/s (29913362 bytes in 0.714s)
+D:/deepseek_ workspace/mtk/wt-t10/ops/two_layer_l1_t8_fp16/golden/input.bin: 1 file pushed, 0 skipped. 50.9 MB/s (14336 bytes in 0.000s)
+Inference repeats for 3 times.
+Total inference time = 5.396 ms (1.79867 ms/inf)
+Avg. FPS : 524.8
+/data/local/tmp/npuops/dla/two_layer_l1_t8_fp16.out.bin: 1 file pulled, 0 skipped. 1.9 MB/s (14336 bytes in 0.007s)
+[l1] push_dla=934ms push_in=82ms run=154ms (inference 5.396ms -> load+startup ~149ms) pull=92ms size=29913362B
+===== l1 : diagnostics (propagation vs own error) =====
+== ops/two_layer_l1_t8_fp16 (l1) ==
+registered tolerance : A(atol=rtol)=0.0254135  B(self)=0.0180664  (max|h2| = 1.2676, floor_self = 4.517e-03, floor_chain = 6.353e-03)
+A. propagation (vs CPU chain)  max_abs=6.3477e-03 (6.50 ULP, rel 5.008e-03)  rmse=1.404e-03  rel_l2=4.353e-03  threshold=5.7627e-02  -> PASS
+B. own error (ref from board input) max_abs=3.4180e-03 (3.50 ULP, rel 2.696e-03)  rmse=6.305e-04  rel_l2=1.954e-03  threshold=4.0967e-02  -> PASS
+C. dev vs fp16-sim (semantics) max_abs=2.4414e-03 (2.50 ULP, rel 1.925e-03)  rmse=4.966e-04  rel_l2=1.539e-03  threshold=5.7652e-02  -> PASS
+   bit-identical codes vs CPU chain: 528/7168
+   noise floor (same .dla, same input, 2 runs): max|r1-r2| = 0.0000e+00  (0/7168 codes differing)
+   VERDICT: propagation PASS / own-error PASS
+[handoff] ops/two_layer_l1_t8_fp16/out_device.bin -> ops/two_layer_logits_t8_fp16/golden/input.bin  (byte-identical, 14336 B, sha256 c139368523670544)
+===== logits : e2e run 1 =====
+===== logits : e2e run 2 (same .dla, same input -> noise floor) =====
+e2e rc: run1=0 run2=0
+op        : TWO_LAYER_LOGITS_T8_FP16 {'T': 8, 'D': 896, 'Hq': 14, 'Hkv': 2, 'HD': 64, 'I': 4864, 'vocab': 151936}  dtype=fp16
+expected  : 1215488 vals   device: 1215488 vals   logical shape=(8, 151936)
+max_abs   : 3.662e-03
+rmse      : 6.421e-04
+rel_l2    : 4.353e-03
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-0.7153,0.8267]  dev [-0.7158,0.8276]
+tol       : atol=0.0154724 rtol=0.0154724
+PASS
+logits e2e: PASS
+===== logits : timed reload round =====
+D:/deepseek_ workspace/mtk/wt-t10/ops/two_layer_logits_t8_fp16/model.dla: 1 file pushed, 0 skipped. 34.2 MB/s (272274724 bytes in 7.597s)
+D:/deepseek_ workspace/mtk/wt-t10/ops/two_layer_logits_t8_fp16/golden/input.bin: 1 file pushed, 0 skipped. 48.0 MB/s (14336 bytes in 0.000s)
+Inference repeats for 3 times.
+Total inference time = 27.138 ms (9.046 ms/inf)
+Avg. FPS : 107
+/data/local/tmp/npuops/dla/two_layer_logits_t8_fp16.out.bin: 1 file pulled, 0 skipped. 28.5 MB/s (2430976 bytes in 0.081s)
+[logits] push_dla=7802ms push_in=101ms run=337ms (inference 27.138ms -> load+startup ~310ms) pull=160ms size=272274724B
+===== logits : diagnostics (propagation vs own error) =====
+== ops/two_layer_logits_t8_fp16 (logits) ==
+registered tolerance : A(atol=rtol)=0.0154724  B(self)=0.00161457  (max|logits| = 0.8267, floor_self = 0.000e+00, floor_chain = 3.868e-03)
+A. propagation (vs CPU chain)  max_abs=3.6621e-03 (7.50 ULP, rel 4.430e-03)  rmse=6.421e-04  rel_l2=4.353e-03  threshold=2.8263e-02  -> PASS
+B. own error (ref from board input) max_abs=2.4414e-04 (0.50 ULP, rel 2.950e-04)  rmse=1.903e-06  rel_l2=1.289e-05  threshold=2.9508e-03  -> PASS
+C. dev vs fp16-sim (semantics) max_abs=2.4414e-04 (0.50 ULP, rel 2.950e-04)  rmse=1.903e-06  rel_l2=1.289e-05  threshold=2.8278e-02  -> PASS
+   bit-identical codes vs CPU chain: 83761/1215488
+   noise floor (same .dla, same input, 2 runs): max|r1-r2| = 0.0000e+00  (0/1215488 codes differing)
+   VERDICT: propagation PASS / own-error PASS
+===== device capacity after =====
+/dev/block/dm-55 194G 188G  5.7G  98% /mnt/pass_through/0/emulated
+MemAvailable:    6120928 kB
+===== healthcheck --quick (after) =====
+device present                             OK
+device identity                            mt6897/16
+/dev/apusys node                           OK
+neuronrt present                           OK
+known-good op (fc_1x64x64_int8)            PASS
+[restore] cleaned ops/fc_1x64x64_int8
+
+HEALTHCHECK: PASS
+healthcheck_after_rc=0
+session_s=43  failed_layers=0  healthcheck=0/0

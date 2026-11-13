@@ -1,0 +1,271 @@
+{
+  "op": "TWO_LAYER_L1_T8_FP16",
+  "role": "l1",
+  "graph": "x[8,896] -> decoder layer 1 (layer1.* weights, 61 native layers) -> h2[8,896]",
+  "shape": {
+    "T": 8,
+    "D": 896,
+    "Hq": 14,
+    "Hkv": 2,
+    "HD": 64,
+    "I": 4864,
+    "layer": 1
+  },
+  "dtype": "fp16",
+  "inputs": [
+    {
+      "name": "x",
+      "shape": [
+        8,
+        896
+      ],
+      "type": "float16",
+      "bytes": 14336,
+      "provenance": "layer-1 input = h1_cpu, the fp16 handoff of the CPU chain (tools/chain_two_layer.sh REPLACES this file with layer 0's device out_device.bin before the board run)"
+    }
+  ],
+  "output": {
+    "name": "h2",
+    "shape": [
+      8,
+      896
+    ],
+    "type": "float16",
+    "bytes": 14336
+  },
+  "quant": {},
+  "reference": "numpy_float32_from_stored_fp16_one_final_rounding",
+  "reference_note": "golden/expected.bin is an independent numpy float32 forward pass over the stored fp16 weights/inputs/tables; it shares no code with the flatbuffer writer (which contains no maths). A float64 rerun gives 7119/7168 identical fp16 codes (max|f32-f64| = 2.441e-04), so the reference is not precision-limited.",
+  "atol": 0.0254134536,
+  "rtol": 0.0254134536,
+  "tolerance_revision": {
+    "revision": 1,
+    "registered_before_run": true,
+    "policy": "NOTES 4 / 10.1: atol = rtol = max(k*2^-11*max|out|, k*floor), k=4; the propagation allowance enters through floor_chain (see basis). The own-error criterion B uses self_atol = self_rtol = max(k*2^-11*max|out|, k*floor_self).",
+    "basis": "max|h2| = 1.2676; the fp16 ULP at that magnitude is 0.0009766 (7.70e-04 relative). Device-independent floor = 6.3534e-03 abs = 6.51 ULP = 5.01e-03 relative, taken as max(floor_self=4.5166e-03, floor_chain=6.3534e-03): floor_self is this layer's own fp16 rounding floor (numpy chain with a fp16 rounding at EVERY tensor boundary vs the single-rounding golden -- what MDLA does, docs/OP-qkv.md 5.2), floor_chain is how far this layer's reference moves when it is fed the fp16-rounded previous-layer output instead of the exact one, i.e. the propagation the board handoff must introduce, estimated from numpy only. Registered atol = rtol = max(4*2^-11*max|out|, 4*floor) = 0.0254135; the 4*floor term dominates. NOTES 4's flat 2e-2 would be 1.58e-02 relative here, i.e. tighter than the measured floor (unusable). No device measurement entered this number.",
+    "self_atol": 0.0180664062,
+    "self_rtol": 0.0180664062,
+    "self_policy": "comparison B (CPU reference rebuilt from the board's own input, i.e. this layer's own error with the propagation removed) is judged against self_atol = self_rtol = max(k*2^-11*max|out|, k*floor_self), registered here before any device run.",
+    "max_abs_expected": 1.267578125,
+    "ulp_at_max": 0.0009765625,
+    "floor_self": 0.0045166015625,
+    "floor_chain": 0.006353363394737244,
+    "floor_used": 0.006353363394737244,
+    "floor_ulp": 6.5058441162109375,
+    "rel_equivalent": 0.045462279823050476,
+    "under_2e-2_cap": false,
+    "top1": {
+      "enabled": false,
+      "why": "ADR 0003: under frozen random weights top-1 carries no semantics and one fp16 ULP flips near-ties, so argmax is not a criterion. Frozen until the real-weight stage. This ticket compares the logits VECTOR only."
+    }
+  },
+  "threshold_at_max": 0.057626991416327655,
+  "fp16_floor": {
+    "floor_self": 0.0045166015625,
+    "floor_chain": 0.006353363394737244,
+    "floor_used": 0.006353363394737244,
+    "ulp_at_max": 0.0009765625,
+    "max_abs_out": 1.267578125,
+    "max_abs_out_ulp": 1298.0
+  },
+  "eps_register": {
+    "graph_eps": 1e-06,
+    "eps_stored_fp16": 1.0132789611816406e-06,
+    "note": "Qwen2.5 rms_norm_eps = 1e-6, as in ticket 09; it is numerically unobservable at this dynamic range (ticket 09 section 7 measured eps=0 vs 1e-6 at 0.20x threshold)"
+  },
+  "mask": {
+    "value": -4096.0,
+    "position": "ADD after MUL(1/sqrt(HD))",
+    "causal": "0 at j<=i, MASK at j>i",
+    "form": "const [H,T,T] baked in graph"
+  },
+  "rope": {
+    "convention": "qwen2_split_half",
+    "theta": 1000000.0,
+    "head_dim": 64,
+    "positions": "0..7",
+    "coherence": "both layers use the identical table (same THETA, POS0, T)"
+  },
+  "chain": {
+    "role": "l1",
+    "hands_to": "two_layer_logits_t8_fp16",
+    "handoff": "device out_device.bin is copied over the next op's golden/input.bin (NOTES 10.4 item 5); no CPU correction in between",
+    "weights_reload": "each layer is its own .dla, so the whole static weight block is pushed and loaded again per layer"
+  },
+  "weight_inventory": {
+    "rows": [
+      {
+        "tensor": "layer1.q_proj",
+        "shape": [
+          896,
+          896
+        ],
+        "bytes": 1605632,
+        "mib": 1.5312
+      },
+      {
+        "tensor": "layer1.k_proj",
+        "shape": [
+          128,
+          896
+        ],
+        "bytes": 229376,
+        "mib": 0.2188
+      },
+      {
+        "tensor": "layer1.v_proj",
+        "shape": [
+          128,
+          896
+        ],
+        "bytes": 229376,
+        "mib": 0.2188
+      },
+      {
+        "tensor": "layer1.o_proj",
+        "shape": [
+          896,
+          896
+        ],
+        "bytes": 1605632,
+        "mib": 1.5312
+      },
+      {
+        "tensor": "layer1.gate_proj",
+        "shape": [
+          4864,
+          896
+        ],
+        "bytes": 8716288,
+        "mib": 8.3125
+      },
+      {
+        "tensor": "layer1.up_proj",
+        "shape": [
+          4864,
+          896
+        ],
+        "bytes": 8716288,
+        "mib": 8.3125
+      },
+      {
+        "tensor": "layer1.down_proj",
+        "shape": [
+          896,
+          4864
+        ],
+        "bytes": 8716288,
+        "mib": 8.3125
+      },
+      {
+        "tensor": "norm gammas + qkv biases + zero FC biases",
+        "bytes": 28928,
+        "mib": 0.0276
+      },
+      {
+        "tensor": "rope cos/sin tables (q+k) + causal mask",
+        "bytes": 34560,
+        "mib": 0.033
+      }
+    ],
+    "total_bytes": 29882368,
+    "total_mib": 28.498
+  },
+  "stats": {
+    "input": {
+      "min": -0.462646484375,
+      "max": 0.483642578125,
+      "abs_max": 0.483642578125,
+      "rms": 0.1300876776943163
+    },
+    "output": {
+      "min": -1.267578125,
+      "max": 1.2626953125,
+      "abs_max": 1.267578125,
+      "rms": 0.3226358837561068
+    },
+    "traces": {
+      "x": {
+        "min": -0.462646484375,
+        "max": 0.483642578125,
+        "abs_max": 0.483642578125,
+        "rms": 0.1300876776943163
+      },
+      "n1": {
+        "min": -3.994171619415283,
+        "max": 3.5441954135894775,
+        "abs_max": 3.994171619415283,
+        "rms": 0.7489261916109168
+      },
+      "q3": {
+        "min": -6.055332660675049,
+        "max": 5.549659729003906,
+        "abs_max": 6.055332660675049,
+        "rms": 1.3687721453039388
+      },
+      "k14": {
+        "min": -44.80740737915039,
+        "max": 43.211917877197266,
+        "abs_max": 44.80740737915039,
+        "rms": 19.08447115616025
+      },
+      "v14": {
+        "min": -1.0129659175872803,
+        "max": 1.0905022621154785,
+        "abs_max": 1.0905022621154785,
+        "rms": 0.35158848048655095
+      },
+      "scores": {
+        "min": -479.57586669921875,
+        "max": 636.788330078125,
+        "abs_max": 636.788330078125,
+        "rms": 231.28750522874338
+      },
+      "probs": {
+        "min": 0.0,
+        "max": 1.0,
+        "abs_max": 1.0,
+        "rms": 0.31976700870161273
+      },
+      "attn": {
+        "min": -1.0025793313980103,
+        "max": 1.0886335372924805,
+        "abs_max": 1.0886335372924805,
+        "rms": 0.3265075636436829
+      },
+      "r1": {
+        "min": -0.8808513879776001,
+        "max": 0.7894164323806763,
+        "abs_max": 0.8808513879776001,
+        "rms": 0.19370812088289968
+      },
+      "n2": {
+        "min": -5.415945053100586,
+        "max": 3.8232531547546387,
+        "abs_max": 5.415945053100586,
+        "rms": 1.0307293161762516
+      },
+      "mlp_y": {
+        "min": -2.605973243713379,
+        "max": 3.4438631534576416,
+        "abs_max": 3.4438631534576416,
+        "rms": 0.2198848430031724
+      },
+      "down": {
+        "min": -0.890570878982544,
+        "max": 0.9937505722045898,
+        "abs_max": 0.9937505722045898,
+        "rms": 0.26217705236607497
+      },
+      "out": {
+        "min": -1.2679097652435303,
+        "max": 1.2626934051513672,
+        "abs_max": 1.2679097652435303,
+        "rms": 0.3226381987648926
+      }
+    }
+  },
+  "generator": "tools/build_two_layer.py",
+  "tflite": "model.tflite",
+  "tflite_bytes": 29878156
+}

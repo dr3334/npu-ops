@@ -1,0 +1,8 @@
+== ops/two_layer_l1_t8_fp16 (l1) ==
+registered tolerance : A(atol=rtol)=0.0254135  B(self)=0.0180664  (max|h2| = 1.2676, floor_self = 4.517e-03, floor_chain = 6.353e-03)
+A. propagation (vs CPU chain)  max_abs=6.3477e-03 (6.50 ULP, rel 5.008e-03)  rmse=1.404e-03  rel_l2=4.353e-03  threshold=5.7627e-02  -> PASS
+B. own error (ref from board input) max_abs=3.4180e-03 (3.50 ULP, rel 2.696e-03)  rmse=6.305e-04  rel_l2=1.954e-03  threshold=4.0967e-02  -> PASS
+C. dev vs fp16-sim (semantics) max_abs=2.4414e-03 (2.50 ULP, rel 1.925e-03)  rmse=4.966e-04  rel_l2=1.539e-03  threshold=5.7652e-02  -> PASS
+   bit-identical codes vs CPU chain: 528/7168
+   noise floor (same .dla, same input, 2 runs): max|r1-r2| = 0.0000e+00  (0/7168 codes differing)
+   VERDICT: propagation PASS / own-error PASS
