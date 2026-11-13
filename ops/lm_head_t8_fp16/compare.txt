@@ -1,0 +1,9 @@
+op        : FULLY_CONNECTED+CONCATENATION {'M': 8, 'K': 896, 'N': 151936}  dtype=fp16
+expected  : 1215488 vals   device: 1215488 vals   logical shape=(8, 151936)
+max_abs   : 9.766e-04
+rmse      : 6.245e-06
+rel_l2    : 1.368e-05
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-2.121,2.197]  dev [-2.121,2.197]
+tol       : atol=0.00429153 rtol=0.00429153
+PASS
