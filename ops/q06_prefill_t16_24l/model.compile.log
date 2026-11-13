@@ -1,6 +1,6 @@
 # cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/q06_prefill_t16_24l/model.tflite -d ops/q06_prefill_t16_24l/model.dla
 # version: Version: 7.3.15
-# date: 2026-11-13T15:29:29+08:00
+# date: 2026-11-13T16:28:35+08:00
 
 ===Graph[0] has 1 Execution Step(s)===
 Graph[0] Step[0]
@@ -1468,4 +1468,4 @@ TargetExecutionOrder:
 
 EXIT=0
 SIZE=18079138
-SHA256=3392f0a0399b6623ad8a99f393aebc9e6a6b3d3ba087d504562feeba8a9d1050
+SHA256=37055e9fd40bfeb3327c6dd40e5f65ce5145e7fbd0d2b69580219a20822fdaae

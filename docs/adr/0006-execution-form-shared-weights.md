@@ -38,3 +38,23 @@
 - **逐 token 正确性**（8 步，每步都记）：`|Δcos(device, 量化 golden)| ≤ 8.2e-5`（门 0.003）、码级 max ≤370（门 1200）、噪声底 0 字节；vs 独立 fp64 链 hidden/logits cosine **0.9727–0.9985**、**argmax 6/8**。prefill 的 `|Δcos|` 2.24e-5、cos 0.996148。
 
 结论：本 ADR 的形态判断被证实——**「两张图 + 一份 bin」可行、KV 是 host 侧状态、权重可以真正常驻**；剩余差距是**工程**（KV 常驻、T=1 的绕法、padding 成本），不是形态问题。
+
+## 订正（2026-11-13，票 kv1 之后）：KV 常驻要换 RuntimeV2，且每 token 多一次 24 MiB 拷贝
+
+上一节结尾断言「用 RuntimeAPI 把缓存指针常驻，per-token 拷贝可以从 25 MB 降到 O(256 B/层)」。
+半对半错，位置很具体（docs/OP-kv1-resident-kv.md）：
+
+- **v1 的 `NeuronRuntime_setInput(handle, ptr, len, {ionFd})` 不行**：用户 dma-buf 能绑上（rc=0），
+  但图输入在第一次推理后就不再被读——host 就地写新行（读回 buffer 证明正好落下 6,144 B）、
+  甚至另分配一块 dma-buf 重新绑，下一次 invoke 的输出**都逐字节不变**。控制实验（把同一份 cache
+  预先写进种子文件）逐字节复现 CLI，所以不是行映射写错，是"绑一次 = 快照"。
+- **v2 的 `NeuronRuntimeV2_run(runtime, SyncInferenceRequest)` 行**：每请求重送
+  `IOBuffer{ptr,len,fd,offset}`，8 个 token 的 hidden/k/v **24/24 张量逐字节等于** CLI 路径。
+  KV 缓冲因此可以一次分配、进程内反复用，host 每 token 只写 12,288 B（CLI 形态是 25.6 MB）。
+- **但 v2 每请求把 24 MiB 拷进自己的 staging**：`/proc/self/stat` 的 CPU 差 12.95 ms/invoke
+  （≈25.2 MB @1.9 GB/s）。所以 v2 每 invoke 62.9 ms，比"绑一次就不动"的 v1（49.4 ms）慢，
+  比同会话 CLI（59.1 ms）也慢 7%。
+
+结论口径：**"KV 常驻设备"已经做到（架构上不再是 25.6 MB/token 搬运），剩下的是运行时那 13 ms 的
+拷贝与 T=8 的 7 行 padding**——两者都不在图的语义里，属运行时/编译侧优化。上一段"下一轮第一块砖"
+的说法改成："这一块砖已经搬开，露出的是运行时 descriptor 处理与 T=1 编译这两块。"

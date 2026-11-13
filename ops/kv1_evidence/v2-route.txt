@@ -1,0 +1,25 @@
+# RuntimeV2 route: 8-phase resident KV, compared byte-for-byte with the neuronrt CLI baseline
+# runner: tools/kv2_runner.c (NeuronRuntimeV2_create + per-request IOBuffer{ptr,len,fd,offset})
+# KV: two 12,582,912 B dma-bufs (mtk_mm-uncached), allocated once, new row written per token
+
+[v2] create(q06/decode.dla, threads=1) rc=0
+[v2 in 6] dma-buf fd=14 len=12582912
+[v2 in 7] dma-buf fd=15 len=12582912
+[time] n=8 mean=63.551 median=62.365 p10=52.966 p90=84.569 min=52.966 max=84.569
+[v2] step 00: hidden=SAME k=SAME v=SAME
+[v2] step 01: hidden=SAME k=SAME v=SAME
+[v2] step 02: hidden=SAME k=SAME v=SAME
+[v2] step 03: hidden=SAME k=SAME v=SAME
+[v2] step 04: hidden=SAME k=SAME v=SAME
+[v2] step 05: hidden=SAME k=SAME v=SAME
+[v2] step 06: hidden=SAME k=SAME v=SAME
+[v2] step 07: hidden=SAME k=SAME v=SAME
+# => 24/24 tensors byte-identical to the CLI path (cmp, not cosine)
+
+# timing, N=400 (same session): wall and CPU from /proc/self/stat utime+stime
+[time] n=400 mean=62.905 median=62.836 p10=58.363 p90=67.009 min=54.449 max=81.369
+[cpu]  wall_total=25162 ms cpu_total=5180.0 ms cpu_per_invoke=12.950 ms
+# same runner, KV in anonymous memory (--kv-heap host):
+[time] n=400 mean=64.833 median=65.245 p10=60.447 p90=68.141 min=53.596 max=97.239
+[cpu]  wall_total=25933 ms cpu_total=6070.0 ms cpu_per_invoke=15.175 ms
+# => V2 copies the 24 MiB KV into its own staging on every request: 25.2 MB / 12.95 ms ~ 1.9 GB/s

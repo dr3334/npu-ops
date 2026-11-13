@@ -1,0 +1,14 @@
+# poison experiment: row 16 written as int16 20000 vs 0, then the KV dma-buf read back
+cache_vs_seed_differing_bytes(poison=20000) = 6144   (== 48 slabs x 64 int16 == exactly one row per layer)
+seed  row16: 0 0 0 0       cache row16: 20000 20000 20000 20000
+step1 hidden sha256 (poison=0)      = 4e748e43bc1b13af194accf07dbc7aae6880a2eb5a932390b28bcc444d79ab36
+step1 hidden sha256 (poison=20000)  = 4e748e43bc1b13af194accf07dbc7aae6880a2eb5a932390b28bcc444d79ab36
+=> identical: the device did not observe the host write
+
+# ping-pong: second dma-buf allocated (fd=30/31), updated cache copied in, setInput called again
+[pingpong] alt buffer for in6 fd=30
+[pingpong] alt buffer for in7 fd=31
+step1 hidden pingpong vs plain: IDENTICAL
+
+# control: the same cache written into the SEED FILE before the process starts
+step1 hidden pre-seeded runner vs CLI: SAME  => row mapping / mask / framework are correct

@@ -1,0 +1,10 @@
+  A n=100 total_ms=6197
+  [time] n=100 mean=49.386 ms median=48.919 ms p10=46.613 p90=53.231 min=43.873 max=55.722
+  B n=100 total_ms=5247
+  [time] n=100 mean=52.901 ms median=52.350 ms p10=50.223 p90=58.356 min=44.099 max=59.610
+  C n=100 total_ms=5580
+  [time] n=100 mean=53.034 ms median=52.387 ms p10=50.151 p90=57.831 min=44.262 max=61.133
+  C n=100 total_ms=5597
+  [time] n=100 mean=49.795 ms median=49.050 ms p10=46.885 p90=54.015 min=45.096 max=55.413
+  B n=100 total_ms=5255
+  A n=100 total_ms=6121

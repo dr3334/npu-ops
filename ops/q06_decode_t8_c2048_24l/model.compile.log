@@ -1,6 +1,6 @@
 # cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/q06_decode_t8_c2048_24l/model.tflite -d ops/q06_decode_t8_c2048_24l/model.dla
 # version: Version: 7.3.15
-# date: 2026-11-13T15:30:55+08:00
+# date: 2026-11-13T16:27:09+08:00
 
 ===Graph[0] has 1 Execution Step(s)===
 Graph[0] Step[0]
@@ -1564,4 +1564,4 @@ TargetExecutionOrder:
 
 EXIT=0
 SIZE=18141590
-SHA256=951bed7ea19d209a805f9de1cb20cf65395973ee132d9abd6dfe482d89fda4cc
+SHA256=efa376a68678bfe3038f4e502a3e6fb0226b5c20930c9bd3aa28d4cdb53e8a65
