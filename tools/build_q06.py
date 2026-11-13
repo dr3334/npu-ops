@@ -558,7 +558,8 @@ def code_stats(dev, gold, s):
     gr = g.astype(np.float64) * s
     return dict(codes_max=int(a.max()), codes_mean=float(a.mean()),
                 exact=int((a == 0).sum()), n=int(a.size),
-                cos=float(bw.cosine(dr, gr)))
+                cos=float(bw.cosine(dr, gr)),
+                rel_l2=float(np.linalg.norm(dr - gr) / max(np.linalg.norm(gr), 1e-30)))
 
 
 def seq_state(d):
@@ -766,19 +767,20 @@ def seq_report(d):
     print("prefill : hidden codes max %d  |dcos| vs fp64 %.6f  logits cos %.7f"
           % (pre["prefill_hidden"]["codes_max"], pre["prefill_hidden_vs_fp64"],
              pre["prefill_logits"]["cos"]))
-    print("%4s %5s %6s %6s %8s %10s %10s %10s %10s %6s"
-          % ("step", "pos", "codmax", "codmean", "absdcos", "cos(d,gold)",
-             "cos(d,fp64)", "cos(logit)", "cos(g,fp64)", "hit"))
+    print("%4s %5s %6s %6s %9s %10s %10s %10s %10s %10s %6s"
+          % ("step", "pos", "codmax", "codmean", "absdcos", "rel_l2",
+             "cos(d,gold)", "cos(d,fp64)", "cos(logit)", "cos(g,fp64)", "hit"))
     for r in recs:
-        print("%4d %5d %6d %6.2f %8.5f %10.7f %10.7f %10.7f %10.7f %6d"
+        print("%4d %5d %6d %6.2f %9.5f %10.4f %10.7f %10.7f %10.7f %10.7f %6d"
               % (r["step"], r["pos"], r["hidden"]["codes_max"], r["hidden"]["codes_mean"],
-                 r["abs_dcos"], r["hidden"]["cos"], r["hidden_vs_fp64"],
-                 r["logits_dev"]["cos"], r["golden_vs_fp64"], r["logits_dev"]["hit"]))
+                 r["abs_dcos"], r["hidden"]["rel_l2"], r["hidden"]["cos"],
+                 r["hidden_vs_fp64"], r["logits_dev"]["cos"], r["golden_vs_fp64"],
+                 r["logits_dev"]["hit"]))
     import statistics as st
     print("summary : abs(dcos) max %.5f (gate 0.003)  codes max %d (gate 1200)  "
-          "logits cos last %.7f  token hits %d/%d"
+          "rel_l2 max %.4f (gate 0.05)  logits cos last %.7f  token hits %d/%d"
           % (max(r["abs_dcos"] for r in recs), max(r["hidden"]["codes_max"] for r in recs),
-             recs[-1]["logits_dev"]["cos"],
+             max(r["hidden"]["rel_l2"] for r in recs), recs[-1]["logits_dev"]["cos"],
              sum(r["logits_dev"]["hit"] for r in recs), len(recs)))
     return 0
 

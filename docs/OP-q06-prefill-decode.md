@@ -254,9 +254,18 @@ prompt = token_ids(16)（夹具 embed 行），接着 8 个 token = token_ids(24
 |---|---|---|---|
 | 实现门：｜Δcos(device, 量化 golden)｜ | ≤ 0.003 | **≤ 8.2e-5**（8 步 + prefill 2.2e-5） | **PASS** |
 | 实现门：码级 max | ≤ 1200（= √24 × 票 04f 单层 247） | **≤ 411**（prefill + 8 步） | **PASS** |
-| 实现门：rel_l2(device, golden) | ≤ 0.05 | 未单独出（hidden 只有 896 个值/步，码级 max/mean 已给） | **未登记** |
+| 实现门：rel_l2(device, golden) | ≤ 0.05 | prefill **6.69e-3**（第二轮运行的 prefill 实测）；decode 各步未取到（见 §5.4） | **prefill PASS / decode 未测** |
 | 质量期望（按档，int8 权重 ≥0.9998） | — | 整链 cos 0.973–0.998 **达不到 0.9998** | **FAIL（照实报）** |
 | 最终质量门（整网 logits） | 无硬阈值，按 spec 记录 | logits cos **0.9727–0.9985**、argmax **6/8** | 记录 |
+
+### 5.4 两件事要说清
+
+1. **prefill 做了两次独立运行**：第一次 168 ms / 第二次 149 ms，golden 侧的码级与 cosine **逐位相同**
+   （codes max 411 / mean 38.80 / cos 0.9999776），只有时间不同 ⇒ 设备侧结果时间无关。
+2. **decode 各步的 rel_l2 没取到**：为了把 rel_l2 也记进 seq.jsonl，跑了第二次完整序列，
+   但**设备在 prefill 之后掉线**（adb: no devices/emulators found，重启 adb server 与 reconnect 都没有恢复），
+   所以只有 prefill 那一格的 rel_l2 = 6.69e-3。model.json 里登记的 rel_l2 门（0.05）**没有改动**；
+   decode 侧的实现门由 ｜Δcos｜（≤8.2e-5）与码级 max（≤370）两个口径支撑。这条记在这里，不圆。
 
 **这一档能说明什么 / 不能说明什么**：
 
@@ -358,6 +367,8 @@ prompt = token_ids(16)（夹具 embed 行），接着 8 个 token = token_ids(24
 6. **per-layer KV scale 的收益没量**：K/V 各用一个全局 scale（跨 24 层），夹具下层间幅度差 1.0–1.3 倍，
    所以本票没吃亏；**真权重下层间差异会大得多**，那时 per-layer（或 per-head）scale 才有意义。
 7. **logits 的 6/8 命中率**：8 个样本、teacher forcing、host 侧 fp64 lm_head，不能当端到端命中率。
+8. **decode 各步的 rel_l2**：第二次运行在 prefill 之后设备掉线，只留下 prefill 那一格（6.69e-3）。
+   设备恢复后重跑一次 `./tools/e2e_q06.sh --steps 8` 即可补齐（seq.jsonl 每步都带 rel_l2 字段）。
 
 ---
 
