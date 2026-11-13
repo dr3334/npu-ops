@@ -61,7 +61,7 @@
     "sha256": "40cdb3488dedade266d353dd674f2ed279dab6b7a4f3590bfbcb46f9bc859d7a",
     "fixture_dir": "/mnt/d/deepseek_ workspace/mtk/wt-t08/weights/qwen25_frozen",
     "weights_digest": "898fa3195d627a4ce055cbdb6fc762a12e74665b431e3ae09b530b4abdad18a4",
-    "load_seconds": 1.18
+    "load_seconds": 2.1
   },
   "tied_materialised_once": true,
   "constant_bytes": 272573184,
@@ -79,7 +79,7 @@
     "revision": 1,
     "registered_before_run": true,
     "policy": "NOTES 10.1 exception: atol=rtol=4.0*2^-11*max|exp|",
-    "reason": "|logits| max=2.197 > 1, so NOTES 4's absolute 2e-2 would be only 9.10e-03 relative; threshold derived from the fp16 mantissa step (2^-11) x 4 x max|exp| -- device-independent lower bound, no device data used to pick it",
+    "reason": "|logits| max=2.197 > 1 (not O(1)), so this is the NOTES 10.1 branch: the threshold is derived from the device-independent fp16 mantissa step, atol=rtol=4*2^-11*max|exp| = 0.00429153 = 1.95e-03 relative. That is TIGHTER than NOTES 4's flat 2e-2 (which would be 9.10e-03 relative here, ~4.7x looser than the fp16 rounding floor) and still 4.0x above that floor. No device measurement was used to pick it.",
     "formula": "atol = rtol = 4 * 2^-11 * max|exp| = 0.00429153",
     "max_abs_expected": 2.197265625,
     "fp16_ulp_rel": 0.00048828125,
@@ -90,7 +90,7 @@
   },
   "int8_tol": 0,
   "golden": {
-    "seconds": 0.29,
+    "seconds": 0.34,
     "chunk_rows": 8192,
     "abs_max": 2.197265625,
     "min": -2.12109375,
@@ -108,6 +108,6 @@
     68067328
   ],
   "tflite_sha256": "327359ea38c6651ef109b773dadf54103333b46c6605676656ba4fc331ee9c2e",
-  "build_seconds": 0.54,
+  "build_seconds": 0.55,
   "builder": "build_lm_head.py"
 }

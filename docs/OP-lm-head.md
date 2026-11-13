@@ -157,6 +157,10 @@ EXIT=1
 `atol = rtol = 4 × 2^-11 × max|exp| = 4.29153e-3`（写入 `model.json`，含 `tolerance_revision`
 的 policy/reason/formula/under_2e-2_cap 四段）。第一次上板就用这个值，**没有事后调整**。
 
+注意方向：这个阈值（相对 **1.95e-3**）比 NOTES §4 的 flat `2e-2`（在 `max|exp|=2.197` 处等于 9.1e-3 相对）
+**更紧 4.7 倍**，不是放宽 —— 目的是把判据压到 fp16 末位水平（4 ULP），而不是把红线挪到容易过。
+实测 `max_abs=9.766e-4` 只用到合约的 **1/14**。
+
 ### 3.5 上板流程（严格按锁）
 
 ```bash

@@ -217,10 +217,13 @@ def tolerance(golden_stats, noise_floor=0.0, revision=1):
         # outputs are not O(1) -> 10.1 exception: atol = rtol = k * 2^-11 * max|out|
         atol = rtol = TOL_K * FP16_ULP_REL * mx
         rule = "NOTES 10.1 exception: atol=rtol=%.1f*2^-11*max|exp|" % TOL_K
-        why = ("|logits| max=%.3f > 1, so NOTES 4's absolute 2e-2 would be only %.2e relative; "
-               "threshold derived from the fp16 mantissa step (2^-11) x %g x max|exp| -- "
-               "device-independent lower bound, no device data used to pick it"
-               % (mx, 2e-2 / mx, TOL_K))
+        why = ("|logits| max=%.3f > 1 (not O(1)), so this is the NOTES 10.1 branch: the threshold is "
+               "derived from the device-independent fp16 mantissa step, atol=rtol=%g*2^-11*max|exp| "
+               "= %.6g = %.2e relative. That is TIGHTER than NOTES 4's flat 2e-2 (which would be %.2e "
+               "relative here, ~%.1fx looser than the fp16 rounding floor) and still %.1fx above that "
+               "floor. No device measurement was used to pick it."
+               % (mx, TOL_K, TOL_K * FP16_ULP_REL * mx, TOL_K * FP16_ULP_REL,
+                  2e-2 / mx, (2e-2 / mx) / (TOL_K * FP16_ULP_REL), TOL_K))
     else:
         atol = rtol = 1e-3
         rule = "NOTES 4 degenerate rule: noise floor 0 -> fp16 last-digit scale"
