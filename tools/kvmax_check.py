@@ -64,7 +64,7 @@ def prepare(a):
 
 def compare(a):
     m = json.load(open(os.path.join(a.dir, "exp_meta.json")))
-    C, t, n, valid, s_h = m["C"], m["t"], m["n"], m["valid"], m["s_h"]
+    C, t, n, valid, s_h = m["C"], m["t"], m["layers"], m["valid"], m["s_h"]
     bq.S_K, bq.S_V = m["S_K"], m["S_V"]
     e = os.path.join(a.dir, "live")
     eh = np.load(os.path.join(a.dir, "exp_h.npy"))

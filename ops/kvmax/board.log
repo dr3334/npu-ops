@@ -1,0 +1,158 @@
+########## HEALTHCHECK BEFORE 2026-11-13T16:56:59+08:00
+device present                             OK
+device identity                            mt6897/16
+/dev/apusys node                           OK
+neuronrt present                           OK
+known-good op (fc_1x64x64_int8)            PASS
+[restore] cleaned ops/fc_1x64x64_int8
+
+HEALTHCHECK: PASS
+HC_BEFORE_RC=0
+[bench] C set: 2048 4096 8192  rounds=3  N=20  2026-11-13T16:57:01+08:00
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax_decode_t8_c2048_24l/model.dla: 1 file pushed, 0 skipped. 42.1 MB/s (18141594 bytes in 0.411s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/x.bin: 1 file pushed, 0 skipped. 10.5 MB/s (14336 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/mask.bin: 1 file pushed, 0 skipped. 60.6 MB/s (460544 bytes in 0.007s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/cos14.bin: 1 file pushed, 0 skipped. 0.2 MB/s (7168 bytes in 0.036s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/sin14.bin: 1 file pushed, 0 skipped. 6.7 MB/s (7168 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/cos2.bin: 1 file pushed, 0 skipped. 0.0 MB/s (1024 bytes in 0.037s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/sin2.bin: 1 file pushed, 0 skipped. 1.8 MB/s (1024 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/k_in.bin: 1 file pushed, 0 skipped. 417.6 MB/s (12582912 bytes in 0.029s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/v_in.bin: 1 file pushed, 0 skipped. 183.9 MB/s (12582912 bytes in 0.065s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax_decode_t8_c4096_24l/model.dla: 1 file pushed, 0 skipped. 35.9 MB/s (18268200 bytes in 0.485s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/x.bin: 1 file pushed, 0 skipped. 0.4 MB/s (14336 bytes in 0.037s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/mask.bin: 1 file pushed, 0 skipped. 196.0 MB/s (919296 bytes in 0.004s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/cos14.bin: 1 file pushed, 0 skipped. 0.2 MB/s (7168 bytes in 0.036s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/sin14.bin: 1 file pushed, 0 skipped. 9.8 MB/s (7168 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/cos2.bin: 1 file pushed, 0 skipped. 0.0 MB/s (1024 bytes in 0.037s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/sin2.bin: 1 file pushed, 0 skipped. 0.1 MB/s (1024 bytes in 0.019s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/k_in.bin: 1 file pushed, 0 skipped. 382.0 MB/s (25165824 bytes in 0.063s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/v_in.bin: 1 file pushed, 0 skipped. 373.5 MB/s (25165824 bytes in 0.064s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax_decode_t8_c8192_24l/model.dla: 1 file pushed, 0 skipped. 52.3 MB/s (19806344 bytes in 0.361s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/x.bin: 1 file pushed, 0 skipped. 14.0 MB/s (14336 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/mask.bin: 1 file pushed, 0 skipped. 42.1 MB/s (1836800 bytes in 0.042s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/cos14.bin: 1 file pushed, 0 skipped. 0.2 MB/s (7168 bytes in 0.037s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/sin14.bin: 1 file pushed, 0 skipped. 0.2 MB/s (7168 bytes in 0.032s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/cos2.bin: 1 file pushed, 0 skipped. 0.1 MB/s (1024 bytes in 0.013s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/sin2.bin: 1 file pushed, 0 skipped. 0.0 MB/s (1024 bytes in 0.036s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/k_in.bin: 1 file pushed, 0 skipped. 433.4 MB/s (50331648 bytes in 0.111s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/v_in.bin: 1 file pushed, 0 skipped. 337.6 MB/s (50331648 bytes in 0.142s)
+[r1] C=2048 t1=257ms tN=1307ms(20) per_invoke=55.26ms  (rc=0 ms=257 / rc=0 ms=1307)
+[r1] C=4096 t1=300ms tN=1977ms(20) per_invoke=88.26ms  (rc=0 ms=300 / rc=0 ms=1977)
+[r1] C=8192 t1=548ms tN=ms(20) per_invoke=-28.84ms  (rc=0 ms=548 / rc=0 ms=-54)
+[r2] C=8192 t1=566ms tN=ms(20) per_invoke=-29.79ms  (rc=0 ms=566 / rc=0 ms=-17)
+[r2] C=4096 t1=333ms tN=1946ms(20) per_invoke=84.89ms  (rc=0 ms=333 / rc=0 ms=1946)
+[r2] C=2048 t1=213ms tN=1350ms(20) per_invoke=59.84ms  (rc=0 ms=213 / rc=0 ms=1350)
+[r3] C=2048 t1=253ms tN=1334ms(20) per_invoke=56.89ms  (rc=0 ms=253 / rc=0 ms=1334)
+[r3] C=4096 t1=324ms tN=1974ms(20) per_invoke=86.84ms  (rc=0 ms=324 / rc=0 ms=1974)
+[r3] C=8192 t1=578ms tN=ms(20) per_invoke=-30.42ms  (rc=0 ms=578 / rc=0 ms=-41)
+[bench] wrote ops/kvmax/timing.jsonl
+rc=0 ms=231
+/data/local/tmp/npuops/kvmax/c2048/out_hidden.bin: 1 file pulled, 0 skipped. 1.9 MB/s (14336 bytes in 0.007s)
+/data/local/tmp/npuops/kvmax/c2048/out_k.bin: 1 file pulled, 0 skipped. 1.3 MB/s (49152 bytes in 0.037s)
+/data/local/tmp/npuops/kvmax/c2048/out_v.bin: 1 file pulled, 0 skipped. 8.7 MB/s (49152 bytes in 0.005s)
+Traceback (most recent call last):
+  File "/mnt/d/deepseek_ workspace/mtk/wt-kv2/tools/kvmax_check.py", line 109, in <module>
+    sys.exit(main())
+  File "/mnt/d/deepseek_ workspace/mtk/wt-kv2/tools/kvmax_check.py", line 104, in main
+    return compare(a)
+  File "/mnt/d/deepseek_ workspace/mtk/wt-kv2/tools/kvmax_check.py", line 67, in compare
+    C, t, n, valid, s_h = m["C"], m["t"], m["n"], m["valid"], m["s_h"]
+KeyError: 'n'
+rc=0 ms=339
+/data/local/tmp/npuops/kvmax/c4096/out_hidden.bin: 1 file pulled, 0 skipped. 2.2 MB/s (14336 bytes in 0.006s)
+/data/local/tmp/npuops/kvmax/c4096/out_k.bin: 1 file pulled, 0 skipped. 1.3 MB/s (49152 bytes in 0.036s)
+/data/local/tmp/npuops/kvmax/c4096/out_v.bin: 1 file pulled, 0 skipped. 7.5 MB/s (49152 bytes in 0.006s)
+Traceback (most recent call last):
+  File "/mnt/d/deepseek_ workspace/mtk/wt-kv2/tools/kvmax_check.py", line 109, in <module>
+    sys.exit(main())
+  File "/mnt/d/deepseek_ workspace/mtk/wt-kv2/tools/kvmax_check.py", line 104, in main
+    return compare(a)
+  File "/mnt/d/deepseek_ workspace/mtk/wt-kv2/tools/kvmax_check.py", line 67, in compare
+    C, t, n, valid, s_h = m["C"], m["t"], m["n"], m["valid"], m["s_h"]
+KeyError: 'n'
+rc=0 ms=544
+/data/local/tmp/npuops/kvmax/c8192/out_hidden.bin: 1 file pulled, 0 skipped. 2.2 MB/s (14336 bytes in 0.006s)
+/data/local/tmp/npuops/kvmax/c8192/out_k.bin: 1 file pulled, 0 skipped. 1.3 MB/s (49152 bytes in 0.037s)
+/data/local/tmp/npuops/kvmax/c8192/out_v.bin: 1 file pulled, 0 skipped. 11.7 MB/s (49152 bytes in 0.004s)
+Traceback (most recent call last):
+  File "/mnt/d/deepseek_ workspace/mtk/wt-kv2/tools/kvmax_check.py", line 109, in <module>
+    sys.exit(main())
+  File "/mnt/d/deepseek_ workspace/mtk/wt-kv2/tools/kvmax_check.py", line 104, in main
+    return compare(a)
+  File "/mnt/d/deepseek_ workspace/mtk/wt-kv2/tools/kvmax_check.py", line 67, in compare
+    C, t, n, valid, s_h = m["C"], m["t"], m["n"], m["valid"], m["s_h"]
+KeyError: 'n'
+########## 3) resident memory at C=8192
+D:/deepseek_ workspace/mtk/wt-kv2/tools/kvmax_mem_device.sh: 1 file pushed, 0 skipped. 0.0 MB/s (1224 bytes in 0.038s)
+=== C 8192 BASELINE meminfo ===
+=== PID 26355 ===
+=== SAMPLE 0 ===
+Rss:              109844 kB
+Pss:              105990 kB
+Pss_Anon:         103760 kB
+Pss_File:           2157 kB
+Pss_Shmem:            73 kB
+rchar: 102793241
+read_bytes: 0
+=== SAMPLE 1 ===
+Rss:              109844 kB
+Pss:              105987 kB
+Pss_Anon:         103760 kB
+Pss_File:           2153 kB
+Pss_Shmem:            73 kB
+rchar: 102793241
+read_bytes: 0
+=== SAMPLE 2 ===
+Rss:              109844 kB
+Pss:              105994 kB
+Pss_Anon:         103760 kB
+Pss_File:           2161 kB
+Pss_Shmem:            73 kB
+rchar: 102793241
+read_bytes: 0
+=== SAMPLE 3 ===
+Rss:              109844 kB
+Pss:              105987 kB
+Pss_Anon:         103760 kB
+Pss_File:           2153 kB
+Pss_Shmem:            73 kB
+rchar: 102793241
+read_bytes: 0
+=== SAMPLE 4 ===
+Rss:              109844 kB
+Pss:              105996 kB
+Pss_Anon:         103760 kB
+Pss_File:           2162 kB
+Pss_Shmem:            73 kB
+rchar: 102793241
+read_bytes: 0
+=== SAMPLE 5 ===
+Rss:              109844 kB
+Pss:              105987 kB
+Pss_Anon:         103760 kB
+Pss_File:           2153 kB
+Pss_Shmem:            73 kB
+rchar: 102793241
+read_bytes: 0
+=== SAMPLE 6 ===
+Rss:              109844 kB
+Pss:              105988 kB
+Pss_Anon:         103760 kB
+Pss_File:           2154 kB
+Pss_Shmem:            73 kB
+rchar: 102793241
+read_bytes: 0
+=== AFTER meminfo ===
+=== RUNLOG tail ===
+[mem] wrote ops/kvmax/mem_c8192/
+########## HEALTHCHECK AFTER 2026-11-13T16:57:46+08:00
+device present                             OK
+device identity                            mt6897/16
+/dev/apusys node                           OK
+neuronrt present                           OK
+known-good op (fc_1x64x64_int8)            PASS
+[restore] cleaned ops/fc_1x64x64_int8
+
+HEALTHCHECK: PASS
+HC_AFTER_RC=0
+SESSION_DONE 2026-11-13T16:57:47+08:00

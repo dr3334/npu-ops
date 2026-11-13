@@ -1,0 +1,34 @@
+########## HEALTHCHECK BEFORE 2026-11-13T16:59:10+08:00
+device present                             OK
+device identity                            mt6897/16
+/dev/apusys node                           OK
+neuronrt present                           OK
+known-good op (fc_1x64x64_int8)            PASS
+[restore] cleaned ops/fc_1x64x64_int8
+
+HEALTHCHECK: PASS
+HC_BEFORE_RC=0
+[r1] C=2048 t1=311ms tN=786ms(10) per_invoke=52.78ms  (host_ms=311 dev=rc=0 | host_ms=786 dev=rc=0)
+[r1] C=4096 t1=538ms tN=1159ms(10) per_invoke=69.00ms  (host_ms=538 dev=rc=0 | host_ms=1159 dev=rc=0)
+[r1] C=8192 t1=657ms tN=2354ms(10) per_invoke=188.56ms  (host_ms=657 dev=rc=0 | host_ms=2354 dev=rc=0)
+[r2] C=8192 t1=765ms tN=2353ms(10) per_invoke=176.44ms  (host_ms=765 dev=rc=0 | host_ms=2353 dev=rc=0)
+[r2] C=4096 t1=395ms tN=1207ms(10) per_invoke=90.22ms  (host_ms=395 dev=rc=0 | host_ms=1207 dev=rc=0)
+[r2] C=2048 t1=343ms tN=839ms(10) per_invoke=55.11ms  (host_ms=343 dev=rc=0 | host_ms=839 dev=rc=0)
+[r3] C=2048 t1=312ms tN=827ms(10) per_invoke=57.22ms  (host_ms=312 dev=rc=0 | host_ms=827 dev=rc=0)
+[r3] C=4096 t1=488ms tN=1189ms(10) per_invoke=77.89ms  (host_ms=488 dev=rc=0 | host_ms=1189 dev=rc=0)
+[r3] C=8192 t1=640ms tN=2443ms(10) per_invoke=200.33ms  (host_ms=640 dev=rc=0 | host_ms=2443 dev=rc=0)
+[bench2] wrote ops/kvmax/timing2.jsonl
+########## device-clock anomaly probe (raw epochs, C=8192, -c 10)
+rc=0 a=1794560371545503800 b=1794560373841198262 diff_ns=-1999272834
+rc=0 a=1794560373914906031 b=1794560376210567877 diff_ns=-1999305450
+########## HEALTHCHECK AFTER 2026-11-13T16:59:36+08:00
+device present                             OK
+device identity                            mt6897/16
+/dev/apusys node                           OK
+neuronrt present                           OK
+known-good op (fc_1x64x64_int8)            PASS
+[restore] cleaned ops/fc_1x64x64_int8
+
+HEALTHCHECK: PASS
+HC_AFTER_RC=0
+SESSION2_DONE 2026-11-13T16:59:37+08:00
