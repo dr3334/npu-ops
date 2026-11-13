@@ -77,6 +77,26 @@ def find_by_fd(bufdir, handle, size):
     return None
 
 
+def find_output_by_vendor(bufdir, vendor, nbytes):
+    """有的算子会多分配几个 4 KiB 缓冲（scratch/输出）；用抓取时的厂商输出反查真正的输出缓冲。"""
+    if not vendor or not os.path.exists(vendor):
+        return None
+    want = open(vendor, "rb").read(nbytes)
+    for f in sorted(os.listdir(bufdir)):
+        if "_post" not in f:
+            continue
+        p = os.path.join(bufdir, f)
+        try:
+            if open(p, "rb").read(nbytes) == want:
+                base = f.replace("_post.bin", ".bin")
+                cand = os.path.join(bufdir, base)
+                if os.path.exists(cand):
+                    return cand
+        except OSError:
+            pass
+    return None
+
+
 def find_data(bufdir, a, b, unary):
     A = B = C = None
     other = []
@@ -109,6 +129,11 @@ def main(log, bufdir, abin, bbin, outdir):
         sys.exit(f"expected 3 cmdbuf descriptors, got {len(cmdbufs)}")
 
     A, B, C = find_data(bufdir, a, b, unary)
+    vendor = os.path.join(os.path.dirname(os.path.abspath(outdir)), "vendor_out.bin")
+    nbytes = 256 if os.path.exists(vendor) and os.path.getsize(vendor) <= 4096 else 4096
+    by_vendor = find_output_by_vendor(bufdir, vendor, os.path.getsize(vendor) if os.path.exists(vendor) else 0)
+    if by_vendor is not None:
+        C = by_vendor
     if not (A and C) or (not unary and not B):
         sys.exit(f"data buffers: A={bool(A)} B={bool(B)} C={bool(C)}")
 

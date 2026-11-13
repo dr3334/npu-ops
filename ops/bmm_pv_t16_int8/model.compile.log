@@ -1,6 +1,6 @@
-# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/bmm_pv_t16_int8//model.tflite -d ops/bmm_pv_t16_int8//model.dla
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/bmm_pv_t16_int8/model.tflite -d ops/bmm_pv_t16_int8/model.dla
 # version: Version: 7.3.15
-# date: 2026-11-12T23:51:24+08:00
+# date: 2026-11-13T08:25:03+08:00
 
 ===Graph[0] has 1 Execution Step(s)===
 Graph[0] Step[0]
@@ -24,5 +24,5 @@ TargetExecutionOrder:
  └ MDLA_5_0
 
 EXIT=0
-SIZE=3563
-SHA256=7b15cac8690495a160311520ec4199ef47f8c8cc65f924ad3e1427e864f64232
+SIZE=3561
+SHA256=297f88159f3472da237180cc1e09a42da69948b6482a1c322facbf24c09bcf39

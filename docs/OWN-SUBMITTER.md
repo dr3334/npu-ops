@@ -127,3 +127,25 @@ RESULT: PASS
 以及把它们和 v 的投影接起来。
 
 覆盖清单更新：ADD / MUL / SUB / MAXIMUM / MINIMUM / RELU / FC(动态权重) / **BATCH_MATMUL(QKᵀ)**。
+
+## 8. Attention 链路（T=16, int8）：三段通、一段卡
+
+`probe/npu_attn16_demo`：同进程内
+`q,k,v = x·Wᵀ`（48 次 FC 动态权重）→ `s = q·kᵀ`（BMM T=16）→ `p = softmax(s)` → `o = p·v`（BMM PV T=16）。
+
+| 段 | 结果 |
+|---|---|
+| q/k/v（48 次提交） | `rc=0` |
+| s = q·kᵀ | **0/256 失配**（与用设备实际 int8 q/k 的 int64 参考完全一致） |
+| p = softmax(s) | ❌ 输出全 0（`rc=0` 但缓冲未被写） |
+| o = p·v | 受上游影响 1008/1024 失配 |
+
+**softmax 段单独复现**（`probe/npu_sm_check`，输入用抓取时的 golden、对照厂商 runtime 的同一输出）：
+`rc=0`，但设备侧输出全 0 —— 说明**这个算子的资产不完整**：抓取时 runtime 分配了 **3 个 4 KiB 缓冲**
+（fd7/fd4/fd11），而命令流里只出现 2 个地址（A 与输出）。也就是说 softmax 很可能依赖那个
+**不参与重定位的 scratch/LUT 缓冲**（内容/存在性都有影响），而我们只重放了 3 个 cmdbuf + 2 个地址。
+
+下一步（具体）：在 `mkasset.py` 里把"额外的 4 KiB 缓冲"也纳入资产（分配 + 映射 + 抓取内容 +
+按需放入命令流），或者对比 eDPA 反汇编确认它是否读取该缓冲。**在此之前不声称 attention 全链路打通。**
+
+已经可以确定的是：**投影 + QKᵀ（矩阵乘级）已经能由自建提交器链式完成并逐字节正确**。

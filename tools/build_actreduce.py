@@ -95,6 +95,12 @@ SPECS = {
         int8_tol=2,
         prediction="if fp16 compiles, int8 may still bridge (requant nodes)",
     ),
+    # 供自建提交器做 attention 链路用：T=16 的方阵（每行 16 B，满足 16 字节规则）
+    "softmax_1x16x16_int8": dict(
+        op="SOFTMAX", shape=[1, 16, 16], dtype="int8", beta=1.0, in_scale=1 / 16.0,
+        int8_tol=2,
+        prediction="same lowering as [1,8,16]; needed as an asset for the attention chain",
+    ),
     # ---- boundary extension (AGENTS.md §3.3: find the edge, not one sample) ---------
     "softmax_1x1x64_fp16": dict(
         op="SOFTMAX", shape=[1, 1, 64], dtype="fp16", beta=1.0,

@@ -195,6 +195,45 @@ static npu_binop_plan_t g_plan_bmm_qk = {
     .expect_patches = 3,
     .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
 };
+static npu_binop_plan_t g_plan_softmax16 = {
+    .name = "SOFTMAX [1,16,16]",
+    .asset_dir = "/data/local/tmp/npuops/assets/softmax16",
+    .old_iova = { 0, 0, 0 },
+    .bytes = 256,
+    .bytes_b = 256,
+    .alloc_size = NPU_BINOP_ALLOC,
+    .n_inputs = 1,
+    .cmdbuf_dir = { 1, 2, 1 },
+    .patch_idx = 2,
+    .expect_patches = 2,
+    .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
+};
+static npu_binop_plan_t g_plan_bmm_qk16 = {
+    .name = "BATCH_MATMUL(QK^T T=16)",
+    .asset_dir = "/data/local/tmp/npuops/assets/bmm_qk16",
+    .old_iova = { 0, 0, 0 },
+    .bytes = 1024,
+    .bytes_b = 1024,
+    .alloc_size = NPU_BINOP_ALLOC,
+    .n_inputs = 2,
+    .cmdbuf_dir = { 1, 2, 1 },
+    .patch_idx = 2,
+    .expect_patches = 3,
+    .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
+};
+static npu_binop_plan_t g_plan_bmm_pv16 = {
+    .name = "BATCH_MATMUL(PV T=16)",
+    .asset_dir = "/data/local/tmp/npuops/assets/bmm_pv16",
+    .old_iova = { 0, 0, 0 },
+    .bytes = 1024,
+    .bytes_b = 1024,
+    .alloc_size = NPU_BINOP_ALLOC,
+    .n_inputs = 2,
+    .cmdbuf_dir = { 1, 2, 1 },
+    .patch_idx = 2,
+    .expect_patches = 3,
+    .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
+};
 static const npu_binop_plan_t *const g_plans[NPU_OP__COUNT] = {
     [NPU_OP_ADD] = &g_plan_add,
     [NPU_OP_MUL] = &g_plan_mul,
@@ -206,6 +245,9 @@ static const npu_binop_plan_t *const g_plans[NPU_OP__COUNT] = {
     [NPU_OP_TANH] = &g_plan_tanh,
     [NPU_OP_FC_DYNW] = &g_plan_fcdyn,
     [NPU_OP_BMM_QK] = &g_plan_bmm_qk,
+    [NPU_OP_SOFTMAX16] = &g_plan_softmax16,
+    [NPU_OP_BMM_QK16] = &g_plan_bmm_qk16,
+    [NPU_OP_BMM_PV16] = &g_plan_bmm_pv16,
 };
 
 static const char *const g_op_names[NPU_OP__COUNT] = {
