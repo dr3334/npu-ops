@@ -8,7 +8,7 @@
 
 | 维度 | 观测 | 结论（附边界） |
 |---|---|---|
-| K | 8/24/40/56/72 编译 **失败**（`Bridging is disallowed but gap is detected`）；16/32/48/64/80/112/128/192/256/384/512 **通过** | **K 必须是 16 的倍数**。非 16 倍数不是"运行错"，而是编译器直接判失败 |
+| K | 8/24/40/56/72 编译 **失败**（`Bridging is disallowed but gap is detected`）；16/32/48/64/80/112/128/192/256/384/512 **通过** | **K 在图的边界张量上须是 16 的倍数**（见 §9.1：16 B 规则只约束边界张量，中间张量不受此限，`[T,1]` 行宽 2 B 也可编）。非 16 倍数不是"运行错"，而是编译器直接判失败 |
 | N | 8/16/24/32/48/64/96/128/192/256/384/512 **全部通过** | N 无 16 倍数约束（8 也可） |
 | M | 1/2/7/8/31/32/127/128 **全部通过** | M 无对齐约束（7/31/127 这类尾块可编） |
 
@@ -86,7 +86,7 @@ OUT_GAP = "Bridging is disallowed but gap is detected between MDLA_5_0 and Outpu
 | FULLY_CONNECTED | int8（静态/动态权重）、fp16 | FullyConnectedLayer | 逐位 / ±1 LSB（requant） |
 | ADD | int8 | MDLA（且已用**自建提交器**跑通） | 逐位 |
 | RESHAPE / TRANSPOSE / CONCAT / SPLIT / PAD | int8 / fp16 | Reshape/Transpose/Concat/Slice/Pad Layer | 逐位 |
-| RELU / LOGISTIC / TANH | int8 / fp16 | ReLU/Sigmoid/Tanh Layer | 逐位（TANH fp16 差 1 code） |
+| RELU / LOGISTIC / TANH | int8 / fp16 | ReLU/Sigmoid/Tanh Layer | 逐位（TANH fp16 差 1 code）——**仅厂商路径**。自建提交器上 LOGISTIC/TANH 提交成功但 64/64 失配，原因未明，见 `docs/OWN-SUBMITTER.md:74-75` |
 | **SOFTMAX** | int8 / fp16 | **SoftMaxLayer** | 逐位（int8 `[1,8,16]`）；fp16 差 1 code；**β 生效** |
 | MEAN / SUM | int8 / fp16 | Mean / Sum Layer | 逐位 |
 

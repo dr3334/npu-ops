@@ -107,7 +107,7 @@ R6 原生/回退分开 · R7 五个结论分开 · R8 持久交接 · R9 不删�
 | `probe/diff_cmd.py` | ✅ | 命令区差分 |
 | `tools/scan_shapes.py` | 待建 | W3 网格扫描 + 失败阶段分类 |
 | `tools/regress.py` | 待建 | 每次改动重跑所有 ops + golden，输出回归表 |
-| `probe/apusctl.c` | 待建 | 自有提交器（W4） |
+| `probe/apusctl.c` | ✅ | 自建提交器主程序；模板命令路径已达 L3.5（E-106B）。命令自生成为 L4，仍待建 |
 | `tools/record.py` | 待建 | 自动填实验记录头（设备指纹/commit/.dla sha256） |
 
 ---
