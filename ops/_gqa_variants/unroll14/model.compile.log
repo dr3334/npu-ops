@@ -1,0 +1,60 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/_gqa_variants/unroll14/model.tflite -d ops/_gqa_variants/unroll14/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T10:19:04+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ TransposeLayer<0>{TRANSPOSE}
+   ├ SliceLayer<2>{SPLIT}
+   ├ SliceLayer<2>{SPLIT}
+   ├ SliceLayer<2>{SPLIT}
+   ├ SliceLayer<2>{SPLIT}
+   ├ SliceLayer<2>{SPLIT}
+   ├ SliceLayer<2>{SPLIT}
+   ├ SliceLayer<2>{SPLIT}
+   ├ SliceLayer<2>{SPLIT}
+   ├ SliceLayer<2>{SPLIT}
+   ├ SliceLayer<2>{SPLIT}
+   ├ SliceLayer<2>{SPLIT}
+   ├ SliceLayer<2>{SPLIT}
+   ├ SliceLayer<2>{SPLIT}
+   ├ SliceLayer<2>{SPLIT}
+   ├ TransposeLayer<1>{TRANSPOSE}
+   ├ SliceLayer<3>{SPLIT}
+   ├ BatchMatMulLayer<10>{BATCH_MATMUL}
+   ├ BatchMatMulLayer<9>{BATCH_MATMUL}
+   ├ BatchMatMulLayer<8>{BATCH_MATMUL}
+   ├ BatchMatMulLayer<7>{BATCH_MATMUL}
+   ├ BatchMatMulLayer<6>{BATCH_MATMUL}
+   ├ BatchMatMulLayer<5>{BATCH_MATMUL}
+   ├ BatchMatMulLayer<4>{BATCH_MATMUL}
+   ├ SliceLayer<3>{SPLIT}
+   ├ BatchMatMulLayer<17>{BATCH_MATMUL}
+   ├ BatchMatMulLayer<16>{BATCH_MATMUL}
+   ├ BatchMatMulLayer<15>{BATCH_MATMUL}
+   ├ BatchMatMulLayer<14>{BATCH_MATMUL}
+   ├ BatchMatMulLayer<13>{BATCH_MATMUL}
+   ├ BatchMatMulLayer<12>{BATCH_MATMUL}
+   ├ BatchMatMulLayer<11>{BATCH_MATMUL}
+   ├ ConcatLayer<18>{CONCATENATION}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     16K    1.8K    0     0       5.5K  23K
+
+Total Memory:
+  DRAM: 23K
+  L1:   16K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=10962
+SHA256=8b49d9e834919ed1a3a25465e964ed41184c097149bc306b0cf375799106afa9
