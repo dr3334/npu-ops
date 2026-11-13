@@ -73,8 +73,8 @@ def _missing_dir_message(d: Path) -> str:
         "frozen weights not found at %s\n"
         "  generate them (about 30 s, 332 MB) with:\n"
         "      python3 tools/gen_qwen25_weights.py\n"
-        "  or point %s at an existing generated copy, e.g.\n"
-        "      export %s='D:\\deepseek_ workspace\\mtk\\wt-t02\\weights\\qwen25_frozen'\n"
+        "  or point %s at an existing generated copy (another checkout, a shared cache):\n"
+        "      export %s=/path/to/weights/qwen25_frozen\n"
         "  (regeneration is byte-identical; 'gen_qwen25_weights.py --verify' proves it)"
         % (d.as_posix(), ENV_VAR, ENV_VAR)
     )

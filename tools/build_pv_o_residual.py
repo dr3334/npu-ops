@@ -383,7 +383,12 @@ def build_bmm_control(rank):
                    {"name": "v", "shape": [H, T, HD] if rank == 3 else [1, H, T, HD],
                     "type": "float16"}],
         "output": {"name": oname, "shape": oshape, "type": "float16"},
-        "atol": 1e-2, "rtol": 3e-2,
+        # compile-only: no board run, so there is no device conclusion to put a tolerance on.
+        "compile_only": True,
+        "compile_only_note": ("compile-only control: no board run and no device conclusion, so a "
+                             "tolerance does not apply - the numpy reference above was never "
+                             "compared against the device (the atol/rtol that used to be here had "
+                             "no measurement behind it)"),
         "p_source": "same fixed attention pass as the main model (temperature 1.0)",
         "reference": "numpy float64 einsum on logical tensors",
         "seed": SEED,

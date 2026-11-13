@@ -131,7 +131,7 @@ Graph[0] Step[0]
    ├ ElementWiseAddLayer<6>{ADD}
    └ Output: OpResult (external)
 DRAM Usage: [0]: MDLA 5.0  Input 29K  Output 14K  Temp 0  Static 1.5M  Code 11K  Total 1.6M
-EXIT=0   SIZE=1630614
+EXIT=0   SIZE=1630615
 \`\`\`
 
 → **H1 / H3 成立**：\`BatchMatMulLayer\` 恰好 1 个；\`TRANSPOSE\` 与 \`RESHAPE\` **没有被折进** BMM/FC
@@ -160,8 +160,9 @@ EXIT=0   SIZE=1630614
 ### 2.4 产物可复现性
 
 - \`.tflite\`：同一 builder 连跑两次 **逐字节相同**（\`sha256=638f033272132c2710c5eb0b3bec2dab…\`）；golden 与 alt 输入也逐字节相同。
-- \`.dla\`：同一个 \`.tflite\` 两次编译 **sha256 不同**（\`14e25e498f45f4a7…\` vs \`29d23db134635733…\`，SIZE 都是 1630614）
+- \`.dla\`：同一个 \`.tflite\` 两次编译 **sha256 不同**（\`14e25e498f45f4a7…\` vs \`29d23db134635733…\`，SIZE 都是 1630615）
   —— 复验了仓库既有规则：**\`.dla\` 哈希不能当回归判据**。
+- **\`.dla\` 不可字节复现**：同一 tflite 连编多次 SIZE/SHA256 会差几个字节，以该目录 \`model.compile.log\` 为准；回归只比数值。
 
 ---
 

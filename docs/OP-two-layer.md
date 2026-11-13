@@ -16,7 +16,7 @@
 |---|---|
 | 三张图 | two_layer_l0_t8_fp16：x[8,896] → layer0.(61 层) → h1[8,896]；two_layer_l1_t8_fp16：h1 → layer1.(61 层) → h2[8,896]；two_layer_logits_t8_fp16：h2 → 4×FC(tied embed)+CONCAT → logits[8,151936] |
 | 编译 | 三张图**全部 EXIT=0、1 Execution Step、Target: MDLA_5_0、无 bridge**；层数 **61 / 61 / 5** |
-| .dla / 静态 | 29,913,362 B（Static 28M、Temp 14K、L1 256K）／29,913,362 B（同）／272,274,724 B（Static 259M、Output 2.3M、Temp 0、L1 0） |
+| .dla / 静态 | 29,913,363 B（Static 28M、Temp 14K、L1 256K）／29,913,363 B（同）／272,274,725 B（Static 259M、Output 2.3M、Temp 0、L1 0） |
 | 链路接法 | 第 1 层板端 out_device.bin **按字节覆盖**成第 2 层 golden/input.bin（cmp 相同、sha256 390520c4e842c74a）；第 2 层同理（sha256 c139368523670544）。**中间不经任何 CPU 修正**（NOTES §10.4-5） |
 | h1 vs golden | **PASS**：max_abs 2.319e-03（max abs(h1)=0.4836 处 **9.50 ULP**、相对 4.80e-3）、rel_l2 3.690e-03 |
 | h2 vs golden（传播） | **PASS**：max_abs 6.348e-03（max abs(h2)=1.2676 处 **6.50 ULP**、相对 5.01e-3）、rel_l2 4.353e-03 |
@@ -136,15 +136,22 @@ logits: h2[8,896] ── FC×4（W = embed.weight[v0:v1]，b=0）── CONCAT(a
 
 1. healthcheck --quick；记录设备容量（/data 6.0 GB、MemAvailable 6.13 GB）；
 2. l0：e2e×2（噪声底）→ 一次**计时重装轮**（push .dla → run → pull）→ --diag；
-3. **交接**：cp ops/two_layer_l0_t8_fp16/out_device.bin ops/two_layer_l1_t8_fp16/golden/input.bin
-   （cmp 验证逐字节相同，14336 B = 8×896×2）；
-4. l1：同上；交接 out_device.bin → ops/two_layer_logits_t8_fp16/golden/input.bin；
+3. **交接**（三步，原有的两份都不被覆盖）：
+   ① 把 l1 自己的 CPU 输入另存为 `ops/two_layer_l1_t8_fp16/golden/input.cpu.bin`（**只写一次**，已存在则不覆盖）；
+   ② 板端交接件另存为 `ops/two_layer_l1_t8_fp16/golden/input.h1_from_l0.bin`；
+   ③ 再 cp 到 `golden/input.bin`（e2e 推的就是这个文件）；cmp 验证三份逐字节相同，14336 B = 8×896×2；
+4. l1：同上；交接 out_device.bin → `ops/two_layer_logits_t8_fp16/golden/input.h2_from_l1.bin` → `golden/input.bin`
 5. logits：同上；6. healthcheck --quick。
 
 **为什么这样就是「板端输出喂下一层」**：tools/e2e.sh 只在 model.tflite/model.dla **缺失**时才重建，
 golden/expected.bin 永不重建，而它推给板子的输入就是 golden/input.bin。把上一层的 out_device.bin
 覆盖到这个文件上，第二张图吃到的就是**第一张图实际写出的 fp16 字节**，中间没有任何 CPU 参与
 （NOTES §10.4 第 5 条）。证据：cmp 相同 + sha256 落在 ops/two_layer_chain_session.log 里。
+
+**为什么要留三份**：`golden/input.bin` 被板端输出覆盖之后，`golden/expected.bin` 就不再与它登记的输入配对，
+CPU 侧的输入也没有留档（AGENT-BRIEF §4「原始产物不覆盖」）。所以现在每个被接管的图都保留
+`golden/input.cpu.bin`（CPU 链的起点）、`golden/input.<tag>.bin`（板端实际交出的字节）、
+`golden/input.bin`（e2e 推的副本）。三者都是 `*.bin`，照旧不入 git。
 
 三处判据（都写进 compare.txt）：h1 vs golden、h2 vs golden、logits vs golden。
 
@@ -181,14 +188,17 @@ RESHAPE 顺序、常量没写进文件）。它**不是**数值判据（可以�
 
 | 图 | EXIT | 执行步 | Target | 层数 | DRAM Input/Output/Temp/Static/Code/**Total** | L1 | .dla | .tflite |
 |---|---|---|---|---|---|---|---|---|
-| two_layer_l0_t8_fp16 | **0** | **1** | MDLA_5_0 | **61** | 14K / 14K / 14K / 28M / 34K / **28M** | 256K | 29,913,362 | 29,878,156 |
-| two_layer_l1_t8_fp16 | **0** | **1** | MDLA_5_0 | **61** | 14K / 14K / 14K / 28M / 34K / **28M** | 256K | 29,913,362 | 29,878,156 |
-| two_layer_logits_t8_fp16 | **0** | **1** | MDLA_5_0 | **5** | 14K / 2.3M / 0 / 259M / 1.4K / **261M** | 0 | 272,274,724 | 272,574,732 |
+| two_layer_l0_t8_fp16 | **0** | **1** | MDLA_5_0 | **61** | 14K / 14K / 14K / 28M / 34K / **28M** | 256K | 29,913,363 | 29,878,156 |
+| two_layer_l1_t8_fp16 | **0** | **1** | MDLA_5_0 | **61** | 14K / 14K / 14K / 28M / 34K / **28M** | 256K | 29,913,363 | 29,878,156 |
+| two_layer_logits_t8_fp16 | **0** | **1** | MDLA_5_0 | **5** | 14K / 2.3M / 0 / 259M / 1.4K / **261M** | 0 | 272,274,725 | 272,574,732 |
 
 * 三张图都 **1 个 Execution Step、--disallow-bridge 下 EXIT=0**，日志里除命令行本身没有 Bridging 字样；
 * 静态权重：两层各 **28.50 MiB**（29,882,368 B，与票 09 逐字节同规模）；logits **272,269,312 + 303,872 B = 259.95 MiB**；
 * 两张层图 .dla 尺寸相同、层数相同，只有权重常量不同 ⇒ 换层只换「数据」，不换「结构」（这是本票要的独立性）；
 * 层数 61 与票 09 的逐段预算**完全一致**（预测 61 / 实测 61），说明同构假设没有隐藏的层级增长。
+
+> **.dla 不可字节复现：同一 tflite 连编多次 SIZE/SHA256 会差几个字节，以该目录 model.compile.log 为准；回归只比数值**
+> 同一张 272 MB logits 图在不同目录各编一次，`.dla` 就差几个字节：本目录 `272,274,725`、`ops/lm_head_t8_fp16`（票 08 的同一张图）`272,274,707` —— 这是编译产物不可字节复现，**不是两张不同的图**；`.tflite` 两边都是 272,574,732。
 
 ---
 
@@ -255,9 +265,9 @@ RESHAPE 顺序、常量没写进文件）。它**不是**数值判据（可以�
 
 | 图 | .dla 字节 | push .dla | push 输入 | neuronrt 全程 | 其中推理 | **加载+启动（估）** | pull 输出 |
 |---|---|---|---|---|---|---|---|
-| l0 | 29,913,362 | **947 / 944 ms**（31.6 MB/s） | 85 / 86 ms | 167 / 154 ms | 6.284 / 6.740 ms | **161 / 147 ms** | 81 / 85 ms |
-| l1 | 29,913,362 | **1079 / 934 ms**（27.7/32.0 MB/s） | 100 / 82 ms | 154 / 154 ms | 6.396 / 5.396 ms | **148 / 149 ms** | 82 / 92 ms |
-| logits | 272,274,724 | **7781 / 7802 ms**（35.0 MB/s） | 109 / 101 ms | 330 / 337 ms | 28.723 / 27.138 ms | **301 / 310 ms** | 164 / 160 ms |
+| l0 | 29,913,363 | **947 / 944 ms**（31.6 MB/s） | 85 / 86 ms | 167 / 154 ms | 6.284 / 6.740 ms | **161 / 147 ms** | 81 / 85 ms |
+| l1 | 29,913,363 | **1079 / 934 ms**（27.7/32.0 MB/s） | 100 / 82 ms | 154 / 154 ms | 6.396 / 5.396 ms | **148 / 149 ms** | 82 / 92 ms |
+| logits | 272,274,725 | **7781 / 7802 ms**（35.0 MB/s） | 109 / 101 ms | 330 / 337 ms | 28.723 / 27.138 ms | **301 / 310 ms** | 164 / 160 ms |
 
 * 推理：一层 **1.80–2.25 ms/inf**（票 09 单层是 2.25–2.60 ms，同档）；logits **9.05–9.57 ms/inf**（票 08 是 8.29–9.66 ms）；
   **只作记录，不作性能结论**；
@@ -326,8 +336,9 @@ RESHAPE 顺序、常量没写进文件）。它**不是**数值判据（可以�
    **可以被事先的 numpy 预测解释到 0.1%**（h2：预测 6.353e-3 / 实测 6.348e-3）；
 3. **逐层可定位**：h1 9.50 ULP、h2 自身 3.50 ULP、logits 自身 0.50 ULP；总差与自身差被分开报出，
    且 logits 的 rel_l2 与 h2 的完全相同（线性映射的相对 L2 守恒）—— 这就是「误差能落到哪一层」的证据形态；
-4. **tied LM head 在真实 hidden 上工作**：4×FC(N=37984)+CONCAT 喂 h2（rms≈0.32，非 RMS=1 的夹具）时自身 0.5 ULP，
-   权重只物化一份（272,269,312 B + 303,872 B 零 bias）；
+4. **tied LM head 在非归一化输入上也能跑对**：4×FC(N=37984)+CONCAT 喂 h2 时自身 0.5 ULP，
+   权重只物化一份（272,269,312 B + 303,872 B 零 bias）。h2 的 RMS 约 0.32、不是 RMS=1 的夹具分布，
+   这只说明「输入量级与夹具不同也照样在容差内」，**不是**任何 fidelity / faithfulness 证据；
 5. **每层重新装载权重的实测成本**（§6），可作为 24 层/常驻形态的输入；
 6. **判据有牙齿**（§7：换错权重/跳层/CONCAT 顺序 25–38× 阈值）；
 7. 噪声底 **0**，且跨会话可复现（md5 相同）—— 阈值不是靠抖动余量过的。
@@ -346,6 +357,9 @@ RESHAPE 顺序、常量没写进文件）。它**不是**数值判据（可以�
 6. **不覆盖**：int8（全 fp16）、KV cache / 增量解码、batch>1、变长序列、自建提交器的命令路径。
 7. **「板端交接」只证明了 fp16 张量能直接串**：真实部署里两层之间还有 KV cache 写入/读取、位置推进、
    采样等 state，本票全部不涉及。
+8. **夹具与 logits 图不含 Qwen 的 `model.norm`（最后一层之后的 final RMSNorm）**，因此 logits 是对 h2
+   直接做输出投影；真实 Qwen2.5 在这里还差这一层（一个 6 层 RMSNorm）。这是与真权重之间的**已知差值**，
+   本票没有实现、也没有对它做过任何测量。
 
 ---
 
@@ -353,12 +367,12 @@ RESHAPE 顺序、常量没写进文件）。它**不是**数值判据（可以�
 
 | 票面要求 | 状态 | 证据 |
 |---|---|---|
-| 两层各是一个独立的图；第 1 层板端输出**直接**作为第 2 层输入，**不经 CPU 修正** | ✅ | 三个独立 .tflite/.dla/compare.txt；chain_two_layer.sh 的 handoff() 用 cp out_device.bin → next/golden/input.bin 并 cmp 验证逐字节相同（sha256 390520c4… / c139368523…，见 ops/two_layer_chain_session.log）；e2e 推的就是 golden/input.bin，tflite 已存在 ⇒ golden 不重建 |
+| 两层各是一个独立的图；第 1 层板端输出**直接**作为第 2 层输入，**不经 CPU 修正** | ✅ | 三个独立 .tflite/.dla/compare.txt；chain_two_layer.sh 的 handoff() 用 cp out_device.bin → next/golden/input.<tag>.bin → next/golden/input.bin 并 cmp 验证逐字节相同（sha256 390520c4… / c139368523…，见 ops/two_layer_chain_session.log），CPU 输入另存为 input.cpu.bin；e2e 推的就是 golden/input.bin，tflite 已存在 ⇒ golden 不重建 |
 | 两层 hidden 各自落盘并与 golden 比对，误差可定位到具体层 | ✅ | h1 / h2 各自 compare.txt PASS；diagnostics_l0.txt / diagnostics_l1.txt / diagnostics_logits.txt 把 **A（传播+本层）** 与 **B（本层自身）** 分开：h2 6.35e-3 → 自身 3.42e-3；logits 3.66e-3 → 自身 2.44e-4 |
 | 经输出投影得到 logits，**logits 向量 atol/rtol 对拍通过** | ✅ | ops/two_layer_logits_t8_fp16/compare.txt **PASS**：max_abs 3.662e-03、rel_l2 4.353e-03、阈值 1.54724e-2（预登记），nan/inf 0/0 |
 | 记录跨层重新装载权重的方式与耗时 | ✅ | §6：每层一个 .dla ⇒ 整块 28.5 MiB 重新 push+加载；实测 push 0.93–1.08 s、加载 0.15 s（logits 7.78 s / 0.30 s）；两个会话各一次 |
 | **top-1 仍不启用**；本票不含真实权重 | ✅ | 三个 model.json 的 tolerance_revision.top1.enabled=false + 理由（ADR 0003）；全部权重是票 02 冻结夹具（weights_digest=898fa3195d627a4c…） |
-| 写明「这一档证据能说明什么、不能说明什么」 | ✅ | §8（能说明 7 条 / 不能说明 7 条）；§10 适用范围 |
+| 写明「这一档证据能说明什么、不能说明什么」 | ✅ | §8（能说明 7 条 / 不能说明 8 条）；§10 适用范围 |
 
 附加交付（票面之外，对 24 层/Lead 有用）：--execcheck（三张图各 WIRING OK）、--diag（A/B/C 三段 + 噪声底）、
 --counterfactual（§7 的牙齿表）、ops/two_layer_chain_session.log（一次完整持锁会话的原文）。
@@ -374,7 +388,7 @@ RESHAPE 顺序、常量没写进文件）。它**不是**数值判据（可以�
 * 容差登记公式 atol = rtol = max(4·2^-11·max abs(out), 4·max(floor_self, floor_chain))：
   floor_chain 是「上一层 fp16 输出喂进来」的传播下限，**只要链路是 fp16 存储，这个下限就存在**，
   多层链路必须把它算进登记值，否则会把必然的传播误判成实现错；
-* tied LM head 的 4×FC+CONCAT 契约：x[T,896] fp16 任意量级（本票用 rms≈0.32 的真实 hidden 复验过），
+* tied LM head 的 4×FC+CONCAT 契约：x[T,896] fp16 任意量级（本票用 h2、RMS≈0.32 这一档复验过），
   N > 65535 必须分块（spec C3）；
 * layer1.* 的权重尺度（input_layernorm 均值 0.667、k_proj.bias std 19）在本层掩码区间内：
   S = max abs(scaled score) = 79.6 <= 1996（票 05 的掩码复用条件），−4096 仍有 25× 余量。

@@ -88,7 +88,6 @@
     "noise_floor_used": 0.0,
     "note": "top-1/argmax is NOT a criterion (ADR 0003): under frozen random weights top-1 carries no semantics and one fp16 ULP flips near-ties. argmax is frozen until the real-weight stage (last step)."
   },
-  "int8_tol": 0,
   "golden": {
     "seconds": 0.52,
     "chunk_rows": 8192,

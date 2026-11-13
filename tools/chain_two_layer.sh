@@ -7,9 +7,11 @@
 # WHAT IT DOES (all board steps inside the single devlock session):
 #   healthcheck --quick
 #   l0 : e2e x2 (noise floor) -> timed reload round           (x[8,896]  -> h1[8,896])
-#        cp ops/two_layer_l0_t8_fp16/out_device.bin -> ops/two_layer_l1_t8_fp16/golden/input.bin
+#        l1's CPU input is archived once as l1/golden/input.cpu.bin, then
+#        l0/out_device.bin -> l1/golden/input.h1_from_l0.bin -> l1/golden/input.bin
 #   l1 : e2e x2 -> timed reload round                          (board h1 -> h2[8,896])
-#        cp ops/two_layer_l1_t8_fp16/out_device.bin -> ops/two_layer_logits_t8_fp16/golden/input.bin
+#        logits' CPU input is archived once, then
+#        l1/out_device.bin -> logits/golden/input.h2_from_l1.bin -> logits/golden/input.bin
 #   logits : e2e x2 -> timed reload round                      (board h2 -> logits[8,151936])
 #   healthcheck --quick
 #
@@ -18,12 +20,22 @@
 # they are missing, so overwriting golden/input.bin is exactly the hook that makes the second
 # graph consume what the first graph actually produced.
 #
+# Three copies of each input are kept (AGENT-BRIEF 4: an original artifact is never overwritten
+# in place - otherwise golden/expected.bin no longer pairs with the input it was registered for
+# and the CPU-side input is lost):
+#   golden/input.cpu.bin     what the CPU chain started from; written once, never clobbered
+#   golden/input.<tag>.bin   what the board actually produced and handed over (h1_from_l0 / h2_from_l1)
+#   golden/input.bin         the file e2e pushes - a copy of that handoff, so e2e keeps working
+#
 # Evidence kept per layer (renamed so a later e2e cannot overwrite it):
 #   out_r1.bin / out_r2.bin / out_r3.bin   three device runs (r1 vs r2 = noise floor)
 #   compare.txt                            canonical tools/compare.py verdict (last e2e run)
 #   compare_r1.txt / compare_r2.txt        per-run copies of the same verdict
 #   transfer_<layer>.json                  timed .dla push / input push / run / output pull
 #   run.log                                full neuronrt output (inference time, load cost)
+#   golden/input.cpu.bin                   CPU input, archived before the first overwrite
+#   golden/input.h1_from_l0.bin            board handoff into l1 (never overwritten)
+#   golden/input.h2_from_l1.bin            board handoff into logits (never overwritten)
 #   diagnostics_<layer>.txt                build_two_layer.py --diag: propagation vs own error
 #
 # No public tool is modified: e2e.sh / compare.py / devlock.sh / healthcheck.sh are only called.
@@ -102,11 +114,19 @@ run_layer() {
   LAST_RC=$(( rc1 != 0 || rc2 != 0 ))
 }
 
-handoff() {  # $1 = from op dir, $2 = to op dir   (device output becomes the next input)
-  local from="$1" to="$2"
-  cp "$from/out_device.bin" "$to/golden/input.bin"
-  if cmp -s "$from/out_device.bin" "$to/golden/input.bin"; then
-    echo "[handoff] $from/out_device.bin -> $to/golden/input.bin  (byte-identical, $(stat -c %s "$to/golden/input.bin") B, sha256 $(sha256sum "$to/golden/input.bin" | cut -c1-16))"
+handoff() {  # $1 = from op dir, $2 = to op dir, $3 = archive tag (h1_from_l0 / h2_from_l1)
+  local from="$1" to="$2" tag="$3"
+  # 1) input.bin of the next graph is about to be replaced - archive the CPU one exactly once.
+  if [ ! -f "$to/golden/input.cpu.bin" ] && [ -f "$to/golden/input.bin" ]; then
+    cp "$to/golden/input.bin" "$to/golden/input.cpu.bin"
+    echo "[handoff] archived CPU input -> $to/golden/input.cpu.bin ($(stat -c %s "$to/golden/input.cpu.bin") B, sha256 $(sha256sum "$to/golden/input.cpu.bin" | cut -c1-16))"
+  fi
+  # 2) keep the board handoff under its own name, then use it as the pushed input.
+  cp "$from/out_device.bin" "$to/golden/input.$tag.bin"
+  cp "$to/golden/input.$tag.bin" "$to/golden/input.bin"
+  if cmp -s "$from/out_device.bin" "$to/golden/input.$tag.bin" && cmp -s "$to/golden/input.$tag.bin" "$to/golden/input.bin"; then
+    echo "[handoff] $from/out_device.bin -> $to/golden/input.$tag.bin -> $to/golden/input.bin"
+    echo "[handoff]   byte-identical, $(stat -c %s "$to/golden/input.bin") B, sha256 $(sha256sum "$to/golden/input.bin" | cut -c1-16)"
   else
     echo "[handoff] FAILED: copy is not byte-identical"; return 1
   fi
@@ -122,9 +142,9 @@ echo "===== healthcheck --quick (before) ====="
 echo "healthcheck_before_rc=$HC1"
 
 run_layer "$L0" l0 l0; FAILED=$(( FAILED + LAST_RC ))
-handoff "$L0" "$L1"
+handoff "$L0" "$L1" h1_from_l0
 run_layer "$L1" l1 l1; FAILED=$(( FAILED + LAST_RC ))
-handoff "$L1" "$LG"
+handoff "$L1" "$LG" h2_from_l1
 run_layer "$LG" logits logits; FAILED=$(( FAILED + LAST_RC ))
 
 echo "===== device capacity after ====="

@@ -1,7 +1,9 @@
-import numpy as np, json, sys
+import numpy as np, json, os, sys
 sys.path.insert(0, "tools")
 import build_gqa_scores as bgs
-q, k, prov = bgs.make_qk("/mnt/d/deepseek_ workspace/mtk/npu-ops/weights/qwen25_frozen")
+# Fixture directory: $QWEN25_WEIGHTS_DIR, else the in-repo copy (no hardcoded worktree path).
+WEIGHTS = os.environ.get("QWEN25_WEIGHTS_DIR") or "weights/qwen25_frozen"
+q, k, prov = bgs.make_qk(WEIGHTS)
 exp = bgs.reference_scores(q, k).astype(np.float64)
 dev = np.fromfile("ops/gqa_scores_t8_fp16/out_device.bin", dtype=np.float16).astype(np.float64)
 # alternative KV-head mappings: how far would a WRONG mapping be from the golden?
