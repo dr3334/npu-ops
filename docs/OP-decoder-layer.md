@@ -1,6 +1,7 @@
-# OP-decoder-layer —— 1 层 Qwen2.5-0.5B decoder 整块（T=8 / fp16 / 14Q-2KV GQA）
+# OP-decoder-layer —— 1 层 Qwen2.5-0.5B decoder 整块（T=8 与 T=128 / fp16 / 14Q-2KV GQA）
 
-> 范围：票 **09**（`impl/09-decoder-block`，worktree `wt-t09`，基线 `feat/qwen25-attention`）。
+> 范围：票 **09**（`impl/09-decoder-block`，worktree `wt-t09`，基线 `feat/qwen25-attention`）；
+> **T=128 档**（`impl/t128-decoder`，worktree `wt-t128`，基线 `077db15`）见 §14，那份实现只是同一个 builder 的 `--T 128`。
 > 交付：`ops/decoder_layer_t8_fp16/`（+ `ops/_decoder_bisect/{attn_half,ffn_half}/` 二分证据）
 > + `tools/build_decoder_layer.py` + 本文。权重：票 02 冻结夹具（`layer0.*`，sha256 加载即校验）。
 > 编译器 ncc-tflite **7.3.15** / `--arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072`；
@@ -26,6 +27,10 @@
 | 票面 checklist | **6/6**（§9） |
 
 **一句话**：**真实的 61 层 decoder 整块（两次归一化 + RoPE + GQA 复制 + 掩码 softmax + SwiGLU + 两处残差、28.5 MiB 静态权重）在 mdla5.0 上是 1 个执行步、无 bridge，板端与独立 numpy golden 的差 = max|out| 处 9.5 个 fp16 码，且与「逐层 fp16 舍入」的设备语义模拟只差 7 个码 —— 即误差全部由 fp16 存储决定，不是实现错。**
+
+**T=128（§14，同一张图、`--T 128`）**：仍然 **61 层 / 1 个执行步 / 无 bridge**，板端 **PASS**，
+`max_abs = 1.733e-2` = 35.50 ULP，噪声底 0，**设备只比设备无关下限高 0.75 ULP**。
+**但这一档不等于「真实 prefill 可用」**——24 层、logits、KV cache 都还没在 T=128 上做过。
 
 ---
 
@@ -485,3 +490,173 @@ wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/npu-ops' && export QWEN2
   （夹具里有 `layer1.*`，换权重即可）；④ 任何新拼装图先跑 `--execcheck`。
 * **给 Lead**：本票没有需要 Lead 改公共工具的地方。`docs/EXPERIMENTS.md` / `CAPABILITY.tsv` 的登记留给 Lead；
   建议一行：`DECODER_LAYER(T8, fp16, 61 层) ✅ 1 step / 无 bridge / 28.5 MiB 静态 / 板端 9.5 ULP（下限 9.25）`。
+
+---
+
+## 14. T=128 prefill 档（2026-11-13；spec 的「T=128 紧随其后并列为必过项」）
+
+> 范围：同一张 1 层整块、同一套冻结夹具（`layer0.*`）、同一台设备、同一把板端锁，
+> 只把序列长度从 8 换成 **128**。交付：`ops/decoder_layer_t128_fp16/` + `tools/build_decoder_layer.py --T` + 本节。
+> 这一节之前，仓库所有的「整块」证据都是 T=8；spec 明令 **T=128 通过前不得声称真实 prefill 可用**（User Stories 21/22）。
+
+### 14.1 做法：一个开关，不是一份新代码
+
+票 09 的 builder 里 `T` 是模块常量。这次把它变成 `--T`（默认 8）经 `configure()` 重新绑定，
+凡是**依赖 T 的东西**都跟着变，且只有这些东西：
+
+| 跟着 T 变 | 位置 | T=128 的取值 |
+|---|---|---|
+| 图输入/输出形状 | `g.act("x", (T,D))`、golden 形状 | `[128,896]` fp16（229 376 B） |
+| RoPE sin/cos 常量表 | `tables()`，`[T,heads,32]` ×2 ×(q,k) | 4 张：`128×14×32`、`128×2×32` |
+| 因果掩码常量 | `causal_mask()`，`[14,T,T]` | `14×128×128` fp16 = 458 752 B |
+| KV 复制 / BMM 形状 | `kv14()`、`scores[14,T,T]`、`PV[14,T,64]` | `[14,128,128]` / `[14,128,64]` |
+| numpy golden | `forward()` 全程 | 114 688 个 fp16 code |
+| 掩码常数 M | `derive_mask(S)`（本层实测 S 决定） | 见 14.2 |
+| 输入 token | `token_ids(T)` | 128 个**互不相同**的 embedding 行 |
+
+**token id 规则**（写进 `model.json` 的 `input_tokens`，T≠8 才写，T=8 的产物因此逐字节不变）：
+前 8 个沿用票 03/06/09 的 `[9707, 11, 1879, 828, 11780, 13, 220, 16]`；其余按
+`id(i) = (41 + 1103·i) mod 151936`（1103 与词表大小互素、`1103·119 < 151936`，所以 128 个 id
+互不相同，也都不撞前 8 个）。**用 128 个不同的行**而不是把 8 行复制 16 份，是为了让 128 个位置真的不同，
+否则掩码/softmax 的结论会被「每 8 行一模一样」这种退化结构污染。
+
+**T=8 的产物逐字节不变**（这是硬要求，实测）：`model.tflite` sha256 `6d2e10c7c9abd21999482eb2d8ff7d05
+d3941e2e81596f6ea175ea3bde76dc9f`、`golden/expected.bin` `91330e5d…`、`golden/input.bin` `50496119…`、
+`model.json` 与提交里的**逐字节相同**（用 `--out /tmp/...` 重建后 `diff` 验证，`c702006`）。
+
+### 14.2 事前登记（写于任何板端动作之前，2026-11-13）
+
+**掩码必须重新量**（票 05 §11.2 的硬要求）。本层实测：
+
+    max|scores| = 5165.76  ->  S = max|scaled score| = 645.72      (T=8 时是 578.52)
+    有效区间 M ∈ [2S+104, 65504-S] = [1395.4, 64858.3]
+    => 沿用 M = -4096（2^12，fp16 精确）；余量：距下界 2.94×，距上界 15.8×
+    饱和性实测：M = -4096 vs -8192 的 fp16 概率 code 差异 = 0 / 229376
+
+即 **T 变长后 S 只从 578.5 涨到 645.7，−4096 仍在区间中部**，不需要换常数；但这是**量出来的**，不是沿用。
+（如果 T 再大 3 倍、S 到 ~2000 以上，`derive_mask()` 会自动抬到下一个 2 的幂；区间都容不下时它**直接报错**而不是硬塞。）
+
+**容差（已写进 `model.json`，跑之前）**：`max|out| = 0.6270`，该量级 fp16 ULP = 4.883e-4：
+
+* **设备无关下限** floor = `1.6972e-02` = **34.75 ULP**（numpy 逐层模拟：每个张量边界落一次 fp16、层内 fp32）；
+* 登记 `atol = rtol = max(4·2⁻¹¹·max|out|, 4·floor) = 6.7871e-2`（`4·2⁻¹¹·max|out|` = 1.22e-3，被 `4·floor` 支配）；
+* `threshold@max|out| = atol + rtol·max|out| = 0.1105`；
+* `tolerance_revision` 与推导理由写在 `model.json`；**没有在跑之后改过**。
+
+**这个阈值为什么这么大、它还算不算判据**——必须说清楚，因为 **0.0679 比 NOTES §4 的 2e-2 宽**：
+
+* floor 的 99% 来自一个阶段：`probs`（sim vs golden 在这一阶段就差 0.133，即 136 ULP）。原因不是实现，
+  是 **fp16 存不下这些分数**：本层分数被 `q/k/v_proj.bias` 抬到 ±5165，fp16 在该量级的粒度是 **4.0**，
+  过 `MUL(1/8)` 后仍是 **0.5**；而 softmax 对 0.5 的敏感度在最平的 row 上就是 ~12%。
+  实测 1792 个 (head,row) 里 **11.6%** 的 row 出现 >1e-2 的概率差异。
+* 于是**真正的判据是「设备 vs 逐层 fp16 模拟」**（`--diag` 的第二步），它与 golden 的差只是「fp16 存储的必然」。
+  这一条与票 09 §2.3 的口径一致：整块判据用登记阈值，实现正确性用 dev-vs-sim。
+
+**预测（跑之前写的，逐条在 14.4 复核）**
+
+| # | 预测 | 若不成立意味着 |
+|---|---|---|
+| P1 | 板端 **PASS**，`max_abs` 落在 floor 附近（30–45 ULP 量级），不是 1e-1 量级 | 远大于 floor ⇒ 接线/布局错（NOTES §10.2 那一类），不是精度 |
+| P2 | 噪声底 = **0**（同 `.dla` 同输入两轮，114 688 个 code 逐位相同） | 阈值按 3–5× 噪声底重定，但**必须在跑之前**重登记 |
+| P3 | **dev vs 逐层 fp16 模拟** ≪ dev vs golden（前者个位数 ULP） | 若两者同量级 ⇒ 设备行为与「边界落 fp16」模型不符，floor 的推导要重做 |
+| P4 | 层数 **61**（与 T=8 相同），1 个执行步，无 bridge | 层数变多 ⇒ 某个算子按 T 被切成多段（例如 TRANSPOSE/SPLIT 分块） |
+| P5 | 常驻内存仍是 **~29 MiB 静态**、Temp 从 14K 涨到 ~1.2M | Temp 撑爆 ⇒ 需要重新考虑 T 的上限 |
+| P6 | `probs` 的 argmax 与 golden 一致（掩码位恒为 0） | 不一致 ⇒ 掩码或 softmax 在长 row 上失效 |
+| P7 | 相对误差 `max_abs/max\|out\|` 在 1e-2 量级，**不是** 1e-3 | 若真到 1e-3，说明 T=128 反而更准 —— 那要先怀疑 golden 写错了 |
+
+### 14.3 编译（与 T=8 的差异只在内存，不在层数）
+
+`ops/decoder_layer_t128_fp16/model.compile.log` 原文摘要：
+
+    EXIT=0   Target: MDLA_5_0   ===Graph[0] has 1 Execution Step(s)===
+    61 个原生层（层清单与 T=8 逐项相同，顺序也相同）
+    DRAM:  Input 224K  Output 224K  Temp 1.2M  Static 29M  Code 31K  Total 30M
+    L1:    2.8M（--l1-size-kb=3072 的 hint 之内）
+    SIZE=30609269   SHA256=0592b8ea3bd46a34...
+
+**层数为什么不变（61 → 61）**：T 只改**维度**，不改算子数。整块里没有任何算子按 T 被切段
+（TRANSPOSE/SPLIT/CONCAT/BMM/SOFTMAX 在 `[14,128,128]` 上仍各是 1 层）。这与「层数随 T 增长」的
+直觉相反，也是这次值得记下来的一条：**层数预算只跟图的拓扑有关，不跟 T 有关**；T 影响的是常驻内存。
+
+**内存为什么涨**：Temp 从 14K 涨到 1.2M（`scores`/`probs` 各 458 K + `mlp_y` 1.2 M 的池化），
+Input/Output 从 14K 涨到 224K（`128×896×2`）。Static 几乎不变（29.4 MiB 权重 + 0.94 MiB RoPE 表与掩码）。
+**离上限都还很远**：Temp 1.2 M ≪ 可用 DRAM，也没有把单步撑破。
+
+### 14.4 板端（`compare.txt`）与噪声底
+
+持锁跑两轮（每轮 `e2e --repeat 3`，前后各一次 `healthcheck --quick`，两次 healthcheck 都 PASS）：
+
+    op        : DECODER_LAYER_T128_FP16 {'T':128, 'D':896, 'Hq':14, 'Hkv':2, 'HD':64, 'I':4864}
+    expected  : 114688 vals   device: 114688 vals   logical shape=(128, 896)
+    max_abs   : 1.733e-02        rmse: 1.671e-03        rel_l2: 1.311e-02
+    nan/inf   : exp 0/0  dev 0/0  range: exp [-0.5786,0.627]  dev [-0.5791,0.6304]
+    tol       : atol=0.0678711 rtol=0.0678711   ->   PASS
+
+| 量 | 值 | 口径 |
+|---|---|---|
+| `max_abs` | **1.7334e-2** | = **35.50 ULP** of `max\|out\|=0.6270`；相对 **2.765e-2** |
+| `rmse` / `rel_l2` | 1.671e-3 / **1.311e-2** | |
+| 逐位相同 code | 4185 / 114688 | |
+| **噪声底** | **0.0000e+00**（0/114688） | 同 `.dla` 同输入两轮 ⇒ 硬件确定性（与票 09 相同） |
+| **设备 − 下限** | **+0.75 ULP** | `\|dev−golden\| − \|fp16sim−golden\| = 35.50 − 34.75` |
+| dev vs fp16 sim | 8.728e-3 = **17.88 ULP**，26990/114688 逐位相同 | 见下 |
+| 反事实判别力 | 丢掩码 **7.02×**、丢 RoPE **6.79×**、丢 bias **5.36×**、丢残差 **5.36×**、`eps=0` **0.15×** | 相对登记阈值 |
+
+**噪声底 = 0 ⇒ 阈值不能按「3–5× 噪声底」取**（NOTES §4 的退化分支）。这里的退化与票 09 不同：
+票 09 是「floor 本身只有 1e-3 相对、噪声为 0」，这里是 **floor 很大（34.75 ULP）而噪声为 0**。
+所以阈值由 floor 撑起（`4×floor`），而**判定实现正确与否靠下面这条更强的对拍**：
+
+> **设备与「逐层 fp16 舍入」模拟的差 = 17.88 ULP，小于该模拟与 golden 的差（34.75 ULP）。**
+> 即：设备相对于「理想 fp16 设备」的偏离，比「理想 fp16 设备」相对于 fp32 golden 的偏离还小。
+> 实现没有额外引入误差，剩下的差全部由 fp16 存储决定。与 NOTES §10.1「设备误差只应比下限多 1–2 ULP」一致
+> （实测 **+0.75 ULP**）。
+
+`noise_floor.json`（`ops/decoder_layer_t128_fp16/noise_floor.py` 生成）里存了完整账：
+`noise_floor_value = 0.0`、`device_vs_golden.max_abs_in_ulp = 35.5`、
+`fp16_sim_vs_golden.max_abs_in_ulp = 34.75`、`device_minus_floor_in_ulp = 0.75`，以及逐阶段 floor 表
+（`probs` 136.2 ULP 是 floor 的唯一主要来源；`n1` 0.5 ULP、`scores` 1.0 ULP）。
+
+### 14.5 预测复核（逐条）
+
+| # | 预测 | 实际 | 结论 |
+|---|---|---|---|
+| P1 | PASS，`max_abs` 落在 floor 附近（30–45 ULP） | PASS，35.50 ULP（floor 34.75） | ✅ |
+| P2 | 噪声底 = 0 | 0.0000e+00，0/114688 | ✅ |
+| P3 | dev vs 逐层 fp16 模拟 ≪ dev vs golden（前者个位数 ULP） | **17.88 ULP vs 35.50 ULP**，约一半，不是个位数 | ❌ **预测偏乐观**，见下 |
+| P4 | 层数 61、1 步、无 bridge | 61、1 步、无 bridge | ✅ |
+| P5 | 静态 ~29 MiB、Temp → ~1.2M | Static 29M、Temp 1.2M | ✅ |
+| P6 | `probs` argmax 与 golden 一致 | golden vs fp16 模拟：**1779/1792 = 99.27%**；掩码位概率恰为 0 | 部分 ✅（13 个 row 翻转） |
+| P7 | 相对误差在 1e-2 量级 | 2.765e-2 | ✅ |
+
+**P3 为什么错，以及为什么它不影响结论**：17.88 ULP 不是「实现错」，是**近并列 row 的 softmax 把
+任何一点算术差放大**。同一批 row（top1 与 top2 的 scaled 分数相差不到一个 fp16 步长 0.5）在
+golden↔sim 之间就已经翻转了 11.6%；设备与 numpy 的 fp32 累加顺序不同，会在同一批 row 上再翻转一次，
+于是 dev-vs-sim 也有 17.9 ULP。判据因此不能是「dev ≈ sim 到个位数」，只能是
+「dev 不比 floor 差多少」——**实测 +0.75 ULP，这才是本档真正的结论**。
+反过来说：**如果哪天 `device − floor` 变成 10 ULP 以上，那就是真问题**。
+
+### 14.6 适用范围 / 不适用
+
+* **适用**：1 层 decoder 整块、`T=128`、fp16、14Q/2KV GQA、冻结随机权重夹具 `layer0.*`。
+  这是「**prefill 的单层几何在 T=128 上可以整块下沉**」的证据。
+* **仍然不是**「真实 prefill 可用」：24 层串联、logits、KV cache 都还没在 T=128 上做过（§10 的
+  「24 层 ≈ 684 MiB vs 设备空余 RAM」一条都没解决）。spec 的 T=128 门槛是「单层整块必过」，
+  这一条现在满足；「真实 prefill」这句话仍然不能说。
+* **不适用**：变长序列（T 是静态的，RoPE 表是数据）、多 batch、int8、任何性能结论——顺带记下的
+  5.28 ms/inf、176.9 FPS 是 `--repeat 3` 的板端计时，**不是**本 spec 的判据。
+* **阈值不能搬**：0.0679（T=128）与 0.0090（T=8）不可互换，也不能搬到别的层；floor 依赖该层的
+  `max|out|` 与分数动态范围，每层必须重算（`model.json` 的 `tolerance_basis` 就是给这件事留的痕）。
+
+### 14.7 剩余疑问（UNKNOWN，不圆）
+
+1. **ncc 的 FC batch 只支持 1/2/4/8**（`strings ncc-tflite` 里有 `fc batch 1/2/4/8`）。本图在 T=128
+   没有因此受限（FC 自由分块），但**T 继续变大时它会以什么形式暴露，没有测**（例如 T=512 的
+   `[512,896]` FC、或 `[512,4864]` 的 MLP）。
+2. **`1 Execution Step` 是否等于「真单步」**：日志不给内部 dma/loop 计数；`5.28 ms/inf` 对 1 层
+   28.5 MiB 权重（≈3.3 GB/s 有效带宽）偏慢，可能与分块/循环有关，但**没有测**。
+3. **24 层在 T=128 下的常驻内存**没有测（每层 29.4 MiB ⇒ 24 层 ≈ 706 MiB 静态 + 每层 1.2 M 中间量）。
+4. **`probs` 在近并列 row 上的 ~12% 抖动**是夹具性质（bias 主导到 ±500）还是真实 Qwen 权重也如此，
+   未验证；若真实权重也这样，24 层串联时这些抖动会成为误差放大源，**值得在票 10 之前先量**。
+5. **掩码常数的 T 依赖**：本层 T=128 的 S=645.7 仍远小于 −4096 的适用上界，所以 M 没换；但
+   `S ∝ 分数` 而分数被 bias 主导，**T 增长时 S 会不会突然跳上去没有模型**，只能每层实测（`derive_mask` 会兜住）。
+

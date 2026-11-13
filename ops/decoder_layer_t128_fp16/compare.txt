@@ -1,0 +1,9 @@
+op        : DECODER_LAYER_T128_FP16 {'T': 128, 'D': 896, 'Hq': 14, 'Hkv': 2, 'HD': 64, 'I': 4864, 'in': [128, 896], 'out': [128, 896]}  dtype=fp16
+expected  : 114688 vals   device: 114688 vals   logical shape=(128, 896)
+max_abs   : 1.733e-02
+rmse      : 1.671e-03
+rel_l2    : 1.311e-02
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-0.5786,0.627]  dev [-0.5791,0.6304]
+tol       : atol=0.0678711 rtol=0.0678711
+PASS

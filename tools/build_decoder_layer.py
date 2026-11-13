@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""One whole Qwen2.5-0.5B decoder layer, T=8, fp16, 14 query / 2 KV heads, hidden 896.
+"""One whole Qwen2.5-0.5B decoder layer, T=8 (or --T N), fp16, 14 query / 2 KV heads, hidden 896.
 
     /usr/bin/python3 tools/build_decoder_layer.py                       # -> ops/decoder_layer_t8_fp16
+    /usr/bin/python3 tools/build_decoder_layer.py --T 128               # -> ops/decoder_layer_t128_fp16
     /usr/bin/python3 tools/build_decoder_layer.py --stage r1 --out ops/_decoder_bisect/r1
     /usr/bin/python3 tools/build_decoder_layer.py --variant ffn_half --out ops/_decoder_bisect/ffn
     /usr/bin/python3 tools/build_decoder_layer.py --diag                # after a board run
@@ -56,7 +57,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import build_ops as bo          # flatbuffer toolbox (read-only use, AGENTS 8)
 import qwen25_weights as qw     # frozen fixture loader (verify-on-load, sha256-checked)
 
-T = 8
+T = 8                   # sequence length; --T overrides (static: the RoPE tables are data)
 D = 896
 H = 14                  # query heads
 KV = 2                  # KV heads
@@ -67,15 +68,74 @@ THETA = 1e6
 POS0 = 0
 EPS = 1e-6              # transformers rms_norm_eps (NOT the toy block's 0)
 SCALE = 1.0 / 8.0       # 1/sqrt(64), an exact power of two in fp16
-MASK = -4096.0          # 2^12; interval derived in docs/OP-masked-softmax.md 3.4
+MASK_REF = -4096.0       # ticket 05's value, 2^12; interval in docs/OP-masked-softmax.md 3.4
+MASK = MASK_REF         # in effect; re-derived from THIS layer's S by derive_mask() (05 11.2)
 LAYER = 0
 KVR = H // KV           # 7
 
 # fixed token ids so golden/input.bin is byte-reproducible (same list as ticket 03/06)
-TOKEN_IDS = [9707, 11, 1879, 828, 11780, 13, 220, 16]
+TOKEN_IDS_BASE = [9707, 11, 1879, 828, 11780, 13, 220, 16]
+TOKEN_IDS = list(TOKEN_IDS_BASE)
 
 DEFAULT_OUT = "ops/decoder_layer_t8_fp16"
 STAGES = ["n1", "q3", "k14", "v14", "scores", "probs", "attn", "r1", "n2", "mlp_y", "down", "out"]
+
+
+# ------------------------------------------------------------ T configuration
+def token_ids(t):
+    """t distinct token ids, fixed forever, so golden/input.bin is byte-reproducible.
+
+    Positions 0..7 are ticket 03/06/09's list verbatim (that is what keeps the T=8 product
+    byte-identical).  Beyond that the rule is arithmetic, not a hand-picked list:
+
+        id(i) = (41 + 1103 * i) % vocab_size,  i = 0, 1, 2, ...
+
+    stride 1103 is coprime to the 151936-entry vocabulary and 1103*119 < 151936, so the
+    first 120 values are distinct, and none of them hits one of the 8 base ids (checked
+    below).  Different rows of the embedding table => 128 genuinely different positions.
+    """
+    vocab = int(qw.get("embed.weight").shape[0])
+    ids = list(TOKEN_IDS_BASE[:t])
+    i = 0
+    while len(ids) < t:
+        cand = (41 + 1103 * i) % vocab
+        i += 1
+        if cand not in ids:
+            ids.append(cand)
+    assert len(set(ids)) == t, "token ids must be distinct"
+    return ids
+
+
+def derive_mask(s_scaled):
+    """Mask constant M for this layer: M in [2S+104, 65504-S] (docs/OP-masked-softmax.md 3.4).
+
+    Ticket 05's -4096 is kept whenever it is still inside the interval (that is the T=8
+    case, and it keeps that product byte-identical).  When the layer gets longer the scores
+    grow and S grows with them, so M has to be re-derived instead of reused: the smallest
+    power of two >= 2S+104 is taken, because a power of two is exact in fp16 and auditable.
+    """
+    lo = 2.0 * s_scaled + 104.0
+    hi = 65504.0 - s_scaled
+    if lo <= -MASK_REF <= hi:
+        return MASK_REF, "reused", lo, hi
+    p = 1024.0
+    while p < lo:
+        p *= 2.0
+    if p > hi:
+        raise SystemExit("no valid mask constant: need M >= %.1f and M <= %.1f (S=%.1f); "
+                         "fp16 cannot hold both => T is too long for this mask scheme"
+                         % (lo, hi, s_scaled))
+    return -p, "re-derived", lo, hi
+
+
+def configure(t):
+    """Re-bind every T-dependent module constant.  T=8 reproduces the T=8 product exactly."""
+    global T, TOKEN_IDS, DEFAULT_OUT
+    T = int(t)
+    if T <= 0:
+        raise SystemExit("--T must be positive")
+    TOKEN_IDS = token_ids(T)
+    DEFAULT_OUT = "ops/decoder_layer_t%d_fp16" % T
 
 
 # ------------------------------------------------------------------ fixture data
@@ -384,8 +444,10 @@ class G:
                 bo.BuiltinOptions.FullyConnectedOptions, S.FullyConnectedOptionsEnd(self.b))
         return t
 
-    def mul(self, a, name, b=None, shape=(T, D)):
+    def mul(self, a, name, b=None, shape=None):
         S = bo.S
+        if shape is None:                    # NOT a default arg: T is re-bound by --T, and a
+            shape = (T, D)                   # default would freeze the import-time T=8 (see 3.5)
         if b is None:
             b = self.const(name + "_c", np.full(shape, 1.0, np.float16))
         t = self.act(name, shape)
@@ -395,8 +457,10 @@ class G:
                 S.MulOptionsEnd(self.b))
         return t
 
-    def add(self, a, b, name, shape=(T, D)):
+    def add(self, a, b, name, shape=None):
         S = bo.S
+        if shape is None:
+            shape = (T, D)
         t = self.act(name, shape)
         S.AddOptionsStart(self.b)
         S.AddOptionsAddFusedActivationFunction(self.b, 0)
@@ -657,8 +721,11 @@ def quantile_stats(a):
 
 
 def main():
+    global MASK
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=DEFAULT_OUT)
+    ap.add_argument("--out", default=None, help="output dir (default ops/decoder_layer_t<T>_fp16)")
+    ap.add_argument("--T", type=int, default=8,
+                    help="sequence length (static shape; RoPE cos/sin tables are data)")
     ap.add_argument("--variant", choices=["full", "attn_half", "ffn_half"], default="full")
     ap.add_argument("--stage", choices=STAGES, default="out")
     ap.add_argument("--diag", action="store_true")
@@ -667,6 +734,9 @@ def main():
                     help="run the built .tflite in numpy (wiring check) and compare to golden")
     ap.add_argument("--predict", action="store_true", help="print the layer budget only")
     a = ap.parse_args()
+    configure(a.T)
+    if a.out is None:
+        a.out = DEFAULT_OUT
 
     if a.predict:
         tot = sum(n for _, n, _ in PREDICTED_LAYERS)
@@ -685,6 +755,19 @@ def main():
     P = fixture()
     x16 = input_hidden()
     stage = a.stage if a.variant == "full" else ("r1" if a.variant == "attn_half" else "out")
+
+    # ---- the mask constant is a function of THIS layer's score range (ticket 05 11.2) ----
+    # S = max|scaled score| is a property of q/k (bias-dominated), not of the mask, so it can
+    # be measured before the mask is chosen: the "scores" stage stops right after the BMM.
+    if a.variant == "ffn_half" or stage == "n1":
+        S_scaled, mstatus, mlo, mhi = 0.0, "n/a (no attention in this graph)", 0.0, 0.0
+    else:
+        s_raw = float(np.abs(np.asarray(
+            forward(x16, P, np.float32, False, "scores")["scores"], np.float64)).max())
+        S_scaled = s_raw * SCALE
+        MASK, mstatus, mlo, mhi = derive_mask(S_scaled)
+        print("mask: S=max|scaled score|=%.2f -> M=%.0f (%s), interval [%.1f, %.1f]"
+              % (S_scaled, MASK, mstatus, mlo, mhi))
 
     if a.variant == "ffn_half":
         # the graph input is r1 (stored fp16), exactly what the first half would hand over
@@ -733,8 +816,7 @@ def main():
         trace[k] = quantile_stats(np.asarray(v, np.float64))
 
     wrows, wtotal = weight_inventory(P)
-    S_scaled = float(np.abs(np.asarray(trace["scores"]["abs_max"] if "scores" in trace else 0)))
-    mask_ok = S_scaled / 8.0
+    mask_ok = S_scaled
 
     os.makedirs(os.path.join(a.out, "golden"), exist_ok=True)
     with open(os.path.join(a.out, "model.tflite"), "wb") as f:
@@ -743,7 +825,7 @@ def main():
     np.ascontiguousarray(exp, np.float16).tofile(os.path.join(a.out, "golden", "expected.bin"))
 
     meta = {
-        "op": "DECODER_LAYER_T8_FP16",
+        "op": "DECODER_LAYER_T%d_FP16" % T,
         "variant": a.variant,
         "stage": stage,
         "shape": {"T": T, "D": D, "Hq": H, "Hkv": KV, "HD": HD, "I": INTER,
@@ -788,10 +870,11 @@ def main():
         "mask": {"value": MASK, "position": "ADD after MUL(1/sqrt(HD))",
                  "causal": "0 at j<=i, MASK at j>i", "form": "const [H,T,T] baked in graph",
                  "max_abs_scaled_score_S": mask_ok,
-                 "S_limit": 1996.0,
-                 "S_ok": bool(mask_ok <= 1996.0),
+                 "S_limit": (abs(MASK) - 104.0) / 2.0,
+                 "S_ok": bool(mlo <= abs(MASK) <= mhi) if mlo else True,
                  "derivation": "M in [2S+104, 65504-S] (docs/OP-masked-softmax.md 3.4); "
-                               "M=4096 = 2^12 is exact in fp16",
+                               "M=%d = 2^%d is exact in fp16"
+                               % (int(abs(MASK)), int(round(np.log2(abs(MASK))))),
                  "note": "re-measured for THIS layer before reuse, as ticket 05 11.2 requires"},
         "rope": {"convention": "qwen2_split_half", "theta": THETA, "head_dim": HD,
                  "positions": "%d..%d" % (POS0, POS0 + T - 1),
@@ -816,6 +899,19 @@ def main():
         "tflite": "model.tflite",
         "tflite_bytes": len(blob),
     }
+    if mstatus != "reused":
+        # only present when the constant had to move: keeps the T=8 product byte-identical
+        meta["mask"]["interval"] = [mlo, mhi]
+        meta["mask"]["selection"] = mstatus
+    if T != 8:
+        meta["input_tokens"] = {
+            "ids": TOKEN_IDS,
+            "rule": "positions 0-7 = ticket 03/06/09's list verbatim; the rest follow "
+                    "id(i) = (41 + 1103*i) %% vocab_size, i = 0,1,2,... (stride coprime to the "
+                    "151936-entry vocabulary, so all %d ids are distinct rows of embed.weight). "
+                    "Emitted only for T != 8 so the T=8 product stays byte-identical." % T,
+        }
+
     with open(os.path.join(a.out, "model.json"), "w") as f:
         json.dump(meta, f, indent=2)
 
@@ -950,9 +1046,18 @@ def exec_graph(path, feed, trace=False):
 
 
 # -------------------------------------------------------------------- --analyze
+def _configure_from_meta(meta):
+    """Bind T + MASK to what this op directory was actually built with."""
+    global MASK
+    configure(int(meta["shape"]["T"]))
+    MASK = float(meta.get("mask", {}).get("value", MASK_REF))
+    return MASK
+
+
 def analyze(op_dir):
     """Per-stage magnitudes / fp16 floor / reference precision.  Device-free, no board needed."""
     meta = json.load(open(os.path.join(op_dir, "model.json")))
+    _configure_from_meta(meta)
     P = fixture()
     x16 = input_hidden()
     full = forward(x16, P, np.float32, False, "out")
@@ -974,8 +1079,9 @@ def analyze(op_dir):
                  int((g == a64).sum()), a.size))
     sc = np.asarray(full["scores"], np.float64)
     S = float(np.abs(sc).max() / 8.0)
-    print("mask check: max|scores|=%.2f  S=max|scaled|=%.2f  limit S<=1996 -> %s"
-          % (np.abs(sc).max(), S, "OK" if S <= 1996 else "MUST RE-DERIVE M"))
+    lim = (abs(MASK) - 104.0) / 2.0
+    print("mask check: max|scores|=%.2f  S=max|scaled|=%.2f  M=%.0f  limit S<=%.0f -> %s"
+          % (np.abs(sc).max(), S, MASK, lim, "OK" if S <= lim else "MUST RE-DERIVE M"))
     p = np.asarray(full["probs"], np.float64)
     m = causal_mask()
     print("probs     : max=%.6f  frac>0.99=%.3f  masked positions max=%.3e  n_masked=%d"
@@ -983,9 +1089,11 @@ def analyze(op_dir):
              int((m == np.float16(MASK)).sum())))
     # mask saturation: -4096 vs -8192 must give the same fp16 probabilities
     v = np.asarray(full["scores"], np.float64) * SCALE
-    p2 = _softmax(v + np.where(causal_mask().astype(np.float64) == 0.0, 0.0, -8192.0), np.asarray)
-    print("mask sat  : -4096 vs -8192 fp16 probability codes differing = %d/%d"
-          % (int((np.asarray(p, np.float16) != np.asarray(p2, np.float16)).sum()), p.size))
+    p2 = _softmax(v + np.where(causal_mask().astype(np.float64) == 0.0, 0.0, 2.0 * MASK),
+                         np.asarray)
+    print("mask sat  : %.0f vs %.0f fp16 probability codes differing = %d/%d"
+          % (MASK, 2.0 * MASK,
+             int((np.asarray(p, np.float16) != np.asarray(p2, np.float16)).sum()), p.size))
     inv = np.asarray(full["out"], np.float64)
     print("out       : min=%.4f max=%.4f absmax=%.4f  (tolerance in model.json: atol=rtol=%g)"
           % (inv.min(), inv.max(), np.abs(inv).max(), meta["atol"]))
@@ -1006,6 +1114,7 @@ def execcheck(op_dir):
     board time on (NOTES 10.2 / spec C4).
     """
     meta = json.load(open(os.path.join(op_dir, "model.json")))
+    _configure_from_meta(meta)
     x = np.fromfile(os.path.join(op_dir, "golden", "input.bin"), dtype=np.float16)
     exp = np.fromfile(os.path.join(op_dir, "golden", "expected.bin"), dtype=np.float16)
     shape = tuple(meta["inputs"][0]["shape"])
@@ -1041,6 +1150,7 @@ def diag(op_dir):
     if dev.size != exp.size:
         print("FAIL size mismatch device=%d expected=%d" % (dev.size, exp.size))
         return 1
+    _configure_from_meta(meta)
     P = fixture()
     x16 = input_hidden()
     mx = float(np.abs(exp.astype(np.float64)).max())
