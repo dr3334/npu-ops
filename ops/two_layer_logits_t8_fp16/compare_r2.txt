@@ -1,0 +1,9 @@
+op        : TWO_LAYER_LOGITS_T8_FP16 {'T': 8, 'D': 896, 'Hq': 14, 'Hkv': 2, 'HD': 64, 'I': 4864, 'vocab': 151936}  dtype=fp16
+expected  : 1215488 vals   device: 1215488 vals   logical shape=(8, 151936)
+max_abs   : 3.662e-03
+rmse      : 6.421e-04
+rel_l2    : 4.353e-03
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-0.7153,0.8267]  dev [-0.7158,0.8276]
+tol       : atol=0.0154724 rtol=0.0154724
+PASS

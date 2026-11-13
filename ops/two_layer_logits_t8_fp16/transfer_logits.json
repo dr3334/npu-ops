@@ -1,0 +1,6 @@
+{"op":"two_layer_logits_t8_fp16","dla_bytes":272274724,"input_bytes":14336,"output_bytes":2430976,
+ "push_dla_ms":7802,"push_input_ms":101,"run_ms":337,"pull_out_ms":160,
+ "inference_total_ms":27.138,"load_and_startup_ms_est":310,
+ "push_dla_MBps":34.90,
+ "pull_out_MBps":15.19,
+ "ts":"2026-11-13T10:55:31+08:00"}

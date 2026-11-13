@@ -885,6 +885,63 @@ def diag(kind, opdir):
     return 0 if (ok_prop and ok_self) else 1
 
 
+
+# -------------------------------------------------------------- --counterfactual
+def counterfactual(kind, opdir):
+    """Named WRONG chains, all numpy, compared against the device output.
+
+    Teeth check (ticket 09 section 7 did this for one layer): if the chain had been
+    assembled differently -- wrong weight set at layer 1, a skipped layer, the handoff
+    "corrected" on the CPU -- the distance to the device output would be orders of
+    magnitude above the registered threshold, not a few ULP.  Everything here is
+    device-free except the reading of out_device.bin.
+    """
+    meta = json.load(open(os.path.join(opdir, "model.json")))
+    rev = meta["tolerance_revision"]
+    atol, rtol = float(meta["atol"]), float(meta["rtol"])
+    exp = np.fromfile(os.path.join(opdir, "golden", "expected.bin"), dtype=np.float16)
+    dev_p = os.path.join(opdir, "out_device.bin")
+    if not os.path.exists(dev_p):
+        raise SystemExit("no out_device.bin in %s" % opdir)
+    dev = np.fromfile(dev_p, dtype=np.float16).astype(np.float64)
+    mx = float(np.abs(exp.astype(np.float64)).max())
+    thr = atol + rtol * mx
+    ch = chain_refs()
+    P0, P1, x16 = ch["P0"], ch["P1"], ch["x"]
+    f32 = np.float32
+    as16 = lambda a: np.asarray(a, np.float16)
+    var = {}
+    if kind == "l1":
+        var["layer1_weights_replaced_by_layer0"] = as16(forward(ch["h1"], P0, f32, False)["out"])
+        var["layer0_skipped (layer1 fed the embed rows)"] = as16(forward(x16, P1, f32, False)["out"])
+        var["handoff corrected on cpu (fed h1_cpu)"] = exp       # = the registered golden
+    elif kind == "logits":
+        w = embed_weight()
+        var["layer1_weights_replaced_by_layer0"] = logits_ref(
+            as16(forward(ch["h1"], P0, f32, False)["out"]), w)
+        var["layer0_skipped (layer1 fed the embed rows)"] = logits_ref(
+            as16(forward(x16, P1, f32, False)["out"]), w)
+        var["handoff corrected on cpu (cpu h2)"] = exp
+        # CONCAT input order is a silent, compile-clean bug class (NOTES 5.5 / C4): permute
+        # the four vocab chunks and keep everything else identical.
+        var["vocab chunk order reversed (CONCAT order)"] = np.ascontiguousarray(
+            exp.reshape(T, CHUNKS, N_CHUNK)[:, ::-1, :]).reshape(T, VOCAB)
+    else:
+        print("l0: the counterfactual table lives in docs/OP-decoder-layer.md section 7 "
+              "(same graph, same weights); nothing new to bisect at the chain root.")
+        return 0
+    print("== %s (%s) counterfactuals: distance to the DEVICE output, in units of the "
+          "registered threshold (%.4e) ==" % (opdir, kind, thr))
+    for name, wrong in var.items():
+        w = np.asarray(wrong, np.float16).reshape(-1).astype(np.float64)
+        dd = float(np.abs(dev - w).max())
+        print("  %-46s max_abs=%.4e  (%8.2fx thr)" % (name, dd, dd / thr))
+    print("  %-46s max_abs=%.4e  (%8.2fx thr)" % (
+        "the registered golden (CPU chain)", float(np.abs(dev - exp.astype(np.float64)).max()),
+        float(np.abs(dev - exp.astype(np.float64)).max()) / thr))
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--graph", choices=list(GRAPHS), default="l0")
@@ -892,6 +949,7 @@ def main():
     ap.add_argument("--execcheck", action="store_true")
     ap.add_argument("--analyze", action="store_true")
     ap.add_argument("--diag", action="store_true")
+    ap.add_argument("--counterfactual", action="store_true")
     ap.add_argument("--predict", action="store_true")
     ap.add_argument("--weights-dir", default=None)
     a = ap.parse_args()
@@ -909,6 +967,8 @@ def main():
         return analyze(a.graph, outdir)
     if a.diag:
         return diag(a.graph, outdir)
+    if a.counterfactual:
+        return counterfactual(a.graph, outdir)
     if a.weights_dir:
         os.environ["QWEN25_WEIGHTS_DIR"] = a.weights_dir
     return build(a.graph, outdir)
