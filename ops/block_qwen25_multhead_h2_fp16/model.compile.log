@@ -1,0 +1,58 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/block_qwen25_multhead_h2_fp16/model.tflite -d ops/block_qwen25_multhead_h2_fp16/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T10:10:24+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ ElementWiseMulLayer<0>{MUL}
+   ├ MeanLayer<1>{MEAN}
+   ├ RSqrtLayer<2>{RSQRT}
+   ├ ElementWiseMulLayer<3>{MUL}
+   ├ FullyConnectedLayer<4>{FULLY_CONNECTED}
+   ├ ReshapeLayer<7>{RESHAPE}
+   ├ TransposeLayer<10>{TRANSPOSE}
+   ├ FullyConnectedLayer<5>{FULLY_CONNECTED}
+   ├ ReshapeLayer<8>{RESHAPE}
+   ├ TransposeLayer<11>{TRANSPOSE}
+   ├ BatchMatMulLayer<13>{BATCH_MATMUL}
+   ├ SoftMaxLayer<14>{SOFTMAX}
+   ├ FullyConnectedLayer<6>{FULLY_CONNECTED}
+   ├ ReshapeLayer<9>{RESHAPE}
+   ├ TransposeLayer<12>{TRANSPOSE}
+   ├ BatchMatMulLayer<15>{BATCH_MATMUL}
+   ├ TransposeLayer<16>{TRANSPOSE}
+   ├ ReshapeLayer<17>{RESHAPE}
+   ├ FullyConnectedLayer<18>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<19>{ADD}
+   ├ ElementWiseMulLayer<20>{MUL}
+   ├ MeanLayer<21>{MEAN}
+   ├ RSqrtLayer<22>{RSQRT}
+   ├ ElementWiseMulLayer<23>{MUL}
+   ├ FullyConnectedLayer<24>{FULLY_CONNECTED}
+   ├ SigmoidLayer<26>{LOGISTIC}
+   ├ ElementWiseMulLayer<27>{MUL}
+   ├ FullyConnectedLayer<25>{FULLY_CONNECTED}
+   ├ ElementWiseMulLayer<28>{MUL}
+   ├ FullyConnectedLayer<29>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<30>{ADD}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     1.0K   1.0K    0     80K     9.4K  91K
+
+Total Memory:
+  DRAM: 91K
+  L1:   8.0K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=103508
+SHA256=17a478ea1d97b22a089827137f333a8b2932f5807f19e69e65f6e7ad7baccacf

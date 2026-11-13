@@ -1,0 +1,9 @@
+op        : QWEN25_BLOCK_1L_MULTIHEAD {'T': 8, 'H': 896, 'HD': 64, 'FFN': 128, 'HEADS': 14, 'NORM': 'fctile'}  dtype=float16
+expected  : 7168 vals   device: 7168 vals   logical shape=(8, 896)
+max_abs   : 2.197e-02
+rmse      : 4.519e-03
+rel_l2    : 1.939e-03
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-8.461,8.461]  dev [-8.469,8.453]
+tol       : atol=0.03 rtol=0.03
+PASS
