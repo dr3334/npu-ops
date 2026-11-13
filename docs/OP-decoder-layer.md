@@ -466,7 +466,8 @@ wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t09' && export QWEN25
 # 7) 二分半图（同 2)–5)，换 --variant attn_half|ffn_half，输出到 ops/_decoder_bisect/<v>）
 `@
 
-**可复现性**：`.tflite` 与 `golden/*.bin` 由同一 builder 重建（同一 seed、同一夹具）字节一致；
+**可复现性**：`.tflite` 与 `golden/*.bin` 由同一 builder 重建（同一 seed、同一夹具）**逐字节相同**（实测：
+`model.tflite` sha256 `6d2e10c7…`、`golden/expected.bin` `91330e5d…`、`golden/input.bin` `50496119…`，重建两次一致）；
 `.dla` **不可复现**、只作产物标识（NOTES §4、`docs/OP-pv-o.md` §2.4）。
 
 ---
