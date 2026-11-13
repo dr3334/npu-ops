@@ -42,3 +42,13 @@ C=16384 build_rc=0 build_s=67
 ops/kvmax_decode_t8_c16384_24l     542992544 B  decode l=24 T=8 C=16384  in=['x', 'mask', 'cos14', 'sin14', 'cos2', 'sin2', 'k_in', 'v_in']
   saturation: {'L00_down': 1, 'L00_gate': 1, 'L00_k_fc': 1, 'L00_masked': 194, 'L00_mlp_y': 1, 'L00_n1_mean': 1, 'L00_n1_norm': 1, 'L00_n2_mean': 1}
 C=16384 TFLITE=542992544
+C=16384 compile_rc=143 compile_s=3338
+Terminated
+model.dla                                            exit=143  (no .dla produced)
+   ├ EleEXIT=143
+SIZE=0
+--- exec steps / gap ---
+===Graph[0] has 1 Execution Step(s)===
+--- memory summary ---
+===== C=16384 done 2026-11-13T17:41:45+08:00 =====
+===== C=32768 start 2026-11-13T17:41:45+08:00 =====
