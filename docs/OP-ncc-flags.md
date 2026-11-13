@@ -65,3 +65,38 @@ ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=30
 
 **板端计时必须配对交替、报比值中位数，不报绝对 ms。** 同一 `.dla` 同一会话内可漂 ±15%，跨会话更糟；
 单次 A/B 足以骗出「−21%」这种假结论。这也是为什么此前所有「x ms/inf」的数字都只作量级记录、不作性能结论。
+---
+
+## 9. `--gno=LTS` 实测（2026-11-13）：本工具链上**不解除 65535 上限**
+
+> 背景：有人明确建议开 `--gno=LTS`，理由是「FC 输出维度 > 65535 且能被 16 整除时该路径可支持」。
+> 我们的 LM head 正好符合这个条件（N = 151936 = 16 × 9496），所以这是一个可判定的实验。
+
+**最小对照（fp16，K=896）**
+
+| N | 不加 LTS | 加 `--gno=LTS` |
+|---|---|---|
+| 65535 | EXIT=0 | EXIT=0 |
+| 65536 | **EXIT=1** | **EXIT=1**（同一条报错） |
+
+⇒ 边界仍然精确在 65535，LTS 没有移动它。
+
+**真实的单体 LM head（N=151936，可被 16 整除）**：加 LTS 仍然
+
+```
+OP[0]: FULLY_CONNECTED
+ ├ MDLA: Dimension should be <= 65535. Operand: 1 got <151936 x 896>.
+ ├ MDLA: Dimension should be <= 65535. Result : 0 got <8 x 151936>.
+ ├ EDPA: unsupported operation
+ERROR: Cannot find an execution plan because of unsupported operations    EXIT=1
+```
+
+试过的组合全部 EXIT=1：`LTS` 单独、`LTS,NDF`、`LTS,SMP`、`LTS,BMP`、`LTS,NDF,SMP,BMP`、`LTS --gno-non-4d-tiling`、`--opt=2 LTS`、`ARCH=mdla5.1`（`mdla6.0` 直接 unrecognized）。
+
+**LTS 这个值是被 7.3.15 认识的**：`--gno=ZZZ` 会 abort（EXIT=134），`--gno=LTS` 正常继续 ⇒ 不是拼写/传参问题，是这个版本里它不覆盖 2-D FC 的维度检查。
+
+**环境事实**：本机两份 SDK（`mtk/neuropilot-sdk-basic-7.0.8-build20240807/neuron_sdk` 与 `/d/liteRT`）都是 **7.3.15**，`--gno` 的帮助里只列 `NDF, SMP, BMP`；per-chip 的 `neuron_sdk/mt6897/bin/ncc-tflite` 是 **aarch64 Android** 二进制，不能在 WSL 里跑。
+
+**结论**：在这套 7.3.15 上，「LTS 支持超 65535 的 FC 输出维」这个说法**不成立**（或需要更新的 NeuroPilot / 4-D NHWC 形态 / conv 通道路径，均未验证）。要确认，需要一份支持 LTS 的 SDK 版本号或安装路径。
+
+**若 LTS 不可用的替代路（待验证）**：把 LM head 的输出投影从 `FULLY_CONNECTED` 改成 `BATCH_MATMUL`（BMM 目前没撞过 65535 限制，int16 与 3-D 都已在本仓库验过）。若成立，LM head 可从「4×FC + CONCAT，5 层」压回 1 层，并消除分块顺序这一类风险。
