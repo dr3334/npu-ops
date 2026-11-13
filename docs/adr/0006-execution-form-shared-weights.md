@@ -27,3 +27,14 @@
 4. **int16 下 T=8 编得过**（`[14,8,8]×2B` 正好 16 B 行，int8 时被行规则挡住）；但**单层 T=128 的质量掉到 0.99658**（per-tensor int16 被 128 行里的 outlier 拉坏）⇒ 128 token 要按行/按 head 细化激活尺度，或分块，否则它会成为 24 层累积误差的主要来源。
 
 另外，常驻形态已经与厂商同构：PSS **21.6 MB**（Anon 19.3 / File 2.25）、dma-buf **16.98 MiB / 10 块**（最大一块 16.10 MiB = bin 页对齐，CPU 从不触页）、`rchar` 冻结、`read_bytes=0`；**400 次 `Run()` 与单次运行逐字节相同**。
+### 实测闭环（2026-11-13，票 q06 之后）
+
+「两张图 + 一份外部权重」这条形态已经在我们自己的栈上完整跑通：
+
+- **共用一份 bin**：prefill(T=16，1346 算子) 与 decode(T=8/C=2048，1396 算子) 都单执行步、无 bridge；`extract-shared` 出 bin **16,674,816 B**；prefill 的 nonreuse 张量 **0 个**、decode 只有 **2 个/8,224 B**（mask/RoPE 提成输入后，票 05 里 1.64 MB 的 nonreuse 基本消失）。三张不同 T 的图抽出的 bin **体积完全相同** ⇒ bin 与 T 无关。
+- **T=1 编不过**（prefill 图报 SOFTMAX `Act1 shift exceeds range of MDLA command field`；decode 图报 Input↔MDLA gap，两者在 T=8 消失）⇒ decode 走 **T=8 只用第 0 行**，其余 7 行同喂该 token、mask 放行槽位 `C+r`；代价是 **7/8 的 query 行算力浪费**（多算不多存）。这条要记成「T=1 在本栈不可编」的硬边界，除非 16 B 行规则或 SOFTMAX command field 有别的绕法。
+- **KV cache 只能 host 持有**：K/V 各一张 `[48, C, 64]` int16（48 = 24 层 × 2 KV head）作为图输入，图每步只输出新行 `[48, T, 64]`，host 写第 m 行后整块回传。体积 **24.0 MiB**（12.0 MiB × 2；此前按 12.6 MB 只算了 K）。per-token 拷贝 25.2 MB 上行 + 0.2 MB 下行（adb 实测 0.73–0.97 s / 0.26–0.35 s）——**这一项是当前 decode 延迟的大头**，`RuntimeAPI` 常驻可降到 O(256 B/层)，是下一轮的第一块砖。
+- **延迟分解**（C=2048）：decode **68.5 ms/token** = KV 宽度 **33.4 ms** + 塔本体 35.1 ms + **权重带宽 ≈0**（bin 常驻 dma-buf，200 次 `Run()` 只读一次，`rchar` 冻结 42.59 MB）。对照厂商 17.2 ms/token：差距主要在 KV 的 host 拷贝与 T=8 padding，不在权重。
+- **逐 token 正确性**（8 步，每步都记）：`|Δcos(device, 量化 golden)| ≤ 8.2e-5`（门 0.003）、码级 max ≤370（门 1200）、噪声底 0 字节；vs 独立 fp64 链 hidden/logits cosine **0.9727–0.9985**、**argmax 6/8**。prefill 的 `|Δcos|` 2.24e-5、cos 0.996148。
+
+结论：本 ADR 的形态判断被证实——**「两张图 + 一份 bin」可行、KV 是 host 侧状态、权重可以真正常驻**；剩余差距是**工程**（KV 常驻、T=1 的绕法、padding 成本），不是形态问题。

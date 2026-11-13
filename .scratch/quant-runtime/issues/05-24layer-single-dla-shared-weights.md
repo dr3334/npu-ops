@@ -4,10 +4,13 @@
 
 **Blocked by:** 03, 04
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] 24 层整块图（复用 04 的 4W8A 构件），权重外部化（依赖 03 的结论）
 - [ ] 编译：层数、执行步、无 bridge、Static 与外部权重分别多少字节
 - [ ] 上板：prefill T=8 与 T=128，与 CPU 链路参考对拍（码级 + cosine）
 - [ ] 记录常驻内存实测（PSS / DMA-BUF）与「一次装载、多次 Run」的稳定性
 - [ ] 若 03 结论是「不能外部化」，本票的替代目标：24 层单图（权重编进图）+ 实测 .dla 尺寸与装载时间，把差距量化
+
+## Comments
+- 完成：24 层单图（1440 层/1 步/无 bridge）三档 T 上板；共享 bin 16.88 MB；PSS 21.6 MB、dma-buf 16.98 MiB、400 Run 逐字节相同；发现 ncc 合并同字节静态张量（Static 15M 是假象，真实 366 MB）与 mask 应作输入。

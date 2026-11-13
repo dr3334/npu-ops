@@ -4,7 +4,7 @@
 
 **Blocked by:** 05
 
-**Status:** ready-for-agent
+**Status:** done
 
 票 05 给的三条设计约束（必须遵守）：
 1. **mask / RoPE 表提成运行时输入**——否则 mask 随 T² 进 Static，bin 与 T 绑定，prefill 与 decode 无法共用一份 bin（厂商的 prefill 图就是把 mask 当输入）；
@@ -17,3 +17,6 @@
 - [ ] 正确性：连续 N（≥8）个 token 的 hidden/logits 与 CPU 参考逐步对拍，**每一步都记**，不只比最后一步
 - [ ] 判据：实现门（device == 量化 golden + |Δcos| ≤0.003）；最终质量门在 logits（cosine / token 命中率），并写清「这一档能说明什么、不能说明什么」
 - [ ] 记录每个 token 的延迟分解：权重带宽（共享 bin 常驻，应无重载）+ KV 读写 + host 拷贝
+
+## Comments
+- 完成（设备中途掉线）：双图共用 bin、8 token 逐步过实现门、T=1 编不过改用 T=8 padding、KV 24 MiB host 持有；decode 68.5 ms/token（KV 宽度 33.4 ms）。缺口：decode 各步 rel_l2 待设备复位后补跑。

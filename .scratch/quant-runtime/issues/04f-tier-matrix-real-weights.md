@@ -4,7 +4,7 @@
 
 **Blocked by:** 04d, 04e
 
-**Status:** ready-for-agent
+**Status:** done
 
 已知（真权重、设备）：8W8A = **0.8801**（probs 0.7677，int8 激活是瓶颈）；夹具下 4W16A = **0.9510**（int16 把 probs 修到 0.9999993，天花板改成 int4 权重）。
 
@@ -14,3 +14,6 @@
 - [ ] 记录每格的 `.dla` 体积 / Static / 板端单层时间（8W16A 的 .dla ≈ 15 MB、4W16A ≈ 7.6 MB）
 - [ ] 结论写进 `docs/OP-tier-matrix.md` 与 ADR 0005 的第五次订正
 - [ ] 若某格编不过（例如 int16 激活的某个 seam），记录报错阶段与替代方案（native seam / fp16 缝）
+
+## Comments
+- 完成：真权重四格矩阵，8W16A+native 0.9998598 唯一近标档；缺口 84% 来自 int8 权重、器件定点链路 4.59e-5；主档锁 8W16A。

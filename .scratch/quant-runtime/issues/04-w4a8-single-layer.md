@@ -4,10 +4,13 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] int4 权重按 TFLite 约定打包（2 个/字节、低 nibble 在前），per-channel scale，op version 取 ncc 接受的那几档（1,3,4,5,6,7,9；**canonical v13 会被拒**）
 - [ ] 逐算子先过编译：FC / BMM / CONCAT / SPLIT / SOFTMAX（已知 int8 可行）+ RMSNorm（注意 eps 在低比特下会被折掉——按 ADR 0005 把 eps 折进下游 FC bias）
 - [ ] 上板对拍：算子级 `|Δ| ≤ 1 码` + `cosine ≥ 0.9999`；逐层记录哪一段开始掉码
 - [ ] 记录 16 B 行规则在 int8 激活下的约束（小行宽形状会 bridge）
 - [ ] 噪声底与阈值按上一轮的方法登记后再跑
+
+## Comments
+- 完成（结论是否定的）：组件逐位、整层 61 层/1 步，但 4-bit per-channel 每矩阵 14–16% 权重误差 ⇒ 夹具整层 0.9091，不达判据。

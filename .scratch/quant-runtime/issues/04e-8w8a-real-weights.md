@@ -4,7 +4,7 @@
 
 **Blocked by:** 04b, 04c
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] 从 `D:\ai\Qwen2.5-0.5B-Instruct`（bf16 safetensors）取 **layer0** 的 q/k/v/o/gate/up/down 权重，按 per-channel max-abs 量化到 int8（记录 scale 生成规则）
 - [ ] 输入用真实 token 的 embed 行（与票 08/09 同法）或真实 prompt 的 hidden，记录选择
@@ -12,3 +12,6 @@
 - [ ] 同一 harness 再跑夹具权重一版，把「夹具 vs 真权重」的差异写成一张对照表（这是本条最重要的产出）
 - [ ] 结论：8W8A 在真实权重下是否 ≥0.9999（或差多少）；若成立则主档锁 8W8A，否则与 04d 的 4W16A 结果二选一
 - [ ] 记录：真实权重的 int8 量化误差（每矩阵）、`.dla` 体积、板端单层时间
+
+## Comments
+- 完成（后被 04f 订正）：真权重 8W8A 0.8801 → 修复 RoPE scale bug 后 0.8971；证明「真权重更苛刻」。

@@ -1,6 +1,6 @@
 # Spec — 量化档与运行形态：w4a8 单层 → 24 层共享权重 → prefill/decode 双图
 
-Status: ready-for-agent
+Status: implemented (2026-11-13)，两处待设备恢复后补测
 Feature: quant-runtime
 Date: 2026-11-13
 
@@ -53,3 +53,16 @@ Date: 2026-11-13
 - 厂商文档：`llm_sdk_document.txt:951-957`（精度菜单与推荐）、`:958,989`（允许 attention 4W16A + MLP 4W8A 混用）、`:1265-1266,1350-1351`（device 4W16A 不是 bit-true）。
 - 本地实测矩阵：`skills/mtk-llm-pipeline/references/02-quantization-matrix.md:23-34`（4W16A 11.6–14.5 ms / 4W8A 5.94 ms / 8W8A 8.09 ms / W8A16F 15.08 ms）。
 - 探针产物：`.qwen25-impl/probe-int16/RESULTS.md`、`.qwen25-impl/probe-precision/RESULTS.md` 是完整的；int4 那一档的结论文档在仓库内 `reports/Q02-int8-bitexact.md` 与 `docs/OP-shared-weights.md`（`.qwen25-impl/probe-w4a8/` 只有脚本与编译日志，没有 RESULTS.md）。
+## 状态（2026-11-13 收尾）
+
+十一个工作项（01、02、03、04、04b、04c、04d、04e、04f、05、06）全部完成并合并到 `feat/qwen25-attention`。
+
+**已定的结论**
+- 量化档：**8W16A**（int8 per-channel 权重 + int16 激活 + native int16 掩码 softmax）。真权重单层 0.9998598、24 层 0.9961–0.9968（串联累积）、8 token decode 逐步 `|Δcos| ≤ 8.2e-5`。
+- 判据：实现门（device == 量化 golden + `|Δcos| ≤ 0.003`）与质量期望（fp16/16-bit ≥0.9999、int8 ≥0.9998、int4 ≈0.97）分离；最终质量门在整网 logits（ADR 0005 第六次订正）。
+- 执行形态：**两张图 + 一份外部共享权重**（prefill T=16 / decode T=8-padded，bin 16,674,816 B 与 T 无关），权重真常驻（dma-buf、CPU 不触页、200–400 次 Run 零重读）。
+- 不可行项（都留了最小复现）：4-bit per-channel（权重误差 14–16%，整层 ≤0.9733）、分组 scale（属性级不可表达；K 切段代价 2G−1 层/矩阵且救不了 4-bit）、**T=1 的图**（SOFTMAX command field / Input↔MDLA gap，两个不同的报错）。
+
+**待设备恢复后补测（2 项）**
+1. decode 各步的 `rel_l2`：补跑 `./tools/e2e_q06.sh --steps 8`（第二次补跑时设备掉线：`adb: no devices/emulators found`，kill-server/reconnect 均未恢复）。
+2. KV 常驻（RuntimeAPI 形态）：把 per-token 的 25.2 MB 上行拷贝降到 O(256 B/层)——这是与厂商结构性差距的最后一块（厂商 decode 17.2 ms/token，我们 68.5 ms/token，其中 KV 宽度 33.4 ms）。
