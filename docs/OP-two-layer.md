@@ -136,15 +136,22 @@ logits: h2[8,896] ── FC×4（W = embed.weight[v0:v1]，b=0）── CONCAT(a
 
 1. healthcheck --quick；记录设备容量（/data 6.0 GB、MemAvailable 6.13 GB）；
 2. l0：e2e×2（噪声底）→ 一次**计时重装轮**（push .dla → run → pull）→ --diag；
-3. **交接**：cp ops/two_layer_l0_t8_fp16/out_device.bin ops/two_layer_l1_t8_fp16/golden/input.bin
-   （cmp 验证逐字节相同，14336 B = 8×896×2）；
-4. l1：同上；交接 out_device.bin → ops/two_layer_logits_t8_fp16/golden/input.bin；
+3. **交接**（三步，原有的两份都不被覆盖）：
+   ① 把 l1 自己的 CPU 输入另存为 `ops/two_layer_l1_t8_fp16/golden/input.cpu.bin`（**只写一次**，已存在则不覆盖）；
+   ② 板端交接件另存为 `ops/two_layer_l1_t8_fp16/golden/input.h1_from_l0.bin`；
+   ③ 再 cp 到 `golden/input.bin`（e2e 推的就是这个文件）；cmp 验证三份逐字节相同，14336 B = 8×896×2；
+4. l1：同上；交接 out_device.bin → `ops/two_layer_logits_t8_fp16/golden/input.h2_from_l1.bin` → `golden/input.bin`
 5. logits：同上；6. healthcheck --quick。
 
 **为什么这样就是「板端输出喂下一层」**：tools/e2e.sh 只在 model.tflite/model.dla **缺失**时才重建，
 golden/expected.bin 永不重建，而它推给板子的输入就是 golden/input.bin。把上一层的 out_device.bin
 覆盖到这个文件上，第二张图吃到的就是**第一张图实际写出的 fp16 字节**，中间没有任何 CPU 参与
 （NOTES §10.4 第 5 条）。证据：cmp 相同 + sha256 落在 ops/two_layer_chain_session.log 里。
+
+**为什么要留三份**：`golden/input.bin` 被板端输出覆盖之后，`golden/expected.bin` 就不再与它登记的输入配对，
+CPU 侧的输入也没有留档（AGENT-BRIEF §4「原始产物不覆盖」）。所以现在每个被接管的图都保留
+`golden/input.cpu.bin`（CPU 链的起点）、`golden/input.<tag>.bin`（板端实际交出的字节）、
+`golden/input.bin`（e2e 推的副本）。三者都是 `*.bin`，照旧不入 git。
 
 三处判据（都写进 compare.txt）：h1 vs golden、h2 vs golden、logits vs golden。
 
@@ -356,7 +363,7 @@ RESHAPE 顺序、常量没写进文件）。它**不是**数值判据（可以�
 
 | 票面要求 | 状态 | 证据 |
 |---|---|---|
-| 两层各是一个独立的图；第 1 层板端输出**直接**作为第 2 层输入，**不经 CPU 修正** | ✅ | 三个独立 .tflite/.dla/compare.txt；chain_two_layer.sh 的 handoff() 用 cp out_device.bin → next/golden/input.bin 并 cmp 验证逐字节相同（sha256 390520c4… / c139368523…，见 ops/two_layer_chain_session.log）；e2e 推的就是 golden/input.bin，tflite 已存在 ⇒ golden 不重建 |
+| 两层各是一个独立的图；第 1 层板端输出**直接**作为第 2 层输入，**不经 CPU 修正** | ✅ | 三个独立 .tflite/.dla/compare.txt；chain_two_layer.sh 的 handoff() 用 cp out_device.bin → next/golden/input.<tag>.bin → next/golden/input.bin 并 cmp 验证逐字节相同（sha256 390520c4… / c139368523…，见 ops/two_layer_chain_session.log），CPU 输入另存为 input.cpu.bin；e2e 推的就是 golden/input.bin，tflite 已存在 ⇒ golden 不重建 |
 | 两层 hidden 各自落盘并与 golden 比对，误差可定位到具体层 | ✅ | h1 / h2 各自 compare.txt PASS；diagnostics_l0.txt / diagnostics_l1.txt / diagnostics_logits.txt 把 **A（传播+本层）** 与 **B（本层自身）** 分开：h2 6.35e-3 → 自身 3.42e-3；logits 3.66e-3 → 自身 2.44e-4 |
 | 经输出投影得到 logits，**logits 向量 atol/rtol 对拍通过** | ✅ | ops/two_layer_logits_t8_fp16/compare.txt **PASS**：max_abs 3.662e-03、rel_l2 4.353e-03、阈值 1.54724e-2（预登记），nan/inf 0/0 |
 | 记录跨层重新装载权重的方式与耗时 | ✅ | §6：每层一个 .dla ⇒ 整块 28.5 MiB 重新 push+加载；实测 push 0.93–1.08 s、加载 0.15 s（logits 7.78 s / 0.30 s）；两个会话各一次 |
