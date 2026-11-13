@@ -48,7 +48,7 @@ probe/                ioctl 探测：iolog.c(PRE/POST shim) · parse_io.py · io
 - 自建库只覆盖逐元素；FC / BMM / SoftMax 的资产在 `probe/` 里，尚未进库。
 - 长上下文（≥16K）在本栈做不到：24 层单图在 C=8192 就撞编译墙，只有拆图 / 降 opt / 窗口滚动三条未测路。
 
-文档入口：`docs/OP-MATRIX.md`（算子能力矩阵）、`docs/OP-block.md` / `docs/OP-decoder-layer.md`（整块）、`docs/OP-infra` 系列见 `docs/OP-ncc-flags.md`（编译选项）、`docs/OP-kv-maxlen.md`（KV 上限）、`docs/OWN-SUBMITTER-LIB.md`（自建库接口）、`reports/npu-lib-matrix.md`（库的板端矩阵）。
+文档入口：`docs/OP-MATRIX.md`（算子能力矩阵）· `docs/OP-block.md` 与 `docs/OP-decoder-layer.md`（整块）· `docs/OP-ncc-flags.md`（编译选项）· `docs/OP-kv-maxlen.md`（KV 上限）· `docs/OWN-SUBMITTER-LIB.md`（自建库接口）· `reports/npu-lib-matrix.md`（库的板端矩阵）。
 ## 快速开始
 
 设备已连（`adb devices` 能看到 `0123456789ABCDEF`），SDK 在工作区同级 `neuropilot-sdk-basic-7.0.8-build20240807/`：
