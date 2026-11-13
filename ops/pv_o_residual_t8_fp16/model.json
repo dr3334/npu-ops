@@ -89,5 +89,54 @@
   "tolerance_reason": "NOTES \u00a710.1 form: atol = rtol = 4*2^-11*max|out| = 1.572e-04 (max|out| = 0.08051); device-independent fp16-simulation bound = 6.104e-05 max_abs, registered threshold is 2.6x that bound. The repo default 2e-2 is rejected a priori: it is larger than max|out| itself here, i.e. it could never catch a layout error.",
   "seed": 20261112,
   "tflite": "model.tflite",
-  "tflite_bytes": 1609260
+  "tflite_bytes": 1609260,
+  "alt_inputs": {
+    "note": "same compiled .dla, different runtime operands; each variant was run by swapping golden/input*.bin + golden/expected.bin and re-running tools/e2e.sh, then restoring the main files",
+    "variants": [
+      {
+        "tag": "alt",
+        "files": [
+          "golden/input_alt.bin",
+          "golden/input1_alt.bin",
+          "golden/expected_alt.bin"
+        ],
+        "purpose": "spread p (softmax temperature 0.02): PV accumulates over all valid positions instead of an almost 1-hot selection",
+        "p_stats": {
+          "temperature": 0.02,
+          "p_max": 1.0,
+          "p_min": 0.0,
+          "p_argmax_frac_gt_0.99": 0.015625,
+          "p_rowsum_max_abs_err": 8.940696716308594e-08,
+          "p_entropy_bits_mean": 1.5725196599960327,
+          "scores_absmax_unmasked": 11.56664752960205,
+          "v_absmax": 0.13671875,
+          "x_absmax": 0.058929443359375,
+          "x_std": 0.01501946710050106
+        },
+        "golden_max_abs": 0.08050537109375
+      },
+      {
+        "tag": "altx",
+        "files": [
+          "golden/input_altx.bin",
+          "golden/input1_altx.bin",
+          "golden/expected_altx.bin"
+        ],
+        "purpose": "different block input (fixture embed rows 8..15): p, v AND the residual x all change -> all three runtime operands are really read at run time",
+        "p_stats": {
+          "temperature": 1.0,
+          "p_max": 1.0,
+          "p_min": 0.0,
+          "p_argmax_frac_gt_0.99": 0.10491071428571429,
+          "p_rowsum_max_abs_err": 7.939418011915222e-08,
+          "p_entropy_bits_mean": 0.08905117958784103,
+          "scores_absmax_unmasked": 581.0179443359375,
+          "v_absmax": 0.11767578125,
+          "x_absmax": 0.0634765625,
+          "x_std": 0.015334495343267918
+        },
+        "golden_max_abs": 0.073486328125
+      }
+    ]
+  }
 }

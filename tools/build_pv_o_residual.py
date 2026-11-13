@@ -27,13 +27,22 @@ p is NOT hand-made noise: it comes from a full attention pass on the frozen fixt
 causal mask -> float32 softmax), see docs/OP-pv-o.md D3.  v uses the same v_proj+bias with the GQA
 2->14 replication (head h uses KV head h//7).
 
-Other variants (compile-only controls, same builder => reproducible):
-    --variant bmm3d   p [H,T,T] x v [H,T,HD]           -> a3 [H,T,HD]   expect 1 BatchMatMulLayer
-    --variant bmm4d   p [1,H,T,T] x v [1,H,T,HD]       -> a4 [1,H,T,HD] expect 5 layers (E-112)
+Other variants (same builder => reproducible):
+    --variant bmm3d          p [H,T,T] x v [H,T,HD]     -> a3 [H,T,HD]   1 BatchMatMulLayer
+    --variant bmm4d          p [1,H,T,T] x v [1,H,T,HD] -> a4 [1,H,T,HD] 5 layers (E-112)
+    --variant main-badlayout the same graph WITHOUT the TRANSPOSE (negative control: compiles,
+                             runs in one step, rel_l2~0.92 -> proves the golden catches it)
+    --variant main-alt       the spread-p input set only (main already writes it, see below)
+
+--variant main also writes three extra runtime-input sets for the SAME compiled graph
+(they are how the dynamic-operand evidence was produced; each is a golden/input*.bin swap):
+    golden/{input,input1,expected}_alt.bin    p flattened (temperature 0.02) -> PV accumulates
+    golden/{input,input1,expected}_altx.bin   different block input (embed rows 8..15) -> p,v,x all change
 
     /usr/bin/python3 tools/build_pv_o_residual.py --variant main --out ops/pv_o_residual_t8_fp16
     /usr/bin/python3 tools/build_pv_o_residual.py --variant bmm3d --out ops/pv_bmm3d_control_t8_fp16
     /usr/bin/python3 tools/build_pv_o_residual.py --variant bmm4d --out ops/pv_bmm4d_control_t8_fp16
+    /usr/bin/python3 tools/build_pv_o_residual.py --variant main-badlayout --out ops/pv_o_badlayout_control_t8_fp16
 
 Golden (golden/expected.bin) is pure numpy on the *logical* tensors and shares no code with the
 flatbuffer writer (R3).  golden/expected_fp16sim.bin is the same math with fp16 rounding at every
@@ -78,13 +87,15 @@ def _rope(t2, nheads, theta=1e6):
     return np.concatenate([ra, rb], axis=-1).reshape(n, nheads * HD)
 
 
-def attention_inputs(temperature=1.0):
+def attention_inputs(temperature=1.0, x_rows=(0, T)):
     """Fixed, reproducible attention operands from the frozen fixture.
 
     Returns dict(p16 [H,T,T], v16 [H,T,HD], x16 [T,D], stats).
     temperature < 1 flattens the softmax (synthetic alt input only).
+    x_rows selects which fixture embed rows act as the block input (i.e. which "tokens").
     """
-    x16 = np.asarray(qw.get("embed.weight")[0:T], dtype=np.float16)      # token ids 0..T-1
+    a, b = x_rows
+    x16 = np.asarray(qw.get("embed.weight")[a:b], dtype=np.float16)
     x32 = x16.astype(np.float32)
     g = qw.get_fp32("layer0.input_layernorm.weight")
     n1 = _rmsnorm(x32, g)
@@ -264,8 +275,9 @@ def golden_fp16sim(p16, v16, x16, Wo16):
 
 
 # ------------------------------------------------------------------- variants
-def build_main(temperature=1.0):
-    inp = attention_inputs(temperature)
+def build_main(temperature=1.0, bad_layout=False, x_rows=(0, T)):
+    """bad_layout=True is the NEGATIVE control: skip TRANSPOSE (NOTES §10.2's trap)."""
+    inp = attention_inputs(temperature, x_rows)
     p16, v16, x16 = inp["p16"], inp["v16"], inp["x16"]
     pack = np.concatenate([p16, v16], axis=-1).astype(np.float16)     # [H,T,T+HD]
     Wo16 = np.asarray(qw.get("layer0.attn.o_proj.weight"), dtype=np.float16)  # [896,896]
@@ -276,8 +288,13 @@ def build_main(temperature=1.0):
     g.slice("in_pv", "p", [0, 0, 0], [H, T, T])
     g.slice("in_pv", "v", [0, 0, T], [H, T, HD])
     g.bmm("p", "v", "a3", (H, T, HD))                                # 3-D PV
-    g.transpose("a3", "at", [1, 0, 2], (H, T, HD))                   # [H,T,HD] -> [T,H,HD]
-    g.reshape("at", "a", (T, H * HD))                                # -> [T,896]
+    if bad_layout:
+        # NEGATIVE control: reshape straight from [H,T,HD] (no TRANSPOSE). This is exactly the
+        # trap NOTES §10.2 records: it compiles, runs in one step, and is mathematically wrong.
+        g.reshape("a3", "a", (T, H * HD))
+    else:
+        g.transpose("a3", "at", [1, 0, 2], (H, T, HD))               # [H,T,HD] -> [T,H,HD]
+        g.reshape("at", "a", (T, H * HD))                            # -> [T,896]
     g.fc("a", "o", Wo16, np.zeros(D, np.float16), T, H * HD, D)      # o_proj, NO bias
     g.add("in_x", "o", "out", (T, D))                                # residual
     blob = g.finish([g.idx["in_pv"], g.idx["in_x"]], [g.idx["out"]],
@@ -377,7 +394,9 @@ def build_bmm_control(rank):
 # ----------------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--variant", choices=["main", "main-alt", "bmm3d", "bmm4d"], default="main")
+    ap.add_argument("--variant",
+                    choices=["main", "main-alt", "main-badlayout", "bmm3d", "bmm4d"],
+                    default="main")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -385,10 +404,23 @@ def main():
     gd = os.path.join(d, "golden")
     os.makedirs(gd, exist_ok=True)
 
-    if args.variant in ("main", "main-alt"):
+    if args.variant in ("main", "main-alt", "main-badlayout"):
         alt = args.variant == "main-alt"
-        blob, meta, ins, exp, sim = build_main(temperature=0.02 if alt else 1.0)
+        bad = args.variant == "main-badlayout"
+        blob, meta, ins, exp, sim = build_main(temperature=0.02 if alt else 1.0, bad_layout=bad)
         sfx = "_alt" if alt else ""
+        if bad:
+            meta["op"] = "PV_3D_BMM__O_PROJ__RESIDUAL_NEGATIVE_CONTROL"
+            meta["purpose"] = (
+                "NEGATIVE control (intentionally WRONG math): the PV output [H,T,HD] is RESHAPEd "
+                "straight to [T,896] with NO TRANSPOSE (NOTES §10.2 trap). Compiles, runs in one "
+                "execution step, and shows a large rel_l2 -> proves the main PASS is not vacuous "
+                "and that the golden catches head-layout errors.")
+            meta["expected_result"] = "compare must FAIL by a large margin (rel_l2 ~ 1e-1)"
+            meta["graph"] = ["SLICE(in_pv)->p [H,T,T]", "SLICE(in_pv)->v [H,T,HD]",
+                             "BATCH_MATMUL(p,v) adj=0/0 3-D",
+                             "RESHAPE [H,T,HD] -> [T,896]   <-- NO TRANSPOSE (the bug)",
+                             "FULLY_CONNECTED(o_proj,bias=0)", "ADD(in_x,o) residual"]
         open(os.path.join(d, "model.tflite"), "wb").write(blob)
         ins["in_pv"].tofile(os.path.join(gd, f"input{sfx}.bin"))
         ins["in_x"].tofile(os.path.join(gd, f"input1{sfx}.bin"))
@@ -396,6 +428,36 @@ def main():
         sim.tofile(os.path.join(gd, "expected_fp16sim_alt.bin" if alt else "expected_fp16sim.bin"))
         meta["tflite"] = "model.tflite"
         meta["tflite_bytes"] = len(blob)
+        if not alt and not bad:
+            # extra runtime-input variants for the SAME compiled graph (dynamic-operand evidence):
+            # e2e.sh feeds one input pair, so each variant is a swap of golden/input*.bin+expected
+            # and a re-run of the identical .dla (compare_altp.txt / compare_altx.txt).
+            Wo16 = np.asarray(qw.get("layer0.attn.o_proj.weight"), dtype=np.float16)
+            extras = []
+            for tag, kw, purpose in (
+                ("alt", dict(temperature=0.02),
+                 "spread p (softmax temperature 0.02): PV accumulates over all valid positions "
+                 "instead of an almost 1-hot selection"),
+                ("altx", dict(x_rows=(T, 2 * T)),
+                 "different block input (fixture embed rows 8..15): p, v AND the residual x all "
+                 "change -> all three runtime operands are really read at run time"),
+            ):
+                inp2 = attention_inputs(**kw)
+                pack2 = np.concatenate([inp2["p16"], inp2["v16"]], axis=-1).astype(np.float16)
+                exp2, _ = golden(inp2["p16"], inp2["v16"], inp2["x16"], Wo16)
+                pack2.tofile(os.path.join(gd, f"input_{tag}.bin"))
+                inp2["x16"].tofile(os.path.join(gd, f"input1_{tag}.bin"))
+                exp2.tofile(os.path.join(gd, f"expected_{tag}.bin"))
+                extras.append({"tag": tag,
+                               "files": [f"golden/input_{tag}.bin", f"golden/input1_{tag}.bin",
+                                         f"golden/expected_{tag}.bin"],
+                               "purpose": purpose, "p_stats": inp2["stats"],
+                               "golden_max_abs": float(np.abs(exp2.astype(np.float32)).max())})
+            meta["alt_inputs"] = {
+                "note": "same compiled .dla, different runtime operands; each variant was run by "
+                        "swapping golden/input*.bin + golden/expected.bin and re-running "
+                        "tools/e2e.sh, then restoring the main files",
+                "variants": extras}
         if alt:
             meta["alt_input"] = {
                 "files": ["golden/input_alt.bin", "golden/input1_alt.bin",
