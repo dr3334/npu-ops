@@ -4,7 +4,7 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] 掩码在 scale **之后**相加（顺序影响量级，必须记清楚）
 - [ ] 掩码值取受控有限负值：不使用 −inf，也不使用 −10000
@@ -12,3 +12,7 @@
 - [ ] 专项判据二：非掩码位置与无掩码版本的输出**一致**
 - [ ] 整张量与 golden 的偏差在阈值内，阈值由本算子的噪声底实测决定
 - [ ] 记录"无 EXP 算子"这一约束，以及它是怎么把方案收敛到唯一形态的
+
+## Comments
+
+- 2026-11-13 Lead: 合并到 feat/qwen25-attention。3 层原生（MUL+ADD+SoftMax）/单执行步，板端 max_abs 4.883e-04 PASS，噪声底 0；两条专项判据实测：被掩码位 392/392 逐位 0；-4096 vs -8192 两份 dump 0/896 code 不同（有限掩码已饱和，等价于理想 -inf）。**票面前提被推翻**：EXP 是可用的原生层（ExpLayer，1 步 EXIT=0），不可用的是 LOG(fp16)/COS；方案不变但理由订正为「fp16 的 exp 值域上溢」——spec 已记 Corrections C1。

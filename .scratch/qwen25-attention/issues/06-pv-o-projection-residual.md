@@ -4,10 +4,14 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] PV 走 3-D，编译后确认为**一个**原生层；记录 4-D 会降成 5 层并说明不采用
 - [ ] O 投影**不带 bias**，与 golden 对上
 - [ ] 残差加法与 golden 对上
 - [ ] 单执行步、无 bridge
 - [ ] 记录本算子的实测噪声底
+
+## Comments
+
+- 2026-11-13 Lead: 合并到 feat/qwen25-attention。7 层/单执行步，PV 在 3-D 下 1 个原生层、4-D 对照 5 层（实测不采用）；O 投影无 bias、残差独立成层；板端 max_abs 6.104e-05 PASS，噪声底 0。负对照（去掉 TRANSPOSE）编译过但 rel_l2 0.923，判据非空。

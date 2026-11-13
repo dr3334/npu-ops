@@ -4,10 +4,14 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] gate / up 两条 4864 宽投影 + `silu(gate) * up` + down 投影，fp16 与 golden 对上
 - [ ] 记录激活是否被融合进前一个全连接、对层数的影响
 - [ ] 单执行步、无 bridge
 - [ ] 记录三个大张量的字节数，为"权重驻留方式"提供实测数字
 - [ ] 记录本算子的实测噪声底
+
+## Comments
+
+- 2026-11-13 Lead: 合并到 feat/qwen25-attention。6 层/单执行步/Temp 0，板端 max_abs 2.441e-04（1 ULP）PASS，噪声底 0。SiLU 不被融合（+2 层、同一步）；三张量各 8,716,288 B。

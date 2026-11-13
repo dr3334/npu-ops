@@ -12,7 +12,7 @@ Date: 2026-11-13
 
 1. **GQA 没有可复现的构造与上板证据**。真实模型是 14 个 query head、2 个 KV head、head_dim=64，而现有块是 1 头 / head_dim=32。更要紧的是：`docs/OP-block.md` 曾把 `--heads 2` 的失败归因为"importer 不认多头"，这条归因**是错的**（见 `docs/OP-gqa.md`，E-112）——根因是块构造器把权重张量按 FC 目标宽度声明，`heads>1` 时声明的缓冲区比实际数组大 14 倍，ncc 在模型加载阶段就退出。**一条假的编译器限制，正在挡住所有多头实验。**
 
-2. **带掩码的 softmax 从未在设备上出现过**。仓库有原生 `SoftMaxLayer`（β 生效），但加法掩码在 `docs/OP-bmm.md`、`docs/OP-actreduce.md`、`docs/OP-MATRIX.md` 里全部以"未验证"出现。而推理路径里**没有 `EXP` 算子**可用，所以"手写 exp 链"这条路根本不存在，掩码只能靠 `ADD(mask)` + 原生 `SoftMax`。
+2. **带掩码的 softmax 从未在设备上出现过**（注：本条里「没有 EXP 算子」这个前提已被实测推翻，见文末 Corrections C1）。仓库有原生 `SoftMaxLayer`（β 生效），但加法掩码在 `docs/OP-bmm.md`、`docs/OP-actreduce.md`、`docs/OP-MATRIX.md` 里全部以"未验证"出现。而推理路径里**没有 `EXP` 算子**可用，所以"手写 exp 链"这条路根本不存在，掩码只能靠 `ADD(mask)` + 原生 `SoftMax`。
 
 3. **整块还停在玩具形状**，权重规模、bias、GQA 的 KV 复制都没有进过图。Qwen 的 q/k/v 投影**都带 bias**（`o_proj` 不带），这个事实在 `config.json` 里根本没有对应键，是 transformers 源码硬编码的——漏掉它数值必错。
 
@@ -107,3 +107,14 @@ Date: 2026-11-13
 - 环境坑：本机存在**两份 SDK**（一份在仓库同级的 `mtk/` 下，一份在 `deepseek_ workspace` 的兄弟目录），编译脚本的默认解析与探针实际使用的是不同的那份；两边都能编出结果，但排障时不要混用路径。
 - 决策依据见 `docs/adr/0001`（全 fp16）、`0002`（自建=执行路径）、`0003`（随机固定权重 + top-1 冻结）、`0004`（本地 tracker）。
 - 词汇以根目录 `CONTEXT.md` 为准：`整块`、`prefill`、`增量解码`、`GQA`、`KV head`、`head_dim`、`随机固定权重`、`命令捕获`/`命令自生成`、`自建提交器`。
+## Corrections（证据订正，2026-11-13 实现阶段实测）
+
+**C1 —「推理路径里没有 EXP 算子」不成立。** 配对正对照实测：EXP 编成原生 ExpLayer，1 个执行步、EXIT=0；不可用的是 LOG(fp16) 与 COS。
+方案（加法掩码 + 原生 SoftMax）不变，但**理由要改**：钉死这条路的是 fp16 的 exp 值域（大于 11.09 上溢），手写 MUL+EXP 链在夹具实测量级下 640/896 溢出成 inf。详见 docs/OP-masked-softmax.md §3.2。
+教训：**没有正对照的「不支持」结论不算结论**（与 E-112 同类错误）。
+
+**C2 —「D=896 的 RMSNorm 不能用 MEAN」不成立。** 原归因是 tools/build_rms896.py 的索引错位 bug（act() 之后又 const()，索引指向 int32 的 axis 张量），修好后 MEAN 变体 6 层/单执行步/板端 PASS（ops/rms896_d896_T8_vA）。详见 docs/OP-rmsnorm.md 的订正一节。
+
+**C3 — FC 的 N 维度上限 65535。** 单体 FC(8x896x151936) 在编译期被拒（MDLA: Dimension should be <= 65535）；分块 FC + CONCAT 可行（票 08 已上板 PASS）。CONCAT/RESHAPE 到 151936 不受此限。
+
+**C4 — 编译通过 + 单执行步 ≠ 数学正确。** 三个独立对照（h2 的 reshape、GQA 的 wrong_reshape、PV 的 badlayout）都是 EXIT=0/单步但板端错到 rel_l2 0.14–1.23。本 spec 的每条「编译侧已通」结论都必须配一次板端对拍。

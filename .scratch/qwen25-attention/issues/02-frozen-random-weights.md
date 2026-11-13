@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] 固定 seed 生成，同一 seed 两次生成**逐字节相同**
 - [ ] 分布为正态，尺度对齐真实权重的实测 std（并记录实测值）
@@ -12,3 +12,7 @@
 - [ ] 每份权重记录 sha256，板端与 CPU 侧能各自校验同一份
 - [ ] 生成脚本与 seed 入库，权重产物不入 git
 - [ ] 记录"真实权重只在最后一档做一次性检查"这一取舍，以及它随后带来的风险
+## Comments
+
+- 2026-11-13 Lead: 合并到 feat/qwen25-attention（merge 655109a）。夹具 25 张量 331.9 MB，weights_digest=898fa319…dad18a4；尺度取真实权重 D:\ai\Qwen2.5-0.5B-Instruct 逐张量实测（hf 不可达但本地有副本），票面预留的 initializer_range 代理分支不适用。
+

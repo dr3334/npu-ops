@@ -4,10 +4,14 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] 复用词嵌入矩阵作为输出投影（tied），不额外物化一份
 - [ ] 输出 vocab=151936 的 logits，与 golden 的 atol/rtol 对上
 - [ ] **top-1 判据不启用**，并记录它要冻结到真实权重阶段才启用
 - [ ] 记录输出张量的尺寸与设备→host 搬运成本
 - [ ] 记录本算子的实测噪声底
+
+## Comments
+
+- 2026-11-13 Lead: 合并到 feat/qwen25-attention。**新编译器边界**：FC 的 N 维度上限 65535（单体 FC N=151936 在编译期报 MDLA: Dimension should be <= 65535），故走 4×FC(37984)+CONCAT，仍 tie 一份权重、5 层/单执行步/无 bridge。板端 PASS：max_abs 9.766e-04、rel_l2 1.368e-05，噪声底 0。

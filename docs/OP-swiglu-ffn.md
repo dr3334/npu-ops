@@ -2,7 +2,7 @@
 
 > 范围：票 07（`feat/qwen25-attention` 的 `impl/07-swiglu` 分支，worktree `wt-t07`）。
 > 本文只记录本票的实验；`tools/build_swiglu_ffn.py`、`ops/swiglu_ffn_t8_fp16/`、
-> `ops/swiglu_ffn_t8_fp16_nosilu_ctrl/` 是本分支新增产物。方法约束见 `AGENTS.md`（R1–R10）
+> `ops/_swiglu_ffn_t8_fp16_nosilu_ctrl/` 是本分支新增产物。方法约束见 `AGENTS.md`（R1–R10）
 > 与 `docs/AGENT-BRIEF.md`。公共索引（`docs/EXPERIMENTS.md`、`PLAN.md`、`docs/CAPABILITY.md`）
 > **未改**；编号与索引登记留给 Lead。
 
@@ -49,7 +49,7 @@
 |---|---|---|
 | `ops/swiglu_ffn_t8_fp16/model.tflite` | 26,171,640 | –（不入 git） |
 | `ops/swiglu_ffn_t8_fp16/model.dla` | 26,155,122 | `3c548ea09ad7e947` |
-| `ops/swiglu_ffn_t8_fp16_nosilu_ctrl/model.dla`（对照） | 26,154,484 | `0d66996a703c1425` |
+| `ops/_swiglu_ffn_t8_fp16_nosilu_ctrl/model.dla`（对照） | 26,154,484 | `0d66996a703c1425` |
 
 设备状态门（AGENTS §3.4）：批**前** `healthcheck.sh --quick` → **PASS**，批**后** → **PASS**；
 批后 `dmesg | grep -E 'apusys.*(timeout|fail|error)|mdw.*(timeout|fail)'` → **0 行**。
@@ -115,7 +115,7 @@
 `max|alt − exact|` 就是"任何把中间张量存成 fp16 的实现"的**与设备无关的下限** —— 本票实测
 **2.441e-04（1 ULP @ max|out|）**，用于给阈值提供依据（NOTES §10.1 的"独立于设备的下限测量"这条要求）。
 
-对照图 `ops/swiglu_ffn_t8_fp16_nosilu_ctrl/`：同图**去掉 silu 两个算子**（`gate·up` 直接进 `down_proj`），
+对照图 `ops/_swiglu_ffn_t8_fp16_nosilu_ctrl/`：同图**去掉 silu 两个算子**（`gate·up` 直接进 `down_proj`），
 **只编译、不上板**，用途只有一个 —— 用层数差把"silu 的代价"从"整段的代价"里分离出来。
 
 ---
@@ -300,8 +300,8 @@ wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t07' && \
 
 # 3) 对照（只编译，不上板）：去掉 silu 的图是 4 层
 wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t07' && \
-  /usr/bin/python3 tools/build_swiglu_ffn.py swiglu_ffn_t8_fp16_nosilu_ctrl --out ops/swiglu_ffn_t8_fp16_nosilu_ctrl \
-  && ./tools/compile.sh ops/swiglu_ffn_t8_fp16_nosilu_ctrl/model.tflite ops/swiglu_ffn_t8_fp16_nosilu_ctrl/model.dla"
+  /usr/bin/python3 tools/build_swiglu_ffn.py swiglu_ffn_t8_fp16_nosilu_ctrl --out ops/_swiglu_ffn_t8_fp16_nosilu_ctrl \
+  && ./tools/compile.sh ops/_swiglu_ffn_t8_fp16_nosilu_ctrl/model.tflite ops/_swiglu_ffn_t8_fp16_nosilu_ctrl/model.dla"
 
 # 4) 板端（持锁）：healthcheck -> e2e -> 存 out_r1 -> e2e -> 存 out_r2 -> healthcheck
 export NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock"
@@ -337,7 +337,7 @@ wsl.exe -e bash -lc "cd '/mnt/d/deepseek_ workspace/mtk/wt-t07' && \
    建议一行：`SWIGLU_FFN(FC×3+LOGISTIC+MUL×2)` fp16 ✅ 6 层/1 step/Temp 0/1 码）；
 2. `tools/rebuild_ops.sh` 的映射表要加 `swiglu_ffn_t8_fp16` → `tools/build_swiglu_ffn.py`
    （否则删了 `model.tflite` 后 `e2e.sh` 会去调 `build_ops.py` 而失败，同 OP-silu §11 第 3 条）；
-   `ops/swiglu_ffn_t8_fp16_nosilu_ctrl` 是**只编译**的对照，不应进 `run_all.sh` 的板端回归；
+   `ops/_swiglu_ffn_t8_fp16_nosilu_ctrl` 是**只编译**的对照，不应进 `run_all.sh` 的板端回归；
 3. 票 09 的层数预算：FFN 段按 **6 层**算（silu 不融合），并注意 `Temp=0` 依赖"中间张量 ≤ L1 228K"这个现状；
 4. 票 10 的权重预算：24 层 × 26.15 MB ≈ **598 MiB** 静态权重（未测可加载性），与 NOTES §6 的空闲 RAM 冲突，
    需要决策"分图/换入"策略。

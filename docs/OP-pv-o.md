@@ -148,7 +148,7 @@ EXIT=0   SIZE=1630614
 → **H2 成立**，与 E-112（\`docs/OP-gqa.md\`）逐项一致：4-D PV 被降成"切分/矩阵乘/切分/矩阵乘/拼接"，
 且 DRAM \`Temp\` 从 0 涨到 14K（多了中间物化）。**不采用 4-D**：同样一次 PV，层数 1→5、临时缓冲 0→14K。
 
-### 2.3 负对照：没有 \`TRANSPOSE\` 也能编译（\`ops/pv_o_badlayout_control_t8_fp16/\`）
+### 2.3 负对照：没有 \`TRANSPOSE\` 也能编译（\`ops/_pv_o_badlayout_control_t8_fp16/\`）
 
 | 图 | \`EXIT\` | 层数 | 板端 |
 |---|---|---|---|
@@ -216,7 +216,7 @@ fp16 末位口径（约 1e-3 相对）——本次登记值正好是 1.95e-3 相
 - \`altx\` 的作用：残差 x 与 p/v 一起换，证明 **ADD 的第二个操作数**是动态输入（它在 §2.1 里是独立层，
   不是被折进 FC bias 的常量）。
 
-### 3.4 负对照的板端结果（\`ops/pv_o_badlayout_control_t8_fp16/compare_wronglayout.txt\`）
+### 3.4 负对照的板端结果（\`ops/_pv_o_badlayout_control_t8_fp16/compare_wronglayout.txt\`）
 
 \`\`\`
 max_abs   : 8.762e-02
@@ -334,12 +334,12 @@ export QWEN25_WEIGHTS_DIR='/mnt/d/deepseek_ workspace/mtk/npu-ops/weights/qwen25
 
 # 2) 编译（锁外）：主图 + 两个层数对照 + 负对照
 ./tools/compile.sh ops/pv_o_residual_t8_fp16/model.tflite ops/pv_o_residual_t8_fp16/model.dla
-/usr/bin/python3 tools/build_pv_o_residual.py --variant bmm3d --out ops/pv_bmm3d_control_t8_fp16
-./tools/compile.sh ops/pv_bmm3d_control_t8_fp16/model.tflite ops/pv_bmm3d_control_t8_fp16/model.dla
-/usr/bin/python3 tools/build_pv_o_residual.py --variant bmm4d --out ops/pv_bmm4d_control_t8_fp16
-./tools/compile.sh ops/pv_bmm4d_control_t8_fp16/model.tflite ops/pv_bmm4d_control_t8_fp16/model.dla
-/usr/bin/python3 tools/build_pv_o_residual.py --variant main-badlayout --out ops/pv_o_badlayout_control_t8_fp16
-./tools/compile.sh ops/pv_o_badlayout_control_t8_fp16/model.tflite ops/pv_o_badlayout_control_t8_fp16/model.dla
+/usr/bin/python3 tools/build_pv_o_residual.py --variant bmm3d --out ops/_pv_bmm3d_control_t8_fp16
+./tools/compile.sh ops/_pv_bmm3d_control_t8_fp16/model.tflite ops/_pv_bmm3d_control_t8_fp16/model.dla
+/usr/bin/python3 tools/build_pv_o_residual.py --variant bmm4d --out ops/_pv_bmm4d_control_t8_fp16
+./tools/compile.sh ops/_pv_bmm4d_control_t8_fp16/model.tflite ops/_pv_bmm4d_control_t8_fp16/model.dla
+/usr/bin/python3 tools/build_pv_o_residual.py --variant main-badlayout --out ops/_pv_o_badlayout_control_t8_fp16
+./tools/compile.sh ops/_pv_o_badlayout_control_t8_fp16/model.tflite ops/_pv_o_badlayout_control_t8_fp16/model.dla
 
 # 3) 板端（持锁）：主契约 + 噪声底（连跑两次存两份）
 export NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock"; export MSYS_NO_PATHCONV=1
@@ -353,7 +353,7 @@ cp ops/pv_o_residual_t8_fp16/out_device.bin ops/pv_o_residual_t8_fp16/out_r2.bin
 
 # 4) 换输入对照：把 golden/{input,input1,expected}_{alt,altx}.bin 覆盖到
 #    golden/{input,input1,expected}.bin 再跑一次 e2e（模型/.dla 不变），跑完恢复
-# 5) 负对照：./tools/e2e.sh ops/pv_o_badlayout_control_t8_fp16（预期 FAIL，rel_l2≈0.92）
+# 5) 负对照：./tools/e2e.sh ops/_pv_o_badlayout_control_t8_fp16（预期 FAIL，rel_l2≈0.92）
 \`\`\`
 
 ---
@@ -364,9 +364,9 @@ cp ops/pv_o_residual_t8_fp16/out_device.bin ops/pv_o_residual_t8_fp16/out_r2.bin
 ops/pv_o_residual_t8_fp16/            model.json  model.compile.log  compare.txt
                                       compare_run1.txt  compare_altp.txt  compare_altx.txt
                                       e2e.json
-ops/pv_bmm3d_control_t8_fp16/         model.json  model.compile.log        # 3-D = 1 层
-ops/pv_bmm4d_control_t8_fp16/         model.json  model.compile.log        # 4-D = 5 层
-ops/pv_o_badlayout_control_t8_fp16/   model.json  model.compile.log  compare_wronglayout.txt
+ops/_pv_bmm3d_control_t8_fp16/         model.json  model.compile.log        # 3-D = 1 层
+ops/_pv_bmm4d_control_t8_fp16/         model.json  model.compile.log        # 4-D = 5 层
+ops/_pv_o_badlayout_control_t8_fp16/   model.json  model.compile.log  compare_wronglayout.txt
                                                                         # 负对照（FAIL 是判据）
 tools/build_pv_o_residual.py
 docs/OP-pv-o.md

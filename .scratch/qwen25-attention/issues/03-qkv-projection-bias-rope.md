@@ -4,7 +4,7 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] fp16 下 q/k/v 三个投影与独立 numpy golden 对上，**bias 参与计算**
 - [ ] k/v 输出宽度确认为 128，并记录"如果误接成 896 会怎样"
@@ -12,3 +12,7 @@
 - [ ] 输出为 3-D 形状（`[T,14,64]` / `[T,2,64]`），记录 rank 上限是 4
 - [ ] 无 bridge、单执行步
 - [ ] 记录本算子的实测噪声底，作为该算子阈值的依据
+
+## Comments
+
+- 2026-11-13 Lead: 合并到 feat/qwen25-attention（三个 op 目录：q/k/v 各一张图，11 层/单执行步/无 bridge，板端 1 ULP PASS）。反事实证据到位：bias=0 差 254–257×、误接 896 宽在加载期 EXIT=1、无 RoPE 差 343–360×。任务卡的 writeScopes 只写了单目录，实际交付三目录（顾问性字段，不影响交付）。

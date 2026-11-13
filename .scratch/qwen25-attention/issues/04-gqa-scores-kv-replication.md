@@ -4,7 +4,7 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] 2 个 KV head 在图内复制成 14 份（用 SPLIT + CONCATENATE），数据不回到 host
 - [ ] 3-D BMM（adj_y）产出 `[14,8,8]` 的 scores，与 golden 对上
@@ -12,3 +12,7 @@
 - [ ] 明确记录**不采用**"2×7 头"与"14 次单头 unroll"两种兜底，并写出它们的层数代价
 - [ ] 记录 rank 上限是 4：5-D/6-D 会明确报错，不要试
 - [ ] 记录本算子的实测噪声底
+
+## Comments
+
+- 2026-11-13 Lead: 合并到 feat/qwen25-attention。8 层/单执行步，scores [14,8,8] 板端 **逐位一致**（max_abs=0），噪声底 0。KV 复制=SPlit+Concat 5 层。对照证据：wrong_reshape 编译过但板端 rel_l2 1.226（判据不空转）；nary14 单条 14 输入 CONCAT 也逐位 PASS 且比主图少 2 层（票 09 可用）。
