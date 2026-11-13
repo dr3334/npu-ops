@@ -235,6 +235,20 @@ static npu_binop_plan_t g_plan_bmm_pv16 = {
     .expect_patches = 3,
     .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
 };
+static npu_binop_plan_t g_plan_fc_const = {
+    .name = "FULLY_CONNECTED(const W)",
+    .asset_dir = "/data/local/tmp/npuops/assets/fc_const",
+    .old_iova = { 0, 0, 0 },
+    .bytes = 64,
+    .extra_file = "scratch.bin",
+    .bytes_b = 8192,          /* 常量权重缓冲 */
+    .alloc_size = NPU_BINOP_ALLOC,
+    .n_inputs = 2,            /* A + 常量权重缓冲 */
+    .cmdbuf_dir = { 1, 2, 1 },
+    .patch_idx = 2,
+    .expect_patches = 3,
+    .cmdbuf_file = { "cmd0.bin", "cmd1.bin", "cmd2.bin" },
+};
 static const npu_binop_plan_t *const g_plans[NPU_OP__COUNT] = {
     [NPU_OP_ADD] = &g_plan_add,
     [NPU_OP_MUL] = &g_plan_mul,
@@ -249,6 +263,7 @@ static const npu_binop_plan_t *const g_plans[NPU_OP__COUNT] = {
     [NPU_OP_SOFTMAX16] = &g_plan_softmax16,
     [NPU_OP_BMM_QK16] = &g_plan_bmm_qk16,
     [NPU_OP_BMM_PV16] = &g_plan_bmm_pv16,
+    [NPU_OP_FC_CONST] = &g_plan_fc_const,
 };
 
 static const char *const g_op_names[NPU_OP__COUNT] = {
@@ -424,8 +439,11 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
   /* --- 2. 数据 buffer：A/B/C（+ exec_infos，必须给 MEM handle，见 E-106B 卡点 1） --- */
   if (apu_alloc_map(&a1, plan->alloc_size, NPU_BINOP_CMDBUF_ALIGN, 1)) { rc = NPU_BINOP_EIO; goto done; }
   if (plan->n_inputs != 2 && plan->n_inputs != 1) return NPU_BINOP_EINVAL;
-  if (plan->n_inputs == 2 &&
-      apu_alloc_map(&b1, plan->alloc_size, NPU_BINOP_CMDBUF_ALIGN, 1)) { rc = NPU_BINOP_EIO; goto done; }
+  {
+    uint32_t bsize = plan->bytes_b > plan->alloc_size ? plan->bytes_b : plan->alloc_size;
+    if (plan->n_inputs == 2 &&
+        apu_alloc_map(&b1, bsize, NPU_BINOP_CMDBUF_ALIGN, 1)) { rc = NPU_BINOP_EIO; goto done; }
+  }
   if (apu_alloc_map(&c,  plan->alloc_size, NPU_BINOP_CMDBUF_ALIGN, 1)) { rc = NPU_BINOP_EIO; goto done; }
   if (apu_alloc_map(&einfo, 76, 0, 1)) { rc = NPU_BINOP_EIO; goto done; }
   memset(einfo.host, 0, 76);

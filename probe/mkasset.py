@@ -140,24 +140,34 @@ def main(log, bufdir, abin, bbin, outdir):
         sys.exit(f"data buffers: A={bool(A)} B={bool(B)} C={bool(C)}")
 
     def iova_of(path):
-        m = re.search(r"_fd(\d+)_", os.path.basename(path))
+        """fd 会重复（.dla 代码缓冲和输入缓冲可能同 fd），所以必须 (fd, 文件大小) 一起匹配。"""
+        m = re.search(r"_fd(\d+)_len([0-9a-f]+)", os.path.basename(path))
         fd = int(m.group(1))
+        fsz = int(m.group(2), 16)
         for h, sz, va in maps:
-            if h == fd and sz == 4096:
+            if h == fd and sz == fsz:
                 return va
         return 0
 
     # 一元算子如果有第三个 4 KiB 缓冲（scratch/LUT），也算进资产：命令流里确实有它的地址
     scratch = None
     if not B:
-        cands = [pth for pth in sorted(os.listdir(bufdir))
-                 if pth.startswith("map") and pth.endswith(".bin") and "_post" not in pth and "_final" not in pth
-                 and os.path.getsize(os.path.join(bufdir, pth)) == 4096]
+        import struct as _st
+        src = find_by_fd(bufdir, cmdbufs[2][0], cmdbufs[2][1])
+        cmd2 = open(src, "rb").read() if src else b""
+        words = [_st.unpack_from("<I", cmd2, o)[0] for o in range(0, len(cmd2) - 3, 4)]
         used = {os.path.basename(A), os.path.basename(C)}
-        for c in cands:
-            if c not in used:
-                scratch = os.path.join(bufdir, c)
+        best = None
+        for pth in sorted(os.listdir(bufdir)):
+            if not (pth.startswith("map") and pth.endswith(".bin")) or "_post" in pth or "_final" in pth:
+                continue
+            if pth in used:
+                continue
+            va = iova_of(os.path.join(bufdir, pth))
+            if va and (va >> 4) in words:          # 命令流确实引用它 -> 常量/scratch 缓冲
+                best = os.path.join(bufdir, pth)
                 break
+        scratch = best
     iova = [iova_of(A), iova_of(scratch) if scratch else 0, iova_of(C)]
     if iova[0] == 0 or iova[2] == 0 or (not unary and iova[1] == 0):
         sys.exit(f"iova not resolved: {[hex(x) for x in iova]}")
