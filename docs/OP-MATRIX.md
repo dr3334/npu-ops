@@ -101,7 +101,7 @@ convpool 的 9 个（C=4/8 的 pool 与 conv、dilation/stride 特定组合）�
 |---|---|---|
 | 1 | **完整 block**（RMSNorm + RoPE 都在图内） | `ops/block_qwen25_1l_full_fp16`：42 层、单 MDLA 步、`.dla` 91.8 KB、板端 rmse 1.86e-04 → PASS |
 | 1b | **T=128 prefill** | `ops/block_qwen25_1l_full_t128_fp16`：同样 42 层、PASS（rmse 1.90e-04） |
-| 1c | 多 head | ❌ WIP：`--heads 2` 走 RESHAPE+BMM 路径，importer 报 `Fail to process the given model` |
+| 1c | 多 head | ✅ 已订正（2026-11-13）：`--heads 2` 的失败是 `tools/build_block2.py` 的权重张量声明 bug，不是 importer 限制。见 §14 与 `docs/OP-gqa.md`（E-112） |
 | 2 | T=128 变体 | ✅ 同 1b |
 | 3 | **自建提交器跑 FC（动态权重）** | `probe/npu_fc_demo`：`CMA RUN rc=0`，3 处重定位，1/64 元素差 1 code（与 `int8_tol=1` 契约一致），两次运行一致 |
 
@@ -157,3 +157,36 @@ o     = p·v     ← BATCH_MATMUL(PV T=16)        mismatch 0/1024
   `0x25xxxxxx` 完全不在一个区段 —— 说明**大张量走了不同的映射路径**（可能是另一段 IOVA 域或 host 映射）。
 - 因此 `mkasset` 目前还无法为大 FC 生成可用资产（地址语义未明）。这是下一步的明确问题：
   **驱动对大缓冲的 IOVA 分配/映射语义**。
+---
+
+## 14. qwen25-attention 批次（2026-11-13）：真实形状 GQA + 掩码 softmax + 整块
+
+spec: `.scratch/qwen25-attention/spec.md` · 权重：随机生成后冻结（尺度=真实 Qwen2.5-0.5B 逐张量实测）· 全部 fp16 · 全部 `--disallow-bridge`。
+每个算子的记录在自己的 `docs/OP-*.md`；这里只给矩阵行与新增边界。
+
+| 算子 | 形状 | 层数 / 执行步 | 板端数值 | 记录 |
+|---|---|---|---|---|
+| QKV 投影 + bias + RoPE（三张图） | `[8,896]`→`[8,14,64]` / `[8,2,64]` | 11 / 1 | 1 ULP（q 1.56e-2 @25.4、k 6.25e-2 @77.6、v 1.22e-4） | `docs/OP-qkv.md` |
+| GQA 打分 + KV 显式复制（SPLIT→CONCAT 2→14） | `[8,14,64]`×`[8,2,64]`→`[14,8,8]` | 8 / 1（复制占 5 层） | **逐位一致**（896/896） | `docs/OP-gqa-scores.md` |
+| 掩码 + 原生 SoftMax | `[14,8,8]`→`[14,8,8]` | 3 / 1 | max_abs 4.88e-04；被掩码位 392/392 逐位 0 | `docs/OP-masked-softmax.md` |
+| PV(3-D) + O 投影(无 bias) + 残差 | `[14,8,8]`×`[14,8,64]`→`[8,896]` | 7 / 1（PV=1 个原生层；4-D 对照=5 层） | 1 ULP（6.10e-05） | `docs/OP-pv-o.md` |
+| SwiGLU FFN | `[8,896]`→`[8,4864]`→`[8,896]` | 6 / 1 | 1 ULP（2.44e-04） | `docs/OP-swiglu-ffn.md` |
+| LM head（tied embed，分块 FC） | `[8,896]`→`[8,151936]` | 5 / 1 | max_abs 9.77e-04、99.77% 逐位 | `docs/OP-lm-head.md` |
+| 多头整块（2 头 / 14 头真实形状） | `[8,64]` / `[8,896]`→同形 | 31 / 33，各 1 步 | 1 ULP / 2.2e-2（=fp16 层边界下限） | `docs/OP-block.md` §10 |
+| 1 层 decoder 整块 / 2 层集成 | 见票 09/10 | 见下 | 见下 | `docs/OP-decoder-layer.md` / `docs/OP-two-layer.md` |
+
+### 14.1 本批次新增/修正的边界（跨算子）
+
+1. **FC 的 N 维度 ≤ 65535**：单体 `FC(8×896×151936)` 在编译期被拒（`MDLA: Dimension should be <= 65535`）。分块 FC + `CONCAT` 可行；`CONCAT`/`RESHAPE` 到 151936 不受限。
+2. **rank ≤ 4 是硬限制**（5-D/6-D：`the rank of shape should be in range [0, 4]`）；注意力 scores/PV 一律走 **3-D** —— 4-D 的 PV 会被降成 5 层（Slice+BMM+Slice+BMM+Concat），3-D 是 1 个原生层。
+3. **N 元 CONCAT（≥3 输入、允许重复输入）在 fp16/axis=1 可用**，板端逐位一致；可用于 KV 复制（比 7 条二输入 CONCAT 省 2 层）。
+4. **D=896 的 RMSNorm 用 MEAN+eps 可行**（6 层/单步/板端 PASS）。此前「D=896 不能用 MEAN」的结论是 `tools/build_rms896.py` 的索引 bug，已订正（`docs/OP-rmsnorm.md`）。
+5. **EXP 是可用的原生层**（`ExpLayer`，1 步）；不可用的是 `LOG`(fp16)、`COS`。因果掩码仍然用「加法常量 + 原生 SoftMax」，但理由是 **fp16 的 exp 值域上溢**（>11.09），不是算子缺失。
+6. **编译通过 + 单执行步 ≠ 数学正确**：本批次三个独立负对照（h2 reshape、GQA wrong_reshape、PV badlayout）都是 EXIT=0/单步但板端 rel_l2 0.14–1.23。任何「编译侧已通」的结论都必须配一次板端对拍。
+7. **多头必须显式重排**：`[T,H]` → `RESHAPE [T,heads,HD]` → `TRANSPOSE perm=[1,0,2]` → `[heads,T,HD]`；直接 `RESHAPE` 成 `[heads,T,HD]` 会按头重排 token（板端 rel_l2 0.143，编译看不出来）。
+8. **噪声底实测 = 0**（本批次所有 op：同 `.dla` 同输入连跑 2–3 次，输出逐字节相同），因此阈值按 fp16 末位口径登记：`atol = rtol ≈ 4·2⁻¹¹·max|out|`（等价 4 ULP），并在 `model.json` 里记 `tolerance_revision`。
+
+### 14.2 回归
+
+`./tools/rebuild_qwen25.sh` 可逐字节重建本批次全部 `model.tflite`（实测：重建后工作树无 diff）；
+编译/板端一律走 `./tools/e2e.sh ops/<name>`；对照与只编译产物统一用 `_` 前缀，`run_all.sh` 会跳过。

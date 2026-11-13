@@ -397,3 +397,32 @@ C[0..7] = 11 22 33 44 55 66 77 88        ← A=[10..80]×8 + B=[1..8]×8
 2. **`.dla` 不可字节复现**（同 tflite 三次编译、大小相同、sha256 三次不同）；回归只比数值。
 3. **`--disallow-bridge` 的语义边界**被推到台面：convpool 发现 C=4/8 的失败其实由 **eDPA relayout**
    （MDLA 自己的 DMA，仍是 NPU）填充，被我们的严格策略拒绝。是否允许它，是一个**政策选择**，待定。
+---
+
+## qwen25-attention 批次（2026-11-13，spec: `.scratch/qwen25-attention/spec.md`）
+
+背景：仓库已有 178 个单算子目录与一个玩具形状（单头 / head_dim=32）的整块。这一批把目标推到**真实形状**：
+hidden 896、14 query head / 2 KV head、head_dim 64、vocab 151936、T=8。全部 fp16、全部 `--disallow-bridge`、
+权重用「随机生成后冻结」的夹具（尺度=真实 Qwen2.5-0.5B-Instuct 逐张量实测，见 `docs/OP-weights.md`）。
+
+| 票 | 文档（本批次的实验记录） | 一句话结论 |
+|---|---|---|
+| 01 | `docs/OP-block.md` §10 / `docs/OP-gqa.md`（E-112） | 多 head「编不过」是 builder 的权重张量声明 bug，不是 ncc 的限制；修好后 2 头 31 层 / 14 头 33 层，**各 1 个执行步**，板端 PASS |
+| 02 | `docs/OP-weights.md` | 25 张量冻结夹具：同 seed 两次生成 **25/25 sha256 相同**；含 q/k/v 的 bias（真实权重里 bias std 7.85/32.2，比权重还大） |
+| 03 | `docs/OP-qkv.md` | QKV 投影+bias+RoPE，11 层/1 步；bias 反事实差 254–257×、误接 896 宽在**加载期**失败、无 RoPE 差 343–360× |
+| 04 | `docs/OP-gqa-scores.md` | 2→14 KV 复制（SPLIT+CONCAT）5 层、仍在 1 步；3-D BMM 出 `[14,8,8]` **逐位一致**；2×7 头=13 层、14 次 unroll=33 层（不采用） |
+| 05 | `docs/OP-masked-softmax.md` | 掩码+原生 SoftMax 3 层/1 步；被掩码位 **392/392 逐位 0**；掩码 −4096 vs −8192 两份 dump 逐位相同（已饱和）；**EXP 前提被推翻** |
+| 06 | `docs/OP-pv-o.md` | PV 3-D = **1 个原生层**，4-D 被降成 5 层；O 投影无 bias；残差独立成层；7 层/1 步 |
+| 07 | `docs/OP-swiglu-ffn.md` | SwiGLU 6 层/1 步/Temp 0；SiLU **不融合**（+2 层、同一步）；三个大张量各 8.72 MB |
+| 08 | `docs/OP-lm-head.md` | tied LM head：**FC 的 N ≤ 65535**（单体 151936 被编译期拒绝）→ 4×FC+CONCAT，5 层/1 步，板端 99.77% 逐位 |
+| 09 | `docs/OP-decoder-layer.md` | 1 层自包含整块（`[8,896]` 进 / 出）——见该文档 |
+| 10 | `docs/OP-two-layer.md` | 2 层串联 + 输出投影，logits 向量 atol/rtol 对拍——见该文档 |
+
+### 由本批次新增的方法论（值得复用）
+
+1. **每条「编译侧已通」都必须配一次板端对拍**。本批次三个负对照（h2 的 reshape、GQA 的 wrong_reshape、PV 的 badlayout）
+   都是 `EXIT=0` + 单执行步，但板端 `rel_l2` 0.14–1.23。编译通过只证明「能下沉」，不证明「算得对」。
+2. **没有正对照的「某算子不支持」不算结论**。EXP 探针第一版把 opcode 表偏移当成 opcode 索引，连 SOFTMAX 都报
+   `Fail to process the given model`——先跑一个已知可用的正对照，才能把「构造错」与「真不支持」分开（E-112 同类错误）。
+3. **阈值必须由独立于设备的下限支撑**：本批次噪声底实测全为 0（硬件确定性），于是阈值改按 fp16 末位口径
+   `4·2⁻¹¹·max|out|` 登记，并用「把 golden 逐层按 fp16 舍入」的模拟给出下限；登记一律在跑之前（`tolerance_revision`）。
