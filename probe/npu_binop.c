@@ -461,6 +461,20 @@ int npu_bin_binop(const npu_binop_plan_t *plan, const int8_t *a, const int8_t *b
     int k = plan->patch_idx;
     if (k < 0 || k > 2) { rc = NPU_BINOP_EINVAL; goto done; }
     patch_addrs((unsigned char *)cb[k].host, cb_size[k], old_iova, newv, &hits);
+    /* 调试：把重定位后的命令流落盘，便于和厂商抓取做字节级 diff（NPU_DUMP_DIR=/tmp/x） */
+    {
+      const char *dd = getenv("NPU_DUMP_DIR");
+      if (dd && dd[0]) {
+        char dp[600];
+        snprintf(dp, sizeof(dp), "%s/%s_cmd%d.bin", dd, plan->name, k);
+        /* 文件名里不要空格/括号 */
+        for (char *q2 = dp; *q2; q2++) {
+          if (*q2 == ' ' || *q2 == '(' || *q2 == ')' || *q2 == '[' || *q2 == ']' || *q2 == '^' || *q2 == ',') *q2 = '_';
+        }
+        FILE *fd2 = fopen(dp, "wb");
+        if (fd2) { fwrite(cb[k].host, 1, cb_size[k], fd2); fclose(fd2); }
+      }
+    }
     if (hits != (unsigned)plan->expect_patches) {
       fprintf(stderr, "npu_binop(%s): patched %u/%d addresses (command stream mismatch?)\n",
               plan->name, hits, plan->expect_patches);

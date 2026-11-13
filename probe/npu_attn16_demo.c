@@ -54,7 +54,17 @@ int main(int argc, char **argv) {
   rc |= npu_binop(NPU_OP_SOFTMAX16, s, s, p);
   printf("stage p = softmax(s)         rc=%d\n", rc);
 
-  rc |= npu_binop(NPU_OP_BMM_PV16, p, v, o);
+  /* softmax 的输出域是 (scale 1/256, zp -128)，PV 模型的 A 域是 (1/127, zp 0)：
+     中间要做一次 requant（TFLite 图里由 ncc 插入，手搓链路就得自己做）。 */
+  static int8_t p_pv[T * T];
+  for (int i = 0; i < T * T; i++) {
+    double real = ((double)p[i] + 128.0) / 256.0;       /* 概率 */
+    int qv = (int)lround(real * 127.0);
+    if (qv > 127) qv = 127;
+    if (qv < -128) qv = -128;
+    p_pv[i] = (int8_t)qv;
+  }
+  rc |= npu_binop(NPU_OP_BMM_PV16, p_pv, v, o);
   printf("stage o = p*v                rc=%d\n", rc);
 
   /* ---- 参考：用设备实际产出的 int8 q/k/v 重算 ---- */
@@ -94,13 +104,14 @@ int main(int argc, char **argv) {
          s_ref[0],s_ref[1],s_ref[2],s_ref[3],s_ref[4],s_ref[5],s_ref[6],s_ref[7],
          s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7]);
 
-  /* 3) o = p·v: 把 softmax 输出还原成概率（code+128)/256，再乘 v */
+  /* 3) o = p·v，按 PV 模型的量化域：a=1/127, b=1/127, out=6.2000124e-05 */
   static int8_t o_ref[T * D];
+  const double SA = 0.007874015748031496, SB = 0.007874015748031496, SO = 6.200012400024799e-05;
   for (int i = 0; i < T; i++)
     for (int d = 0; d < D; d++) {
       double acc = 0;
-      for (int j = 0; j < T; j++) acc += ((double)p[i * T + j] + 128.0) / 256.0 * (double)v[j * D + d];
-      long long r = (long long)llround(acc);
+      for (int j = 0; j < T; j++) acc += ((double)p_pv[i * T + j] * SA) * ((double)v[j * D + d] * SB);
+      long long r = (long long)llround(acc / SO);
       if (r > 127) r = 127;
       if (r < -128) r = -128;
       o_ref[i * D + d] = (int8_t)r;

@@ -131,7 +131,7 @@ def main(log, bufdir, abin, bbin, outdir):
         sys.exit(f"expected 3 cmdbuf descriptors, got {len(cmdbufs)}")
 
     A, B, C = find_data(bufdir, a, b, unary)
-    vendor = os.path.join(os.path.dirname(os.path.abspath(outdir)), "vendor_out.bin")
+    vendor = os.path.join(outdir, "vendor_out.bin")   # 抓取输出就在资产目录里
     nbytes = 256 if os.path.exists(vendor) and os.path.getsize(vendor) <= 4096 else 4096
     by_vendor = find_output_by_vendor(bufdir, vendor, os.path.getsize(vendor) if os.path.exists(vendor) else 0)
     if by_vendor is not None:

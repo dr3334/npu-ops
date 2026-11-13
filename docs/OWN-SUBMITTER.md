@@ -196,3 +196,37 @@ RESULT: PASS
 另存一份 patch 后的），看除了 3 个地址字之外还有哪里有差异。
 
 **结论保持**：投影 + QKᵀ 逐字节正确；softmax 未通（原因已缩小到 LUT/命令流字段，不再是"缺缓冲"）。
+
+## 9. ✅ Attention 全链路打通（自建提交器，T=16, int8, 51 次提交）
+
+```
+stage q/k/v (48 submissions) rc=0
+stage s = q*k^T              rc=0
+stage p = softmax(s)         rc=0
+stage o = p*v                rc=0
+mismatch: s=0/256  p=0/256  o=0/1024
+```
+
+**没有 libneuron / neuronrt**：48 次 `FULLY_CONNECTED(动态权重)`（逐 token 投影 q/k/v）
++ `BATCH_MATMUL(QKᵀ)` + `SOFTMAX` + `BATCH_MATMUL(PV)`，全部由我们自己的 ioctl 提交。
+
+### softmax 那两个坑（都是靠"字节级 diff"定的，不是猜）
+
+1. **命令流本身没问题**：把"我们 patch 后的 cmd2"和"厂商抓取的 cmd2"逐字节比，
+   1184 字节里**只有 3 处地址字不同**；两次独立厂商抓取之间也只差这 3 处。
+   ⇒ 命令流是确定性的，问题一定在缓冲。
+2. **拿错了 LUT**：`mkasset.py` 找输出缓冲时用了 `dirname(outdir)`（资产目录的上一层），
+   于是 vendor 匹配失败，退化成 `other[0]` —— 结果把 **LUT 缓冲当成了输出、把输出当成了 LUT**，
+   等于给 kernel 喂了一张全零的 LUT，所以它"算出来就是 0"。
+   修好路径后 `scratch.bin` 从全 0 变成 **96 个非零字节**，softmax 立刻 `0/256`。
+
+### 还有一处必须自己做：softmax→PV 的 requant
+
+softmax 模型输出域是 `(1/256, zp=-128)`，而 PV 模型的 A 输入域是 `(1/127, zp=0)`。
+TFLite 图里这步由 ncc 插入；手搓链路里必须自己转：
+`code_pv = round(((code_sm+128)/256)*127)`。加上这一步，`o` 就是 `0/1024`。
+
+### 结论
+
+**"自己的库在 NPU 上算 attention" 已经成立**（q/k/v 投影 → QKᵀ → softmax → PV，逐字节正确）。
+仍未覆盖：常量权重 FC（当前走动态权重）、KV cache、multi-head、以及把这些接成一个完整 block。
