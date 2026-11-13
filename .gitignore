@@ -48,3 +48,6 @@ out/
 # 证据以 reports/npu-lib-matrix.{md,json} 入库）
 artifacts/
 probe/npu_run
+
+# 计划与票只留本地（ADR 0004）
+.scratch/
