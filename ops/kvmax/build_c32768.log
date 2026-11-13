@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/mnt/d/deepseek_ workspace/mtk/wt-kv2/tools/build_q06.py", line 849, in <module>
+    sys.exit(main())
+  File "/mnt/d/deepseek_ workspace/mtk/wt-kv2/tools/build_q06.py", line 838, in main
+    P = {k: np.asarray(v, np.float64) for k, v in bw.fixture().items()}
+  File "/mnt/d/deepseek_ workspace/mtk/wt-kv2/tools/build_w4a8.py", line 377, in fixture
+    "g1": g("input_layernorm.weight"),
+  File "/mnt/d/deepseek_ workspace/mtk/wt-kv2/tools/build_w4a8.py", line 375, in <lambda>
+    g = lambda n: qw.get("layer%d.%s" % (LAYER, n))
+  File "/mnt/d/deepseek_ workspace/mtk/wt-kv2/tools/qwen25_weights.py", line 160, in get
+    raise FixtureError("missing %s for tensor %r (%s)"
+qwen25_weights.FixtureError: missing layer0.input_layernorm.weight.npz for tensor 'layer0.input_layernorm.weight' (frozen weights not found at /mnt/d/deepseek_ workspace/mtk/wt-kv2/weights/qwen25_frozen
+  generate them (about 30 s, 332 MB) with:
+      python3 tools/gen_qwen25_weights.py
+  or point QWEN25_WEIGHTS_DIR at an existing generated copy (another checkout, a shared cache):
+      export QWEN25_WEIGHTS_DIR=/path/to/weights/qwen25_frozen
+  (regeneration is byte-identical; 'gen_qwen25_weights.py --verify' proves it))

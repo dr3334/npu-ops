@@ -1,0 +1,44 @@
+===== C=2048 start 2026-11-13T16:25:45+08:00 =====
+C=2048 build_rc=0 build_s=35
+ops/kvmax_decode_t8_c2048_24l      388851872 B  decode l=24 T=8 C=2048  in=['x', 'mask', 'cos14', 'sin14', 'cos2', 'sin2', 'k_in', 'v_in']
+  saturation: {'L00_gate': 1, 'L00_k_fc': 1, 'L00_masked': 194, 'L00_n1_mean': 1, 'L00_n1_norm': 1, 'L00_n2_mean': 1, 'L00_o_proj': 1, 'L00_p_sym': 104}
+C=2048 TFLITE=388851872
+C=2048 compile_rc=0 compile_s=67
+model.dla                                            exit=0  size=18141594  sha256=7caa05413c2853a4
+EXIT=0
+SIZE=18141594
+--- exec steps / gap ---
+===Graph[0] has 1 Execution Step(s)===
+--- memory summary ---
+===== C=2048 done 2026-11-13T16:27:28+08:00 =====
+===== C=4096 start 2026-11-13T16:27:28+08:00 =====
+C=4096 build_rc=0 build_s=40
+ops/kvmax_decode_t8_c4096_24l      410871968 B  decode l=24 T=8 C=4096  in=['x', 'mask', 'cos14', 'sin14', 'cos2', 'sin2', 'k_in', 'v_in']
+  saturation: {'L00_down': 1, 'L00_gate': 1, 'L00_k_fc': 1, 'L00_masked': 194, 'L00_n1_mean': 1, 'L00_n1_norm': 1, 'L00_n2_mean': 1, 'L00_o_proj': 1}
+C=4096 TFLITE=410871968
+C=4096 compile_rc=0 compile_s=84
+model.dla                                            exit=0  size=18268200  sha256=6e4435a423cbed51
+EXIT=0
+SIZE=18268200
+--- exec steps / gap ---
+===Graph[0] has 1 Execution Step(s)===
+--- memory summary ---
+===== C=4096 done 2026-11-13T16:29:33+08:00 =====
+===== C=8192 start 2026-11-13T16:29:33+08:00 =====
+C=8192 build_rc=0 build_s=46
+ops/kvmax_decode_t8_c8192_24l      454912160 B  decode l=24 T=8 C=8192  in=['x', 'mask', 'cos14', 'sin14', 'cos2', 'sin2', 'k_in', 'v_in']
+  saturation: {'L00_down': 1, 'L00_gate': 1, 'L00_k_fc': 1, 'L00_masked': 194, 'L00_n1_mean': 1, 'L00_n1_norm': 1, 'L00_n2_mean': 1, 'L00_o_proj': 1}
+C=8192 TFLITE=454912160
+C=8192 compile_rc=0 compile_s=878
+model.dla                                            exit=0  size=19806344  sha256=9815f1874bac7fe5
+EXIT=0
+SIZE=19806344
+--- exec steps / gap ---
+===Graph[0] has 1 Execution Step(s)===
+--- memory summary ---
+===== C=8192 done 2026-11-13T16:44:58+08:00 =====
+===== C=16384 start 2026-11-13T16:44:58+08:00 =====
+C=16384 build_rc=0 build_s=67
+ops/kvmax_decode_t8_c16384_24l     542992544 B  decode l=24 T=8 C=16384  in=['x', 'mask', 'cos14', 'sin14', 'cos2', 'sin2', 'k_in', 'v_in']
+  saturation: {'L00_down': 1, 'L00_gate': 1, 'L00_k_fc': 1, 'L00_masked': 194, 'L00_mlp_y': 1, 'L00_n1_mean': 1, 'L00_n1_norm': 1, 'L00_n2_mean': 1}
+C=16384 TFLITE=542992544

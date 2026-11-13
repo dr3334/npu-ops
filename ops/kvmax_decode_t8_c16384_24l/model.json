@@ -1,0 +1,147 @@
+{
+  "op": "PREFILL_DECODE",
+  "mode": "decode",
+  "layers": 24,
+  "shape": {
+    "T": 8,
+    "C": 16384,
+    "D": 896,
+    "H": 14,
+    "KV": 2,
+    "HD": 64
+  },
+  "dtype": "int16",
+  "weights_dtype": "int8",
+  "builder": "tools/build_q06.py --mode decode --t 8 --cache 16384 --layers 24",
+  "inputs": [
+    {
+      "name": "x",
+      "file": "x.bin",
+      "shape": [
+        8,
+        896
+      ]
+    },
+    {
+      "name": "mask",
+      "file": "mask.bin",
+      "shape": [
+        14,
+        8,
+        16392
+      ]
+    },
+    {
+      "name": "cos14",
+      "file": "cos14.bin",
+      "shape": [
+        8,
+        14,
+        32
+      ]
+    },
+    {
+      "name": "sin14",
+      "file": "sin14.bin",
+      "shape": [
+        8,
+        14,
+        32
+      ]
+    },
+    {
+      "name": "cos2",
+      "file": "cos2.bin",
+      "shape": [
+        8,
+        2,
+        32
+      ]
+    },
+    {
+      "name": "sin2",
+      "file": "sin2.bin",
+      "shape": [
+        8,
+        2,
+        32
+      ]
+    },
+    {
+      "name": "k_in",
+      "file": "k_in.bin",
+      "shape": [
+        48,
+        16384,
+        64
+      ]
+    },
+    {
+      "name": "v_in",
+      "file": "v_in.bin",
+      "shape": [
+        48,
+        16384,
+        64
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "name": "hidden",
+      "file": "hidden.bin",
+      "shape": [
+        8,
+        896
+      ]
+    },
+    {
+      "name": "k_out",
+      "file": "k_out.bin",
+      "shape": [
+        48,
+        8,
+        64
+      ]
+    },
+    {
+      "name": "v_out",
+      "file": "v_out.bin",
+      "shape": [
+        48,
+        8,
+        64
+      ]
+    }
+  ],
+  "quant": {
+    "S_K": 0.002374719356571254,
+    "S_V": 4.4818906634915255e-06,
+    "S_MASK": 0.1250038148136845,
+    "S_TAB": 3.051850947599719e-05,
+    "table": {
+      "n": 769
+    }
+  },
+  "mask": {
+    "value": -4096.0,
+    "note": "graph INPUT, scale 0.12500381, code -32767"
+  },
+  "rope": {
+    "note": "cos/sin tables are graph INPUTS (scale 0.00003052)"
+  },
+  "kv": {
+    "layout": "k_in/v_in [layers*KV, C, HD] int16; host owns the cache",
+    "per_token_host_bytes": 201326592
+  },
+  "weights_note": "fixture layer 0 repeated for all 24 layers (ticket 05 allows weight reuse): this is not a real 24-layer Qwen2.5-0.5B stack",
+  "int8_tol": 1200,
+  "abs_dcos_device_vs_golden_max": 0.003,
+  "rel_l2_device_vs_golden_max": 0.05,
+  "quality": {
+    "hidden": "per-step device vs independent fp64 chain cosine; expected to decay as the KV chain accumulates (ticket 05 measured 0.9962 for 24 chained layers at T=16)",
+    "logits": "final quality gate: cosine of h @ embed.T and argmax token id (Qwen2.5-0.5B ties lm_head to embed.weight; the lm head is NOT on the device in this ticket)"
+  },
+  "tolerance_rationale": "Registered before the first board run. Code tolerance 1200 = sqrt(24) x ticket 04f single-layer 247 codes (the same propagation bound ticket 05 registered); abs(dcos) <= 0.003 is the ADR 0005 sixth-revision implementation gate. The decode chain is 8+ steps of the same 24-layer tower, so code drift may exceed the single-tower bound; that is reported as measured, not adjusted.",
+  "tflite_bytes": 542992544
+}
