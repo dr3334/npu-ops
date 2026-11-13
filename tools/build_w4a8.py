@@ -234,8 +234,6 @@ def requant_pc(acc, ratios):
     acc = np.asarray(acc, np.int64)
     out = np.zeros_like(acc)
     for sh, items in ratio_groups(ratios):
-        cols = [n for n, _ in items]
-        _requant_check(acc[:, cols], items[0][1], sh, "per-channel")
         for n, m0 in items:
             out[:, n] = qc.multiply_by_quantized_multiplier(acc[:, n], m0, sh)
     return out
@@ -632,30 +630,8 @@ def lsm_codes(real):
     return clip_codes(np.round(np.asarray(real, np.float64) / lsm_scale()) + lsm_zp())
 
 
-def _requant_check(acc, m0, shift, what=""):
-    """Refuse a requant whose gemmlowp left shift overflows int64 at BUILD time.
-
-    Ticket 04d found this the hard way.  At int16 the accumulator of a MUL or FC is
-    ~1e8..1e9, and a scale ratio like 3e-4 comes back as shift=+12, so the kernel's
-    x = acc << 12 times m0 wraps int64.  The golden wrapped (numpy int64 wraps too)
-    and the DEVICE WRAPPED IDENTICALLY -- device vs golden matched to 1 code while
-    both were numerically wrong (ops/_w4a16_probe/p16_native_seam, cosine 0.39).
-    So "device == golden" is not enough: every requant in this file now proves it
-    stays inside int64 before it is allowed to build.
-    """
-    left = shift if shift > 0 else 0
-    peak = int(np.abs(np.asarray(acc, np.int64)).max()) if np.size(acc) else 0
-    if peak and (peak << left) > ((1 << 62) // int(m0)):
-        raise SystemExit(
-            "requant overflow%s: |acc|max=%d shift=%d m0=%d -- acc<<%d must stay "
-            "below 2^62/m0. Choose the output scale so the ratio does not need a "
-            "large left shift (see _seam_native / _to_symmetric)."
-            % ((" (%s)" % what) if what else "", peak, shift, m0, left))
-
-
 def requant_scalar(acc, ratio):
     m0, sh = qc.quantize_multiplier(ratio)
-    _requant_check(acc, m0, sh)
     return qc.multiply_by_quantized_multiplier(np.asarray(acc, np.int64), m0, sh)
 
 
@@ -879,6 +855,9 @@ def _seam_native(g, scores, sym):
     # then stays at int16 magnitude and the ratio is ~1.34, i.e. a right shift.  With
     # full-scale codes the ratio becomes 3.3e-4, shift=+12 and the requant wraps int64
     # (ops/_w4a16_probe/p16_native_seam was the first casualty of this).
+    # code 1 with scale 1/8: the MUL accumulator stays at int16 magnitude and the
+    # requant ratio lands near 1 (a right shift), which is also what keeps the golden
+    # and the device on the same side of every rounding boundary.
     e = np.full(masked.c.shape, 1, a_dtype())
     ec = TS(g.const_i8("eighth", e, 0.125), e, 0.125)
     scaled = g.q_mul(masked, ec, pick_scale(masked.real / 8.0), "scaled")

@@ -77,13 +77,18 @@
 | 掩码 SOFTMAX 缝 | 必须走 fp16（int8 域不可表示 + int8 SOFTMAX 编不过） | **可以不走**（见 §4/§10） |
 | 图结构 | — | 逐算子同构；只有 seam 可切换（`--seam`） |
 
-**唯一被顺手修掉的缺陷（本票自己的 bug，不是仓库的）**：int16 的累加器可以到 ~1e9，而
-`ratio ≈ 3e-4` 会让 gemmlowp 的 left shift 达到 +12，`acc<<12` 再乘 m0 **溢出 int64**。
-numpy 溢出、器件也溢出**同一个值** ⇒ device vs golden 仍然「码级 0–1 一致」而**两边都算错**
-（`ops/_w4a16_probe/p16_native_seam` 第一版：段 cosine 0.39）。
-现在每次 requant 都先过 `_requant_check()`（`acc<<shift` 必须 < 2^62/m0，否则**构建期报错**），
-并把 1/8、1.0 两个常量改成「码 1 + 真实尺度」（累加器只有 int16 量级，ratio ≈ 0.5–1.3，无需左移）。
-**教训**：device == golden 不等于「算对了」，两者可以一起溢出；护栏必须建在构建期。
+**本票踩到并修掉的两个 bug（都是本票实现里的，不是仓库的）**
+
+1. **掩码被写成了标量广播**：`np.broadcast_to(np.round(MASK/s_s), shape)` 得到的是「全场同一个常数」，
+   而 softmax 对常数平移不变 ⇒ 等于**没有掩码**，第 0 行把概率全给了第 15 列。
+   最刺眼的是 **device vs golden 仍然 1 码以内一致**（golden 承载的是同一张错图），
+   直到拿段级 cosine 去对**独立 fp64 链**才暴露（0.3935）。→ **教训：`device == golden` 只证明
+   器件忠实，不证明图是对的；每个新 seam 都必须同时看 vs fp64 的 cosine。**
+   （诊断时我先怀疑是 requant 的 int64 溢出，并加了一版构建期护栏 `_requant_check`；
+   实测证明**不是**——`quantize_multiplier` 对 ratio<1 返回负 shift（右移），本票所有图都没有左移溢出。
+   那版误判与护栏已在后续 commit 里撤回，这里留痕。）
+2. **1/8 的缩放必须放在掩码之后**（先加掩码 → 再乘 1/8 → 再 softmax）：反过来的话掩码 −4096 在缩放域里
+   要 −227,900 码，装不进 int16。顺序与理由写在 `_seam_native()` 的注释里。
 
 ---
 
@@ -215,7 +220,8 @@ golden vs 独立 fp64 链（device-free，`--upto <stage>`；device 与 golden �
 | down | 0.9111 | 0.9669223 | **0.9497289** | |
 | **out** | 0.9130 | **0.9673771** | **0.9509311** | |
 
-**段边界单独测**（`ops/_w4a16_probe/`，只做 `scores → probs`、喂精确的 int16 q/k、device 出数）：
+**段边界单独测**（`ops/_w4a16_probe/`，只做 `scores → probs`，输入是 fp64 分数的 int16 量化——
+即把「q/k/权重」的误差全部拿掉、只留激活与 seam，device 出数）：
 
 | 实现 | 层数 | device cos vs fp64 | golden cos | ｜Δcos｜ |
 |---|---|---|---|---|
@@ -310,8 +316,11 @@ int4 per-channel 权重的质量。ADR 0005 第二次订正说「天花板在激
 * **需要 Lead 做的一行公共改动**：`tools/compare.py` 的 `DT` 表加上 `"int16": np.int16`
   （现在 `DT["int16"]` 会 KeyError）。本票按 AGENTS 8 没有动它，用 `compare_i16.py` 替代；
   两者输出契约一致（`int8_tol` = 码级容差，PASS/FAIL 同义）。
-* **新增 builder 能力**：`--a-bits 8|16`、`--seam f16|native|native_sym`、15 个 `p16_*` 探针、
-  `_requant_check()`（构建期拒绝会溢出 int64 的 requant）。int8 档的输出**逐位不变**
+* **本票的一处自我订正（留痕，不 amend）**：commit `0357b7e` 里曾把 native 缝第一版的失败归因为
+  requant 的 int64 溢出，并加了 `_requant_check()` 护栏；后续实测证明真因是**掩码标量广播**（§3），
+  护栏与那段归因已撤回，详见订正 commit。
+* **新增 builder 能力**：`--a-bits 8|16`、`--seam f16|native|native_sym`、15 个 `p16_*` 探针。
+  int8 档的输出**逐位不变**
   （`--w-bits 8` 重建 `w8a8_bmm_qk/model.json` 只差 `builder` 字符串；两档 `.dla`/码级与票 04/04c 复现）。
 
 ---
