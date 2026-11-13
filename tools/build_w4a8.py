@@ -70,7 +70,7 @@ def form_tag():
 def set_tier(bits):
     global W_BITS, FORM
     W_BITS = int(bits)
-    FORM = "w%d8a" % W_BITS
+    FORM = "w4a8" if W_BITS == 4 else "w8a8"
 
 T = 16
 D = 896
@@ -127,6 +127,13 @@ def sw_weights(W, bits=None):
     codes[n,k] in [-qmax,qmax] with qmax = 7 (int4) or 127 (int8),
     scales[n] = max|W[n,:]| / qmax.  Only the mirror point and the divisor change
     between the two tiers -- the packing below is the only other difference.
+
+    Note (ticket 04c): the division runs on the float64 scale, which is what
+    sw4() did for the FC component in ticket 04; the old inline copy in
+    q_fc_tables() divided by the float32 scale instead.  Both tiers now use ONE
+    rule, so the 4-bit layer/SwiGLU golden moves by ~1e-4 in cosine relative to
+    ticket 04 (see docs/OP-8w8a-layer.md 10) -- the measured device numbers in
+    this ticket were all produced with this single rule.
     """
     W = np.asarray(W, np.float64)
     qmax = wq_max(bits)
