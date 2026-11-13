@@ -244,7 +244,8 @@ flatbuffer 声明"这个缓冲区有 802,816 个数"，实际只写了 57,344 �
 **做法**：`fc()` 内先 `w = check_fc_weight(out, wts, n, k)`，声明的张量形状取 `list(w.shape)`；
 多头路径的权重按"展平后的每头布局"造：`Wq/Wk/Wv = [heads*HD, H]`、`Wo = [H, heads*HD]`；
 新增 `--hidden / --head_dim / --ffn / --norm` 四个参数；多头 golden 由 numpy 独立重算
-（`[T,H] → [heads,T,HD] → 打分 → softmax → PV → 拼回`），**不调用图构造代码**。
+（`[T,H] → [T,heads,HD] → [heads,T,HD] → 打分 → softmax → PV → 拼回`，与图里的 `RESHAPE` +
+`TRANSPOSE(perm=[1,0,2])` 一一对应），**不调用图构造代码**。
 
 | op | 命令 | 层数 | 执行步 | bridge | `.dla` | EXIT |
 |---|---|---|---|---|---|---|
@@ -276,9 +277,12 @@ flatbuffer 声明"这个缓冲区有 802,816 个数"，实际只写了 57,344 �
 
 改前那份也单独编过一次：`EXIT=0`、`.dla` 91,788 B。
 
+多头产物也可复现：`--heads 2` 重建一次，`model.tflite` md5 = `3a13fd194480a3bf636e82aa12631c7c`、
+`golden/expected.bin` md5 = `7170ce524548f1c74ef8bfb0a26619be`，与提交的产物逐字节一致。
+
 #### 10.4.2 H3 被**证伪**（编译侧）：D=896 的 MEAN 在整图里其实是能编的
 
-`--norm mean` 的 14 头块图（`ops/_block_qwen25_multhead_h14_meannorm_control`）**EXIT=0**、27 层、
+`--norm mean` 的 14 头块图（`ops/_block_qwen25_multhead_h14_meannorm_control`）**EXIT=0**、31 层、
 单执行步、无 bridge —— 与预测相反。而 `docs/OP-rmsnorm.md` 的独立模型 `ops/rms896_d896_T8_vA0`
 在同一个 ncc 上仍然 `EXIT=1`（`Invalid RSqrtLayer<2>`）。
 
