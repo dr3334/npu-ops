@@ -96,7 +96,13 @@ CMD 的 `RUN`/`DEL` 与 6.1 头布局一致，`priority=10` 与内核 trace 交�
 
 - `neuronrt` 依赖设备 `/vendor/lib64` 的 neuron runtime；固定版本对照实验时需要把我们 push 的 `mt6897/lib` 放到 `LD_LIBRARY_PATH` 前面。
 - 板端耗时来自 `neuronrt -c N`，含进程/提交开销，不是定频性能结论。
+- `neuronrt` 依赖设备 `/vendor/lib64` 的 neuron runtime；固定版本对照实验时需要把我们 push 的 `mt6897/lib` 放到 `LD_LIBRARY_PATH` 前面。
+- 板端耗时来自 `neuronrt -c N`，含进程/提交开销，不是定频性能结论。
 - 只覆盖 FULLY_CONNECTED；`SIN/COS/EMBEDDING_LOOKUP/GATHER` 的既有否定结论见 `.tmp/findings/ops2_empirical.md`，不重复测。
+- **自建库未到目的地**：整块 40 op 只在玩具尺寸（H=64）跑通；真维度 `[T,896]→[T,896]` 的 decoder 层**还重放不了**（命令流里输入/输出/temp 零地址字，用「基址+偏移」寻址，我们没解开）。
+- **官方 profiling 会弄坏板子**：`MTKNN_PROFILING_LEVEL=3` 跑完会出现 `MDLA timeout` / `ret=-5`，连 known-good 都失败；只有 `adb reboot` 能清，且重启后需先 `adb root`。见 `docs/OP-toolchain.md` §6.1。
+- **profiling 的绝对时间未定标**：PMU 给的是周期数，频率诚实区间 0.67–1.0 GHz，所以「占比」可靠、「µs 绝对值」有 ±50% 不确定。
+- **`--extract-static-data` 在 28 MB 常量图上跑不完**（侧文件 0 字节、日志截断），原因未定；fc 级（4 KB）成立且输出逐字节相同。
 
 ## 缓冲地图（S5，见 `reports/S5-cmdbuf-capture.md`）
 
@@ -170,3 +176,20 @@ CONV_2D/DEPTHWISE_CONV_2D/MAX_POOL/AVG_POOL。
 2. **int8 requant 是 gemmlowp 两次舍入**，按该规则写 golden 可逐位——这解决了早期 FC 的 ±1 LSB。
 
 完整矩阵：`docs/OP-MATRIX.md`；各算子细节：`docs/OP-{shapeops,actreduce,elementwise,convpool}.md`。
+
+## 黑盒编译器研究（2026-11-14，`feat/compiler-blackbox` 已并入）
+
+把官方编译器当**参考编译器**做受控差分，补齐「产物结构 ⇄ 语义」的知识。入口文档：
+[`docs/OP-toolchain.md`](docs/OP-toolchain.md)（工具链与开关）、[`docs/OP-dla-structure.md`](docs/OP-dla-structure.md)（产物五段结构与分级结论），
+实验记录见 [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md) 的 E-113 / E-114 / E-115。
+
+| 结论 | 值 |
+|---|---|
+| `.dla` 结构 | 头 1647 B / 24 B 头 / bias 256 B / 24 B 头 / weights 4096 B / 尾 1588 B（`fc(1,64,64)` int8） |
+| 只换权重 | 变化**锁在 4096 B 常量块内**，逃出 0 B；块内是**重排** |
+| 只改 requant 比值 | 只动**一个字节**（偏移 6343，0x24/0x1c/0x14，log2 步长 8） |
+| 改 scale 绝对大小 | **零字节变化**（编译器只吃比值） |
+| `--extract-static-data` | 权重变输入张量：7545 → 3666 B，喂回原始权重**逐字节相同** |
+| `-P3` + `MTKNN_*` | 拿到**每命令 PMU**：每核 55 条、sum = `exec_us` = 264 µs；**设备计算只占墙钟 25–39%** |
+
+**未解**：权重重排规则、tile 参数语义、头部索引字节语义、PMU 的 14 个 event 语义、同一模型连编为何会整块换排布（≈4.4 KB）。

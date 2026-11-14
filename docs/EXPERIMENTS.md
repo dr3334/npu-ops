@@ -427,3 +427,38 @@ hidden 896、14 query head / 2 KV head、head_dim 64、vocab 151936、T=8。全�
    `Fail to process the given model`——先跑一个已知可用的正对照，才能把「构造错」与「真不支持」分开（E-112 同类错误）。
 3. **阈值必须由独立于设备的下限支撑**：本批次噪声底实测全为 0（硬件确定性），于是阈值改按 fp16 末位口径
    `4·2⁻¹¹·max|out|` 登记，并用「把 golden 逐层按 fp16 舍入」的模拟给出下限；登记一律在跑之前（`tolerance_revision`）。
+---
+
+## E-113 黑盒差分能否给出「产物结构 ⇄ 语义」
+
+- **假设**：把官方编译器当参考编译器，只改一个维度（N / K / 权重 / 量化），产物字节差分可归因到具体区段。
+- **预测**：若成立，「只改 N」的差异应集中在少数区段，且重复编译能标定出稳定的噪声区。
+- **做法**：新建 `tools/bbdiff.py`（编译→收集→两次一致性→差分→报告）+ 数据矩阵；FC-A…FC-E 九个变体，每变体编 9 次、留 5 次同类别。
+- **产物**：`tools/bbdiff.py`、`tools/bbdiff-matrix-blackbox0{3,4}.json`、`reports/compiler-blackbox-0{3,4}.md`、`ops/_probe/bb0{3,4}-fc/`
+- **结果**：成立。N 变体 +4352 B = 权重 +4096 + bias +256；K 变体 +4096 B；只换权重时差分锁在 4096 B 常量块内、逃出 0 B；**改 requant 比值只动一个字节（偏移 6343）**、改 scale 绝对大小零字节变化。噪声区 1.8–2.1%（尾部嵌绝对路径 + 命令行 + UUID）。
+- **适用范围**：ncc-tflite 7.3.15 / mdla5.0 / `FC(1,64,64)` 夹具。
+- **剩余疑问**：权重块内的**重排规则**未解；头部索引字节语义未解；同一模型连编会出现**整块换排布**（≈4.4 KB，机制未知）。
+
+---
+
+## E-114 两个官方开关能否替代我们的资产策略
+
+- **假设**：`--extract-static-data` 能把权重从产物里挪出来变成输入张量；`--resize` 能让一份产物吃多种形状。
+- **预测**：若外置成立，`.dla` 应缩小约一个权重的字节数，且喂回原始权重后输出与参考逐字节相同。
+- **做法**：`fc_1x64x64_int8` 用 `--extract-static-data` 重编；`neuronrt -d` 读输入表；喂回 tflite 里的 4096 B 常量缓冲比对。`--resize` / `--runtime-dynamic-shape` 各编一份。
+- **产物**：`reports/compiler-blackbox-02.md`
+- **结果**：外置**成立** —— 7545 → 3666 B，权重成为 input[1]（4096 B），输出与 `out_device.bin` **逐字节相同**。`--resize` 只是**编译期换形状**（必须给全部输入尺寸），产物仍只认一个尺寸；`--runtime-dynamic-shape` 编得过但无动态行为。**28 MB 常量那张图（61 层 decoder）上 extract 跑不完**：侧文件 0 字节、日志截断在层清单中间。
+- **适用范围**：fc 级模型；`--resize` 结论限 add / FC 这类两输入图。
+- **剩余疑问**：28 MB 上为何失败（bug 还是耗时）未定；侧文件 262,178 B 不是权重、`neuronrt` 也不消费，用途未知。
+
+---
+
+## E-115 官方 profiling 出口与每命令 PMU
+
+- **假设**：这套 SDK 存在可用的 profiling 出口，能拿到每层/每命令的耗时与带宽，而不只是总时延。
+- **预测**：若存在，per-command 时间之和应等于运行时自报的 `exec_us`，且墙钟 ≥ 该和。
+- **做法**：`ncc-tflite -P<n>` 编译期打等级（`--help` 里没有）+ 运行时 `MTKNN_ENABLE_PROFILER=1 MTKNN_PROFILING_LEVEL=<n>`；读 logcat（tag=`neuron`）与落盘 JSON；自建 `profqos` harness（`ops/_probe/bb07-prof/profqos.c`）。
+- **产物**：`reports/compiler-blackbox-07.md`、`docs/OP-toolchain.md` §7、`ops/_probe/bb07-prof/`
+- **结果**：成立。level 3 产出 `execution_result.json`(272 KB) + `dla_info.json`(21 KB)：每核 55 条命令、带 `opIndices` 与 `bufferAccesses`；**每核 sum = exec_us = 264 µs**；墙钟 692–1066 µs → **设备侧计算只占 25–39%**。副作用：level 3 跑完会让 APU 卡死（`[apusys&]MDLA timeout` / `ret=-5` / 25 s），连 known-good 都失败，只有 reboot 能清、且重启后需 `adb root`。
+- **适用范围**：ncc 7.3.15 / mt6897 / 单算子与短图。
+- **剩余疑问**：时钟未钉死（诚实区间 0.67–1.0 GHz）；14 个 PMU event 的语义未知；61 层图上的数字未采（票 08）。
