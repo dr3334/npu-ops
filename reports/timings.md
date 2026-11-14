@@ -39,3 +39,16 @@
 | `npu_lib.matrix/sub_1x96_int8/run_alt` | 1 | **721.636** | 0.000 | 721.636 | 721.636 | host_wall | 换一对输入的第二次 g.run() |
 | `npu_lib.matrix/sub_1x96_int8/run_captured` | 1 | **710.091** | 0.000 | 710.091 | 710.091 | host_wall | g.run() 一次（含 adb 推拉 + npu_run 200ms 等待） |
 | `npu_lib.matrix/sub_1x96_int8/total_cold` | 1 | **1531.849** | 0.000 | 1531.849 | 1531.849 | host_wall | compile + 捕获 + 两次 run + 两道门 |
+
+## ⚠️ `-c` 会改变每 token 时间（2026-11-14，08a 实测）
+
+同一份 `fc_p0.dla`，只改 `neuronrt -c N`：
+
+| `-c` | 中位 ms/inf |
+|---|---|
+| 25 | 0.334–0.431 |
+| 200 | 0.657 |
+| 1600 | 0.774–0.785 |
+
+**跨度 2.3×。** 所以任何「ms/inf」都必须**同时报 `-c`**，跨 `-c` 的数字不可直接比较。
+推测是 boost/热衰减，但**未取证**（不猜）。详见 `reports/compiler-blackbox-08a.md`。
