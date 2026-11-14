@@ -1,0 +1,6 @@
+  round1 full_p0  Total inference time = 21.323 ms (1.06615 ms/inf)
+  round1 full_p3  Total inference time = 21.244 ms (1.0622 ms/inf)
+  round2 full_p0  Total inference time = 15.767 ms (0.78835 ms/inf)
+  round2 full_p3  Total inference time = 13.846 ms (0.6923 ms/inf)
+  round3 full_p0  Total inference time = 17.024 ms (0.8512 ms/inf)
+  round3 full_p3  Total inference time = 13.837 ms (0.69185 ms/inf)

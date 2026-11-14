@@ -1,0 +1,40 @@
+[729003.041050] irq/548-apu_ipi: mtk-apu 190e1000.apusys-rv: [name:apusys&]apu_ipi_handler: ipi_id=4, len=72, csum=0xd8c59d5, serial_no=51254, user_id=0x0, latency=11923, elapse=309923, t_hndlr=300616,t_mtx_lock=1769, t_usage_cnt_update=1846, t_wakup=2077
+[729003.049031] neuronrt: [name:apusys&][apummu][dbg] free_memory kref destroy
+[729003.200599] neuronrt: [name:slbc_trace&]#@# slbc_request_buffer(907) ret 0, UID_APU req slb
+[729003.201029] neuronrt: mtk-apu 190e1000.apusys-rv: [name:apusys&]apu_ipi_send: ipi_id=22, len=64, csum=2b0047e, serial_no=50539, user_id=0x0, elapse=25307
+[729003.201290] irq/548-apu_ipi: mtk-apu 190e1000.apusys-rv: [name:apusys&]apu_ipi_handler: ipi_id=22, len=64, csum=0x477, serial_no=51255, user_id=0x0, latency=97154, elapse=130846, t_hndlr=121615,t_mtx_lock=1538, t_usage_cnt_update=1923, t_wakup=1846
+[729003.206449] neuronrt: mtk-apu 190e1000.apusys-rv: [name:apusys&]apu_ipi_send: ipi_id=4, len=72, csum=51ef95c0, serial_no=50540, user_id=0x0, elapse=20308
+[729010.376402] kworker/u16:1: [name:mtk_lpm_dbg_common_v2&][name:spm&] Pending Wakeup Sources: mt6897_apupwr 11201000.usb0 disp_crtc0_wakelock 
+[729015.522765] kworker/u16:4: [name:mtk_lpm_dbg_common_v2&][name:spm&] Pending Wakeup Sources: mt6897_apupwr ttyCMIPC1 11201000.usb0 disp_crtc0_wakelock 
+[729021.827060] kworker/u16:4: [name:mtk_lpm_dbg_common_v2&][name:spm&] Pending Wakeup Sources: WLAN timeout mt6897_apupwr 11201000.usb0 disp_crtc0_wakelock 
+[729028.209403] irq/548-apu_ipi: mtk-apu 190e1000.apusys-rv: [name:apusys&]apu_ipi_send: ipi_id=9, len=16, csum=c0c0deb9, serial_no=50541, user_id=0x0, elapse=81154
+[729028.209486] irq/548-apu_ipi: [name:apusys&]tpye = 0, val = 0xc0c0dead
+[729028.209512] irq/548-apu_ipi: [name:apusys&]MDLA timeout
+[729028.209545] irq/548-apu_ipi: mtk-apu 190e1000.apusys-rv: [name:apusys&]apu_ipi_handler: ipi_id=9, len=24, csum=0xc0c0deb9, serial_no=51256, user_id=0x0, latency=297231, elapse=248615, t_hndlr=236615,t_mtx_lock=2462, t_usage_cnt_update=1616, t_wakup=2462
+[729028.209986] irq/548-apu_ipi: misc apusys: [name:apusys&][warn] mdw_cmd_check_rets sc(0xfcffff8109773000-#0) type(2) softlimit(0) boost(100) fail
+[729028.210036] irq/548-apu_ipi: misc apusys: [name:apusys&][warn] mdw_cmd_check_rets sc(0xfcffff8109773000-#1) type(2) softlimit(0) boost(100) fail
+[729028.210071] irq/548-apu_ipi: misc apusys: [name:apusys&][error] mdw_cmd_complete s(0xf1ffff8272e81c00) c(neuronrt/0xb40000785b8e9e50/0xfcffff8109773000/0xf9ffff810f2440e0/0x12e81c0000000000) ret(-5/0x3) time(25003555) pid(10365/10365)
+[729028.210435] irq/548-apu_ipi: mtk-apu 190e1000.apusys-rv: [name:apusys&]apu_ipi_handler: ipi_id=4, len=72, csum=0x8c46296, serial_no=51257, user_id=0x0, latency=68692, elapse=613769, t_hndlr=603692,t_mtx_lock=1000, t_usage_cnt_update=1769, t_wakup=2154
+[729028.217957] neuronrt: [name:apusys&][apummu][dbg] free_memory kref destroy
+[729028.251170] kworker/u16:2: [name:mtk_lpm_dbg_common_v2&][name:spm&] Pending Wakeup Sources: mt6897_apupwr 11201000.usb0 disp_crtc0_wakelock 
+[729028.391755] neuronrt: [name:slbc_trace&]#@# slbc_request_buffer(907) ret 0, UID_APU req slb
+[729028.392449] neuronrt: mtk-apu 190e1000.apusys-rv: [name:apusys&]apu_ipi_send: ipi_id=22, len=64, csum=2b0047f, serial_no=50542, user_id=0x0, elapse=41539
+[729028.392705] irq/548-apu_ipi: mtk-apu 190e1000.apusys-rv: [name:apusys&]apu_ipi_handler: ipi_id=22, len=64, csum=0x478, serial_no=51258, user_id=0x0, latency=95616, elapse=128308, t_hndlr=119307,t_mtx_lock=1461, t_usage_cnt_update=2077, t_wakup=1923
+[729028.398554] neuronrt: mtk-apu 190e1000.apusys-rv: [name:apusys&]apu_ipi_send: ipi_id=4, len=72, csum=39a41c7c, serial_no=50543, user_id=0x0, elapse=25539
+[729033.415683] kworker/u16:2: [name:mtk_lpm_dbg_common_v2&][name:spm&] Pending Wakeup Sources: mt6897_apupwr charger suspend wakelock 11f01000.i2c:mt6375@34:adc 11201000.usb0 disp_crtc0_wakelock 
+[729038.779161] kworker/u16:2: [name:mtk_lpm_dbg_common_v2&][name:spm&] Pending Wakeup Sources: WLAN timeout mt6897_apupwr 11201000.usb0 disp_crtc0_wakelock 
+[729043.911576] kworker/u16:1: [name:mtk_lpm_dbg_common_v2&][name:spm&] Pending Wakeup Sources: WLAN timeout mt6897_apupwr 11201000.usb0 disp_crtc0_wakelock 
+[729049.818698] kworker/u16:1: [name:mtk_lpm_dbg_common_v2&][name:spm&] Pending Wakeup Sources: WLAN timeout mt6897_apupwr 11201000.usb0 disp_crtc0_wakelock 
+[729053.402604] irq/548-apu_ipi: mtk-apu 190e1000.apusys-rv: [name:apusys&]apu_ipi_send: ipi_id=9, len=16, csum=c0c0deb9, serial_no=50544, user_id=0x0, elapse=115076
+[729053.402699] irq/548-apu_ipi: [name:apusys&]tpye = 0, val = 0xc0c0dead
+[729053.402727] irq/548-apu_ipi: [name:apusys&]MDLA timeout
+[729053.402741] irq/548-apu_ipi: mdla_ipi_up_msg: 3 callbacks suppressed
+[729053.402792] irq/548-apu_ipi: mtk-apu 190e1000.apusys-rv: [name:apusys&]apu_ipi_handler: ipi_id=9, len=24, csum=0xc0c0deb9, serial_no=51259, user_id=0x0, latency=358462, elapse=336538, t_hndlr=321231,t_mtx_lock=3692, t_usage_cnt_update=1846, t_wakup=2538
+[729053.403119] irq/548-apu_ipi: misc apusys: [name:apusys&][warn] mdw_cmd_check_rets sc(0xf2ffff8109776c00-#0) type(2) softlimit(0) boost(100) fail
+[729053.403162] irq/548-apu_ipi: misc apusys: [name:apusys&][warn] mdw_cmd_check_rets sc(0xf2ffff8109776c00-#1) type(2) softlimit(0) boost(100) fail
+[729053.403197] irq/548-apu_ipi: misc apusys: [name:apusys&][error] mdw_cmd_complete s(0xf2ffff8121792000) c(neuronrt/0xb4000072748bcb50/0xf2ffff8109776c00/0xf9ffff801947d320/0x1179200000000000) ret(-5/0x3) time(25004587) pid(10372/10372)
+[729053.403363] irq/548-apu_ipi: mtk-apu 190e1000.apusys-rv: [name:apusys&]apu_ipi_handler: ipi_id=4, len=72, csum=0x12e7f4d5, serial_no=51260, user_id=0x0, latency=12077, elapse=447692, t_hndlr=438769,t_mtx_lock=1846, t_usage_cnt_update=1846, t_wakup=2076
+[729053.410766] neuronrt: [name:apusys&][apummu][dbg] free_memory kref destroy
+[729055.019101] kworker/u16:4: [name:mtk_lpm_dbg_common_v2&][name:spm&] Pending Wakeup Sources: WLAN hif_thread WLAN timeout mt6897_apupwr 11201000.usb0 disp_crtc0_wakelock 
+[729058.504426] kworker/u16:1: [name:apusys&][apummu][info] ammu_DRAM_free_work Delay DRAM Free done
+[729060.082671] kworker/u16:4: [name:mtk_lpm_dbg_common_v2&][name:spm&] Pending Wakeup Sources: WLAN timeout mt6897_apupwr 11201000.usb0 disp_crtc0_wakelock 
