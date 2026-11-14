@@ -51,3 +51,6 @@ probe/npu_run
 
 # 计划与票只留本地（ADR 0004）
 .scratch/
+
+# bbdiff：所有变体共用的固定编译路径（可重建；每次 attempt 的日志已另行留档）
+ops/_probe/*/_build/
