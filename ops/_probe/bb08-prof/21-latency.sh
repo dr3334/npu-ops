@@ -21,7 +21,7 @@ printf 'round\tproduct\ttotal_ms\tms_per_inf\n' >> "$TSV"
 
 for r in $(seq 1 "$ROUNDS"); do
   for l in 0 1 2 3; do
-    OUT=$(sh_ "cd $DEV/bb08 && timeout 120 ./bin/neuronrt -m hw -a ${M}_p${l}.dla -i ${M}.in.bin -o lat_${M}_p${l}.bin -c $N" | tee "$EV/lat-${M}-p${l}-r${r}.txt")
+    OUT=$(sh_ "cd $DEV/bb08 && timeout 120 $DEV/bin/neuronrt -m hw -a ${M}_p${l}.dla -i ${M}.in.bin -o lat_${M}_p${l}.bin -c $N" | tee "$EV/lat-${M}-p${l}-r${r}.txt")
     LINE=$(echo "$OUT" | grep -m1 "Total inference time")
     TOT=$(echo "$LINE" | sed -n 's/.*= \([0-9.]*\) ms.*/\1/p')
     PER=$(echo "$LINE" | sed -n 's/.*(\([0-9.]*\) ms\/inf).*/\1/p')
@@ -33,6 +33,7 @@ done
 echo "----- output equality across levels (same input, same math) -----"
 sh_ "cd $DEV/bb08 && for f in lat_${M}_p*.bin; do echo \"\$f \$(md5sum \$f | cut -c1-16)\"; done"
 echo "----- dmesg verdict -----"
-BAD=$(sh_ "dmesg | grep -icE 'MDLA timeout|mdw_cmd_complete.*ret\(' " || echo 0)
+BAD=$(sh_ "dmesg | grep -icE 'MDLA timeout|ret\\(-5'" | tail -1)
+BAD=${BAD:-0}
 echo "BADMARKERS=$BAD"
 [ "$BAD" = "0" ] && echo "BOARD_STATE=dmesg-clean" || echo "BOARD_STATE=BAD(need adb reboot)"

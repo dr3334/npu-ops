@@ -11,6 +11,7 @@
 #              (this is the run whose JSON and exec_us belong together)
 set -uo pipefail
 M="${1:?model fc|dec}"
+LEVELS="${2:-0 1 2 3}"
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 EV="$ROOT/ops/_probe/bb08-prof/board"
 ADB="${ADB:-/d/adb/platform-tools/adb}"
@@ -22,7 +23,7 @@ sh_() { "$ADB" shell "$1" 2>&1 | tr -d '\r'; }
 sh_ "ls -l $DEV/bin/profqos_v" || { echo "NO profqos_v on device"; exit 9; }
 
 : > "$EV/profqos-$M.txt"
-for l in 0 1 2 3; do
+for l in $LEVELS; do
   pass() {
     local tag="$1" envs="$2"
     local dir="$DEV/bb08/pq_${M}_${l}_${tag}"
@@ -45,5 +46,6 @@ for l in 0 1 2 3; do
 done
 cat "$EV/profqos-$M.txt"
 echo "----- dmesg verdict -----"
-BAD=$(sh_ "dmesg | grep -icE 'MDLA timeout|mdw_cmd_complete.*ret\(' " || echo 0)
+BAD=$(sh_ "dmesg | grep -icE 'MDLA timeout|ret\\(-5'" | tail -1)
+BAD=${BAD:-0}
 echo "BADMARKERS=$BAD"

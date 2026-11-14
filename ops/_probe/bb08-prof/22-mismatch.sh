@@ -18,7 +18,7 @@ for pair in "fc_p0 1" "fc_p0 2" "fc_p0 3" "fc_p1 2" "fc_p1 3" "fc_p2 3" "fc_p3 3
   set -- $pair; D="$1"; L="$2"
   {
     echo "=== DLA=$D  ask=$L ==="
-    sh_ "cd $DEV/bb08 && timeout 90 env MTKNN_ENABLE_PROFILER=1 MTKNN_PROFILING_LEVEL=$L ./bin/neuronrt -m hw -a $D.dla -i fc.in.bin -o gating.bin -c 3"
+    sh_ "cd $DEV/bb08 && timeout 90 env MTKNN_ENABLE_PROFILER=1 MTKNN_PROFILING_LEVEL=$L $DEV/bin/neuronrt -m hw -a $D.dla -i fc.in.bin -o gating.bin -c 3"
     echo "--- rc/console above; logcat tag=neuron since last clear: ---"
     "$ADB" logcat -d -v time -s neuron 2>&1 | tr -d '\r'
     echo
@@ -27,5 +27,6 @@ for pair in "fc_p0 1" "fc_p0 2" "fc_p0 3" "fc_p1 2" "fc_p1 3" "fc_p2 3" "fc_p3 3
 done
 cat "$EV/level-gating-board.txt"
 echo "----- dmesg verdict -----"
-BAD=$(sh_ "dmesg | grep -icE 'MDLA timeout|mdw_cmd_complete.*ret\(' " || echo 0)
+BAD=$(sh_ "dmesg | grep -icE 'MDLA timeout|ret\\(-5'" | tail -1)
+BAD=${BAD:-0}
 echo "BADMARKERS=$BAD"

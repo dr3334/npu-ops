@@ -117,12 +117,15 @@ for r in rows:
     a = agg.setdefault(r["opclass"], dict(cycles=0, bytes=0, n=0))
     a["cycles"] += r["cycles"]; a["bytes"] += r["bytes"]; a["n"] += 1
 print()
-print("== by op class (all cores; share of the SLOWEST core's cycles) ==")
+# both cores run concurrently, so summing their cycles is "total device work"; shares are
+# taken against that sum (a per-slowest-core denominator would exceed 100% once both cores are
+# included). Per-core shares are what the earlier per-core tables show.
+print("== by op class (both cores summed = total core-cycles; share of that total) ==")
 print("  %-40s %5s %9s %6s %10s %8s" % ("ops", "n", "cycles", "share", "bytes", "B/us"))
 for k in sorted(agg, key=lambda k: -agg[k]["cycles"]):
     a = agg[k]
     us = a["cycles"] / clk
-    print("  %-40s %5d %9d %5.1f%% %10d %8.1f" % (k[:40], a["n"], a["cycles"], 100.0 * a["cycles"] / slow,
+    print("  %-40s %5d %9d %5.1f%% %10d %8.1f" % (k[:40], a["n"], a["cycles"], 100.0 * a["cycles"] / sum_all,
                                                   a["bytes"], a["bytes"] / us if us else 0))
 print()
 print("== by kind ==")
@@ -130,7 +133,7 @@ kinds = {}
 for r in rows:
     kinds[r["kind"]] = kinds.get(r["kind"], 0) + r["cycles"]
 for k in sorted(kinds, key=lambda k: -kinds[k]):
-    print("  %-16s %9d cycles  %5.1f%% of slowest-core" % (k, kinds[k], 100.0 * kinds[k] / slow))
+    print("  %-16s %9d cycles  %5.1f%% of total core-cycles" % (k, kinds[k], 100.0 * kinds[k] / sum_all))
 
 print()
 print("== top %d commands by cycles ==" % A.top)

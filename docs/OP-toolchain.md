@@ -176,6 +176,25 @@ Output :
 **纪律**：跑 profiling 的实验必须 ① 前后各一次 `healthcheck --quick`；② 全程持 `devlock`；
 ③ 一旦出现上面的 dmesg 立刻 reboot，不要反复重试；④ 一次只跑一个级别，别并发。
 
+### 6.1.1 补充（08 实测）：这次 level 3 没弄坏板子
+
+08 票在同一天连跑 **4 次** level-3（`fc`、`dec`、`profqos-fc`、`profqos-dec`），每次之后 `healthcheck --quick` 都 PASS、
+`dmesg` 里 `MDLA timeout` / `ret(-5)` 计数为 **0**、`uptime` 连续。**坏态的触发条件仍未定位**，所以上表的纪律照旧执行。
+
+### 6.1.2 `adb devices` 空的时候：先判电气层，再动 adb
+
+08 票遇到一次「板子从 USB 上消失 12 分钟」，症状与 APU 坏态**完全不同**（它连枚举都没有）：
+
+```powershell
+Get-PnpDevice -PresentOnly | ? { $_.InstanceId -match 'VID_0E8D' } | ft Status,Class,FriendlyName,InstanceId
+pnputil /scan-devices        # 需要管理员；重新扫描硬件变化
+```
+
+- 设备树里**没有** MediaTek VID ⇒ 不是 adb server、不是驱动，**重启 adb server / `reconnect offline` 都不会有用**，
+  只能等或物理重插/上电（这次就是 `uptime` 连续、12 分钟后自行恢复）；
+- 设备树里**有**、状态异常 ⇒ 才轮到 `adb kill-server` / `adb reconnect offline` / 重装驱动；
+- `adb shell uptime` 能区分「板子重启过」和「只是 USB 掉了」——重启过就还要 `adb root` 再跑。
+
 ## 7. profiling：真正的出口是 `-P<n>` + `MTKNN_*`（07 补）
 
 > 结论来源与全部实测：[`07`](../reports/compiler-blackbox-07.md)。这一节只放**能直接抄的命令**。
@@ -211,8 +230,19 @@ DLA -P3,   ask=3 -> INFO: The profiling level is now set to 3
 
 | 等级 | 控制台 | 文件（CWD 或 `MTKNN_PROFILER_LOG_PATH=<dir>`） |
 |---|---|---|
-| 1 / 2 | 阶段级摘要表（`Runtime Status (LEVEL 1)`、`Detail of 'Inference' (LEVEL 2)`） | 无 |
-| **3** | 同上（**板端只写文件、不打印表**） | `dla_info.json`（21 KB）+ `execution_result.json`（**272 KB**） |
+| 1 | 阶段级摘要表（`Runtime Status (LEVEL 1)`） | 无 |
+| 2 | 上表 + LEVEL 2/3/4 三张（`Detail of 'Inference' (LEVEL 2)`、`Driver Turnaround Time (LEVEL 3)`、`IP Time (LEVEL 4)`） | 无 |
+| **3** | 同 level 2 | `dla_info.json` + `execution_result.json`（每推理 × 每核 × 每命令） |
+
+**板端也会打印这些表**（08 更正：07 只看了 stdout 才以为「板端只写文件」）：
+
+```bash
+adb logcat -c && adb shell "... MTKNN_ENABLE_PROFILER=1 MTKNN_PROFILING_LEVEL=3 ..." ; adb logcat -d -v time -s neuron
+```
+
+表在 `logcat` 的 `tag=neuron` 里（stdout 只有 `Inference repeats`/`Total inference time`/`Avg FPS` 三行）；
+level 2 就已经把 LEVEL 3/4 的 driver 表带出来（按设备 `MDLA_5_0 - subgraph#1`，不是按层）。
+证据：`ops/_probe/bb08-prof/board/logcat-neuron-*.txt`。
 
 `execution_result.json` 的形状：`inference -> codes[每核一个] -> flows[每条命令一条]`，每条 flow 带 `endCycle` 与 14 个 PMU event；
 `dla_info.json` 把同样的 flow id 映射到 `opIndices[]` 与 `bufferAccesses[{buffer_id, offset, size}]`——**这就是每层的耗时与带宽来源**。
@@ -235,6 +265,18 @@ us = cycles / 1000；带宽 = 该 flow 的 bufferAccesses 字节和 / us
 - **每核 sum = 运行时 `exec_us`**（判据达成）；但 **≠ `neuronrt -c N` 的墙钟**：`full_p3` 墙钟 692–1066 µs，设备侧只占 **25–38%**；
 - 观测开销：level 1 = 1.35、level 2 = 1.73、**level 3 = 9.74 ms/inf（7.2×）**；
 - ⚠️ **level 3 跑完板子会进 `MDLA timeout` 坏态**（`ret=-5`、`time=25s`，连 known-good 算子都失败，需 reboot）。跑前后各一次 `tools/healthcheck.sh --quick`。
+
+**08 实测（两张图，对账给出偏差百分比）**：
+
+| 图 | 设备侧计算 A（最慢核） | 墙钟 B（干净 `-c N`） | 偏差 `(B−A)/B` | 计算占墙钟 |
+|---|---|---|---|---|
+| `fc_1x64x64_int8`（1 条命令/单核） | 5.03 µs | 496.4 µs（p3）/ 351.9 µs（p0） | **99.0%** / 98.6% | 1.0% / 1.4% |
+| `decoder_layer_t8_fp16`（121 条命令/双核） | 1226 µs | 2112 µs | **41.9%** | 58.1% |
+
+- **时钟收紧到 0.94–1.03 GHz**（dec 的 4 个 `exec_us` 样本：1193/1230/1309 → 1028/997/937 MHz，另一样本 829 为离群）；
+  `fc` 不能定标（`exec_us` 整数 µs，5 µs 任务上量化误差 ±10%）；
+- 61 层图的成本结构：**7 条 `FULLY_CONNECTED` 占 68.8% 的核心周期、搬 30.2 MB 权重（15–29 GB/s）⇒ 带宽受限**；
+  详见 [`08`](../reports/compiler-blackbox-08.md) §7。
 
 ### 7.4 自建 harness：拿 `getProfiledQoSData`（每 sub-command，非每层）
 

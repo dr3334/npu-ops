@@ -2,89 +2,45 @@
 [rt] create rc=0
 [rt] loadNetworkFromFile rc=0
 [rt] inputs=1 outputs=1
-[rt] 20 inference(s) in 6762 us
+[rt] 20 inference(s) in 8982 us
 [rt] getProfiledQoSData rc=0 execBoostValue=100
 [subgraph 0] subcmds=1
-  cmd   0  exec_us=14         bandwidthMBps=0        boost=100 suggested_ms=0
-SUM_EXEC_US=14 CMDS=1 MEASURED_US=6762 LOOPS=20 PER_INF_US=338
+  cmd   0  exec_us=10         bandwidthMBps=0        boost=100 suggested_ms=0
+SUM_EXEC_US=10 CMDS=1 MEASURED_US=8982 LOOPS=20 PER_INF_US=449
 total 4
--rw-rw-rw- 1 root root 64 2026-11-14 16:31 pq_out.bin
+-rw-rw-rw- 1 root root 64 2026-11-14 16:33 pq_out.bin
 === fc p0 L3 ===
 [rt] create rc=0
 [rt] loadNetworkFromFile rc=0
 [rt] inputs=1 outputs=1
-[rt] 20 inference(s) in 9359 us
+[rt] 20 inference(s) in 8022 us
 [rt] getProfiledQoSData rc=0 execBoostValue=100
 [subgraph 0] subcmds=1
-  cmd   0  exec_us=9          bandwidthMBps=0        boost=100 suggested_ms=0
-SUM_EXEC_US=9 CMDS=1 MEASURED_US=9359 LOOPS=20 PER_INF_US=468
+  cmd   0  exec_us=17         bandwidthMBps=0        boost=100 suggested_ms=0
+SUM_EXEC_US=17 CMDS=1 MEASURED_US=8022 LOOPS=20 PER_INF_US=401
 total 4
--rw-rw-rw- 1 root root 64 2026-11-14 16:31 pq_out.bin
-=== fc p1 clean ===
-[rt] create rc=0
-[rt] loadNetworkFromFile rc=0
-[rt] inputs=1 outputs=1
-[rt] 20 inference(s) in 6487 us
-[rt] getProfiledQoSData rc=0 execBoostValue=100
-[subgraph 0] subcmds=1
-  cmd   0  exec_us=9          bandwidthMBps=0        boost=100 suggested_ms=0
-SUM_EXEC_US=9 CMDS=1 MEASURED_US=6487 LOOPS=20 PER_INF_US=324
-total 4
--rw-rw-rw- 1 root root 64 2026-11-14 16:31 pq_out.bin
-=== fc p1 L3 ===
-[rt] create rc=0
-[rt] loadNetworkFromFile rc=0
-[rt] inputs=1 outputs=1
-[rt] 20 inference(s) in 7360 us
-[rt] getProfiledQoSData rc=0 execBoostValue=100
-[subgraph 0] subcmds=1
-  cmd   0  exec_us=13         bandwidthMBps=0        boost=100 suggested_ms=0
-SUM_EXEC_US=13 CMDS=1 MEASURED_US=7360 LOOPS=20 PER_INF_US=368
-total 4
--rw-rw-rw- 1 root root 64 2026-11-14 16:31 pq_out.bin
-=== fc p2 clean ===
-[rt] create rc=0
-[rt] loadNetworkFromFile rc=0
-[rt] inputs=1 outputs=1
-[rt] 20 inference(s) in 7099 us
-[rt] getProfiledQoSData rc=0 execBoostValue=100
-[subgraph 0] subcmds=1
-  cmd   0  exec_us=11         bandwidthMBps=0        boost=100 suggested_ms=0
-SUM_EXEC_US=11 CMDS=1 MEASURED_US=7099 LOOPS=20 PER_INF_US=355
-total 4
--rw-rw-rw- 1 root root 64 2026-11-14 16:31 pq_out.bin
-=== fc p2 L3 ===
-[rt] create rc=0
-[rt] loadNetworkFromFile rc=0
-[rt] inputs=1 outputs=1
-[rt] 20 inference(s) in 9182 us
-[rt] getProfiledQoSData rc=0 execBoostValue=100
-[subgraph 0] subcmds=1
-  cmd   0  exec_us=12         bandwidthMBps=0        boost=100 suggested_ms=0
-SUM_EXEC_US=12 CMDS=1 MEASURED_US=9182 LOOPS=20 PER_INF_US=459
-total 4
--rw-rw-rw- 1 root root 64 2026-11-14 16:31 pq_out.bin
+-rw-rw-rw- 1 root root 64 2026-11-14 16:33 pq_out.bin
 === fc p3 clean ===
 [rt] create rc=0
 [rt] loadNetworkFromFile rc=0
 [rt] inputs=1 outputs=1
-[rt] 20 inference(s) in 6556 us
+[rt] 20 inference(s) in 7565 us
 [rt] getProfiledQoSData rc=0 execBoostValue=100
 [subgraph 0] subcmds=1
   cmd   0  exec_us=10         bandwidthMBps=0        boost=100 suggested_ms=0
-SUM_EXEC_US=10 CMDS=1 MEASURED_US=6556 LOOPS=20 PER_INF_US=328
+SUM_EXEC_US=10 CMDS=1 MEASURED_US=7565 LOOPS=20 PER_INF_US=378
 total 4
--rw-rw-rw- 1 root root 64 2026-11-14 16:31 pq_out.bin
+-rw-rw-rw- 1 root root 64 2026-11-14 16:33 pq_out.bin
 === fc p3 L3 ===
 [rt] create rc=0
 [rt] loadNetworkFromFile rc=0
 [rt] inputs=1 outputs=1
-[rt] 20 inference(s) in 16319 us
+[rt] 20 inference(s) in 18740 us
 [rt] getProfiledQoSData rc=0 execBoostValue=100
 [subgraph 0] subcmds=1
   cmd   0  exec_us=15         bandwidthMBps=0        boost=100 suggested_ms=0
-SUM_EXEC_US=15 CMDS=1 MEASURED_US=16319 LOOPS=20 PER_INF_US=816
+SUM_EXEC_US=15 CMDS=1 MEASURED_US=18740 LOOPS=20 PER_INF_US=937
 total 20
--rw-rw-rw- 1 root root   695 2026-11-14 16:31 dla_info.json
--rw-rw-rw- 1 root root 11948 2026-11-14 16:31 execution_result.json
--rw-rw-rw- 1 root root    64 2026-11-14 16:31 pq_out.bin
+-rw-rw-rw- 1 root root   695 2026-11-14 16:33 dla_info.json
+-rw-rw-rw- 1 root root 11943 2026-11-14 16:33 execution_result.json
+-rw-rw-rw- 1 root root    64 2026-11-14 16:33 pq_out.bin
