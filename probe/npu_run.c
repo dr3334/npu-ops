@@ -40,6 +40,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <time.h>
 
 #define APUSYS_MAGIC 0x41
 typedef struct { uint32_t op, pad; uint64_t flags; uint64_t w0, w1, w2; } hs_args_t;
@@ -71,6 +72,8 @@ typedef struct {
   int patch_idx;
   int expect_patches;
   uint32_t einfo_size;       /* exec_infos 缓冲的大小（默认 76；多/大图要按抓取的大小） */
+  int iter;                  /* 同进程内重复提交次数（计时用，默认 1） */
+  int wait_ms;               /* 每次提交后等待多久再读回（默认 200） */
   uint32_t n_elems;
   uint32_t bytes_a, bytes_b, bytes_out;   /* 0 => fall back to n_elems */
   int n_inputs;
@@ -93,6 +96,8 @@ static void plan_defaults(plan_t *p) {
   p->expect_patches = 3;
   p->n_inputs = 2;
   p->einfo_size = 76;
+  p->iter = 1;
+  p->wait_ms = 200;
 }
 
 static int parse_plan(const char *path, plan_t *p) {
@@ -135,6 +140,8 @@ static int parse_plan(const char *path, plan_t *p) {
     else if (!strcmp(k, "patch_idx")) p->patch_idx = atoi(v);
     else if (!strcmp(k, "expect_patches")) p->expect_patches = atoi(v);
     else if (!strcmp(k, "einfo_size")) p->einfo_size = (uint32_t)strtoul(v, NULL, 0);
+    else if (!strcmp(k, "iter")) p->iter = atoi(v);
+    else if (!strcmp(k, "wait_ms")) p->wait_ms = atoi(v);
     else if (!strcmp(k, "n_elems")) p->n_elems = (uint32_t)strtoul(v, NULL, 0);
     else if (!strcmp(k, "bytes_a")) p->bytes_a = (uint32_t)strtoul(v, NULL, 0);
     else if (!strcmp(k, "bytes_b")) p->bytes_b = (uint32_t)strtoul(v, NULL, 0);
@@ -456,11 +463,43 @@ int main(int argc, char **argv) {
   put64(&cmd, 0x60, 0xffffffffffffffffULL);
   put64(&cmd, 0x68, einfo.handle);
 
-  if (ioctl(g_fd, APU_CMD, &cmd) < 0) { perror("CMD RUN"); rc = 5; goto done; }
-
-  usleep(200000);
-  dma_buf_sync(c.handle, (1u << 30) | 1u);
-  dma_buf_sync(c.handle, (1u << 31) | 1u);
+  if (pl.iter < 1) pl.iter = 1;
+  {
+    static unsigned char ref[1 << 20];
+    static unsigned char cur[1 << 20];
+    if (pl.bytes_out > sizeof(ref)) { fprintf(stderr, "bytes_out too large for timing buffer\n"); rc = 2; goto done; }
+    double best = 1e9, worst = 0.0, sum = 0.0;
+    double samples[256];
+    int nsamp = 0, equal = 1;
+    for (int it = 0; it < pl.iter; it++) {
+      struct timespec t0, t1;
+      clock_gettime(CLOCK_MONOTONIC, &t0);
+      if (ioctl(g_fd, APU_CMD, &cmd) < 0) { perror("CMD RUN"); rc = 5; goto done; }
+      usleep((useconds_t)pl.wait_ms * 1000);
+      dma_buf_sync(c.handle, (1u << 30) | 1u);
+      dma_buf_sync(c.handle, (1u << 31) | 1u);
+      memcpy(cur, c.host, pl.bytes_out);
+      clock_gettime(CLOCK_MONOTONIC, &t1);
+      double ms = (t1.tv_sec - t0.tv_sec) * 1e3 + (t1.tv_nsec - t0.tv_nsec) / 1e6;
+      if (it == 0) memcpy(ref, cur, pl.bytes_out);
+      else if (memcmp(ref, cur, pl.bytes_out) != 0) equal = 0;
+      if (ms < best) best = ms;
+      if (ms > worst) worst = ms;
+      sum += ms;
+      if (nsamp < 256) samples[nsamp++] = ms;
+    }
+    /* 中位数 */
+    for (int a = 1; a < nsamp; a++) {
+      double v = samples[a];
+      int b = a - 1;
+      while (b >= 0 && samples[b] > v) { samples[b + 1] = samples[b]; b--; }
+      samples[b + 1] = v;
+    }
+    double med = nsamp ? samples[nsamp / 2] : 0.0;
+    printf("TIMING iter=%d wait_ms=%d min=%.3f med=%.3f max=%.3f mean=%.3f all_equal=%d\n",
+           pl.iter, pl.wait_ms, best, med, worst, sum / pl.iter, equal);
+    memcpy(c.host, ref, pl.bytes_out);
+  }
   if (pl.dump_b[0] && pl.n_inputs == 2) {
     dma_buf_sync(b1.handle, (1u << 30) | 1u);
     dma_buf_sync(b1.handle, (1u << 31) | 1u);
