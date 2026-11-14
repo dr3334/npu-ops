@@ -1,3 +1,6 @@
+> **✅ 已解决（2026-11-14）**：整块现在能作为**一次提交**重放 —— 2 个子命令、5 个地址字、输出与厂商逐字节相同。
+> 四件工作（shim 枚举子命令 / mkasset 分组 / npu_run 组 N 个子命令 / plan 的 einfo_size）已完成，
+> 见 [`reports/npu-lib-whole-block.md`](npu-lib-whole-block.md)。本文保留为定位过程的记录。
 # 整块当「单个算子」重放：卡在哪（实测定位）
 
 日期：2026-11-14 · 目标 `ops/block_qwen25_1l_full_fp16/model.dla`（40 op，H=64，T=8，fp16）

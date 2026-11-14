@@ -70,6 +70,7 @@ typedef struct {
   int dir[3];
   int patch_idx;
   int expect_patches;
+  uint32_t einfo_size;       /* exec_infos 缓冲的大小（默认 76；多/大图要按抓取的大小） */
   uint32_t n_elems;
   uint32_t bytes_a, bytes_b, bytes_out;   /* 0 => fall back to n_elems */
   int n_inputs;
@@ -91,6 +92,7 @@ static void plan_defaults(plan_t *p) {
   p->patch_idx = 2;
   p->expect_patches = 3;
   p->n_inputs = 2;
+  p->einfo_size = 76;
 }
 
 static int parse_plan(const char *path, plan_t *p) {
@@ -132,6 +134,7 @@ static int parse_plan(const char *path, plan_t *p) {
     else if (!strcmp(k, "dir2")) p->dir[2] = atoi(v);
     else if (!strcmp(k, "patch_idx")) p->patch_idx = atoi(v);
     else if (!strcmp(k, "expect_patches")) p->expect_patches = atoi(v);
+    else if (!strcmp(k, "einfo_size")) p->einfo_size = (uint32_t)strtoul(v, NULL, 0);
     else if (!strcmp(k, "n_elems")) p->n_elems = (uint32_t)strtoul(v, NULL, 0);
     else if (!strcmp(k, "bytes_a")) p->bytes_a = (uint32_t)strtoul(v, NULL, 0);
     else if (!strcmp(k, "bytes_b")) p->bytes_b = (uint32_t)strtoul(v, NULL, 0);
@@ -276,18 +279,28 @@ static int patch_addrs(unsigned char *cmd, unsigned size, const uint64_t *oldv,
 }
 
 /* ------------------------------------------------------------------ main */
+#define MAXSUB 8
+#define MAXCB  8
+
 int main(int argc, char **argv) {
   plan_t pl;
   char p[1024];
-  buf_t cb[3] = {{0}}, a1 = {0}, b1 = {0}, c = {0}, einfo = {0};
-  uint32_t cb_size[3] = {0, 0, 0};
-  static unsigned char cbs[3 * 24];
-  static unsigned char subcmd[256];
+  buf_t a1 = {0}, b1 = {0}, c = {0}, einfo = {0};
+  static buf_t cb[MAXSUB][MAXCB];
+  static uint32_t cb_size[MAXSUB][MAXCB];
+  static char cb_file[MAXSUB][MAXCB][64];
+  static int dirs[MAXSUB][MAXCB];
+  static unsigned char cbs[MAXSUB][MAXCB * 24];
+  static unsigned char subcmd[MAXSUB * 80];
   static unsigned char adj[64];
   cmd_args_t cmd;
-  uint32_t subcmd_size = 0;
-  int deferred_map, rc = 0;
+  int nsub = 0, ncb[MAXSUB];
+  int multi = 0, deferred_map, rc = 0;
   unsigned hits = 0;
+
+  memset(cb, 0, sizeof(cb));
+  memset(ncb, 0, sizeof(ncb));
+  memset(dirs, 0, sizeof(dirs));
 
   if (argc != 2) { fprintf(stderr, "usage: %s <plan.txt>\n", argv[0]); return 2; }
   if (parse_plan(argv[1], &pl)) return 2;
@@ -298,20 +311,68 @@ int main(int argc, char **argv) {
     return 2;
   }
 
-  for (int k = 0; k < 3; k++) {
-    snprintf(p, sizeof(p), "%s/%s", pl.asset_dir, pl.cmdbuf_file[k]);
-    if (file_size(p, &cb_size[k])) { fprintf(stderr, "%s: missing cmdbuf\n", p); return 3; }
+  /* 多子命令资产（mkasset 写 subcmds.txt）：一行 "<gi> <n> <size:dir>..." */
+  snprintf(p, sizeof(p), "%s/subcmds.txt", pl.asset_dir);
+  {
+    FILE *sf = fopen(p, "r");
+    if (sf) {
+      char line[512];
+      while (fgets(line, sizeof(line), sf) && nsub < MAXSUB) {
+        int gi = -1, n = 0, used = 0;
+        if (sscanf(line, "%d %d%n", &gi, &n, &used) < 2) continue;
+        if (gi < 0 || gi >= MAXSUB || n <= 0) continue;
+        int off = used, k = 0;
+        while (k < n && k < MAXCB) {
+          int sz = 0, dir = 1, u2 = 0;
+          if (sscanf(line + off, " %d:%d%n", &sz, &dir, &u2) < 2) break;
+          off += u2;
+          cb_size[gi][k] = (uint32_t)sz;
+          dirs[gi][k] = dir;
+          k++;
+        }
+        ncb[gi] = k;
+        if (gi + 1 > nsub) nsub = gi + 1;
+      }
+      fclose(sf);
+    }
   }
-  snprintf(p, sizeof(p), "%s/subcmd.bin", pl.asset_dir);
-  if (file_size(p, &subcmd_size) || subcmd_size > sizeof(subcmd)) return 3;
+  multi = (nsub > 0);
+  if (getenv("NPU_RUN_DEBUG"))
+    fprintf(stderr, "DBG parser: nsub=%d ncb0=%d ncb1=%d sizes0=%u,%u,%u sizes1=%u,%u,%u\n",
+            nsub, ncb[0], ncb[1], cb_size[0][0], cb_size[0][1], cb_size[0][2],
+            cb_size[1][0], cb_size[1][1], cb_size[1][2]);
+  if (!multi) {
+    nsub = 1;
+    ncb[0] = 3;
+    for (int k = 0; k < 3; k++) {
+      snprintf(cb_file[0][k], 64, "%s", pl.cmdbuf_file[k]);
+      dirs[0][k] = pl.dir[k];
+      snprintf(p, sizeof(p), "%s/%s", pl.asset_dir, cb_file[0][k]);
+      if (file_size(p, &cb_size[0][k])) { fprintf(stderr, "%s: missing cmdbuf\n", p); return 3; }
+    }
+  } else {
+    for (int i = 0; i < nsub; i++) {
+      for (int k = 0; k < ncb[i]; k++) {
+        snprintf(cb_file[i][k], 64, "cmd%d_%d.bin", i, k);
+        snprintf(p, sizeof(p), "%s/%s", pl.asset_dir, cb_file[i][k]);
+        uint32_t sz = 0;
+        if (file_size(p, &sz)) { fprintf(stderr, "%s: missing cmdbuf\n", p); return 3; }
+        if (sz != cb_size[i][k]) {
+          fprintf(stderr, "%s: size %u != subcmds.txt %u (taking disk)\n", p, sz, cb_size[i][k]);
+          cb_size[i][k] = sz;
+        }
+      }
+    }
+  }
 
   if (apu_open_handshake()) return 5;
 
-  for (int k = 0; k < 3; k++)
-    if (apu_alloc_map(&cb[k], cb_size[k], CMDBUF_ALIGN, 1)) { rc = 5; goto done; }
-  for (int k = 0; k < 3; k++) {
-    snprintf(p, sizeof(p), "%s/%s", pl.asset_dir, pl.cmdbuf_file[k]);
-    if (read_file(p, cb[k].host, cb_size[k])) { rc = 3; goto done; }
+  for (int i = 0; i < nsub; i++) {
+    for (int k = 0; k < ncb[i]; k++) {
+      if (apu_alloc_map(&cb[i][k], cb_size[i][k], CMDBUF_ALIGN, 1)) { rc = 5; goto done; }
+      snprintf(p, sizeof(p), "%s/%s", pl.asset_dir, cb_file[i][k]);
+      if (read_file(p, cb[i][k].host, cb_size[i][k])) { rc = 3; goto done; }
+    }
   }
 
   if (apu_alloc_map(&a1, pl.alloc[0], CMDBUF_ALIGN, 1)) { rc = 5; goto done; }
@@ -319,8 +380,8 @@ int main(int argc, char **argv) {
   if (pl.n_inputs == 2 &&
       apu_alloc_map(&b1, pl.alloc[1], CMDBUF_ALIGN, deferred_map ? 0 : 1)) { rc = 5; goto done; }
   if (apu_alloc_map(&c, pl.alloc[2], CMDBUF_ALIGN, 1)) { rc = 5; goto done; }
-  if (apu_alloc_map(&einfo, 76, 0, 1)) { rc = 5; goto done; }   /* exec_infos 必须是 MEM handle */
-  memset(einfo.host, 0, 76);
+  if (apu_alloc_map(&einfo, pl.einfo_size, 0, 1)) { rc = 5; goto done; }
+  memset(einfo.host, 0, pl.einfo_size);
 
   if (read_file(pl.in_a, a1.host, pl.bytes_a)) { rc = 3; goto done; }
   if (pl.n_inputs == 2) {
@@ -331,10 +392,11 @@ int main(int argc, char **argv) {
     } else if (read_file(pl.in_b, b1.host, pl.bytes_b)) { rc = 3; goto done; }
   }
 
-  /* 命令缓冲也要 flush（漏了会偶发读到陈旧命令流） */
-  for (int k = 0; k < 3; k++) {
-    dma_buf_sync(cb[k].handle, (1u << 30) | 2u);
-    dma_buf_sync(cb[k].handle, (1u << 31) | 2u);
+  for (int i = 0; i < nsub; i++) {
+    for (int k = 0; k < ncb[i]; k++) {
+      dma_buf_sync(cb[i][k].handle, (1u << 30) | 2u);
+      dma_buf_sync(cb[i][k].handle, (1u << 31) | 2u);
+    }
   }
   dma_buf_sync(a1.handle, (1u << 30) | 2u);
   dma_buf_sync(a1.handle, (1u << 31) | 2u);
@@ -345,43 +407,50 @@ int main(int argc, char **argv) {
 
   {
     uint64_t newv[3] = { a1.iova, pl.n_inputs == 2 ? b1.iova : 0, c.iova };
-    int k = pl.patch_idx;
-    if (k < 0 || k > 2) { rc = 2; goto done; }
-    patch_addrs((unsigned char *)cb[k].host, cb_size[k], pl.old_iova, newv, &hits);
+    for (int i = 0; i < nsub; i++) {
+      for (int k = 0; k < ncb[i]; k++) {
+        unsigned h = 0;   /* patch_addrs 会把计数清零，必须逐块累加 */
+        patch_addrs((unsigned char *)cb[i][k].host, cb_size[i][k], pl.old_iova, newv, &h);
+        hits += h;
+      }
+    }
     if (hits != (unsigned)pl.expect_patches) {
       fprintf(stderr, "patched %u/%d addresses (command stream mismatch?)\n",
               hits, pl.expect_patches);
       rc = 4; goto done;
     }
   }
-  printf("iova A=0x%llx B=0x%llx C=0x%llx bytes=%u/%u/%u\n",
+  printf("iova A=0x%llx B=0x%llx C=0x%llx bytes=%u/%u/%u subcmds=%d\n",
          (unsigned long long)a1.iova, (unsigned long long)b1.iova,
-         (unsigned long long)c.iova, pl.bytes_a, pl.bytes_b, pl.bytes_out);
+         (unsigned long long)c.iova, pl.bytes_a, pl.bytes_b, pl.bytes_out, nsub);
 
   memset(cbs, 0, sizeof(cbs));
-  for (int k = 0; k < 3; k++) {
-    uint64_t h = cb[k].handle;
-    uint32_t sz = cb_size[k], al = CMDBUF_ALIGN, dir = (uint32_t)pl.dir[k];
-    memcpy(cbs + k * 24 + 0, &h, 8);
-    memcpy(cbs + k * 24 + 8, &sz, 4);
-    memcpy(cbs + k * 24 + 12, &al, 4);
-    memcpy(cbs + k * 24 + 16, &dir, 4);
+  memset(subcmd, 0, sizeof(subcmd));
+  for (int i = 0; i < nsub; i++) {
+    for (int k = 0; k < ncb[i]; k++) {
+      unsigned char *d = cbs[i] + k * 24;
+      uint64_t h = cb[i][k].handle;
+      uint32_t sz = cb_size[i][k], al = CMDBUF_ALIGN, dir = (uint32_t)dirs[i][k];
+      memcpy(d + 0, &h, 8);
+      memcpy(d + 8, &sz, 4);
+      memcpy(d + 12, &al, 4);
+      memcpy(d + 16, &dir, 4);
+    }
+    if (multi) snprintf(p, sizeof(p), "%s/subcmd%d.bin", pl.asset_dir, i);
+    else snprintf(p, sizeof(p), "%s/subcmd.bin", pl.asset_dir);
+    if (read_file(p, subcmd + i * 80, 80)) { rc = 3; goto done; }
+    put32(subcmd, i * 80 + 64, (uint32_t)ncb[i]);
+    put64(subcmd, i * 80 + 72, (uint64_t)(uintptr_t)cbs[i]);
   }
 
-  memset(subcmd, 0, sizeof(subcmd));
-  snprintf(p, sizeof(p), "%s/subcmd.bin", pl.asset_dir);
-  if (read_file(p, subcmd, subcmd_size)) { rc = 3; goto done; }
-  put32(subcmd, subcmd_size - 16, 3);
-  put64(subcmd, subcmd_size - 8, (uint64_t)(uintptr_t)cbs);
-
-  memset(adj, 0, sizeof(adj));   /* adj_matrix 全零（E-106B-2 已验证） */
+  memset(adj, 0, sizeof(adj));
 
   memset(&cmd, 0, sizeof(cmd));
   snprintf(p, sizeof(p), "%s/cmdin.bin", pl.asset_dir);
   if (read_file(p, &cmd, sizeof(cmd))) { rc = 3; goto done; }
   put64(&cmd, 0x10, 0);
   put64(&cmd, 0x18, 0);
-  put32(&cmd, 0x48, 1);
+  put32(&cmd, 0x48, (uint32_t)nsub);
   put64(&cmd, 0x50, (uint64_t)(uintptr_t)subcmd);
   put64(&cmd, 0x58, (uint64_t)(uintptr_t)adj);
   put64(&cmd, 0x60, 0xffffffffffffffffULL);
@@ -389,7 +458,7 @@ int main(int argc, char **argv) {
 
   if (ioctl(g_fd, APU_CMD, &cmd) < 0) { perror("CMD RUN"); rc = 5; goto done; }
 
-  usleep(200000);   /* rc=0 只代表提交成功 */
+  usleep(200000);
   dma_buf_sync(c.handle, (1u << 30) | 1u);
   dma_buf_sync(c.handle, (1u << 31) | 1u);
   if (pl.dump_b[0] && pl.n_inputs == 2) {
@@ -401,16 +470,18 @@ int main(int argc, char **argv) {
   if (write_file(pl.out, c.host, pl.bytes_out)) { rc = 3; goto done; }
   printf("RC=0 patches=%u out=%s\n", hits, pl.out);
 
-  /* 证据用：让进程在提交完成后多活一会儿，方便外部采样 /proc/<pid>/maps
-     （docs/OWN-SUBMITTER-LIB.md「怎么证明 run() 没碰厂商库」）。 */
   {
     const char *hold = getenv("NPU_RUN_HOLD_MS");
     if (hold && atoi(hold) > 0) { printf("HOLD pid=%d ms=%d\n", (int)getpid(), atoi(hold)); fflush(stdout); usleep((useconds_t)atoi(hold) * 1000); }
   }
 
 done:
-  apu_release(&c); apu_release(&b1); apu_release(&a1); apu_release(&einfo);
-  apu_release(&cb[2]); apu_release(&cb[1]); apu_release(&cb[0]);
+  apu_release(&c);
+  apu_release(&b1);
+  apu_release(&a1);
+  apu_release(&einfo);
+  for (int i = 0; i < MAXSUB; i++)
+    for (int k = MAXCB - 1; k >= 0; k--) apu_release(&cb[i][k]);
   if (g_fd >= 0) { close(g_fd); g_fd = -1; }
   return rc;
 }

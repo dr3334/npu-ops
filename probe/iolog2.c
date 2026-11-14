@@ -143,23 +143,33 @@ static void dump_pointers(const unsigned char *b, unsigned size, const char *why
    mutation experiments (E-105B/C): subcmd_infos@0x50, num_cmdbufs@+64, cmdbufs@+72. */
 static void dump_subcmds(const unsigned char *cmd, unsigned size) {
   if (size < 0x58) return;
+  /* mdw_cmd_in@0x48 = num_subcmds，@0x50 = subcmd_infos[]。**一块 40 op 的图会带 2 个子命令**，
+     只抓 subcmd[0] 会漏掉输出地址（整块重放卡在这里，见 reports/npu-lib-whole-block-probe.md）。 */
+  uint32_t nsub = 0;
+  memcpy(&nsub, cmd + 0x48, 4);
   uint64_t p = 0;
   memcpy(&p, cmd + 0x50, 8);
-  unsigned char sc[128];
-  ssize_t got = safe_read(sc, (uintptr_t)p, sizeof(sc));
-  if (got < 80) { dprintf(logfd, "SUBSCMD unreadable ptr=0x%llx got=%zd\n",
-                          (unsigned long long)p, got); return; }
-  hexdump("subcmd", sc, 80, 2);
-  uint32_t n = 0;
-  uint64_t cbs = 0;
-  memcpy(&n, sc + 64, 4);
-  memcpy(&cbs, sc + 72, 8);
-  dprintf(logfd, "SUBSCMD num_cmdbufs=%u cmdbufs=0x%llx\n", n, (unsigned long long)cbs);
-  if (n == 0 || n > 8) return;
-  unsigned char cb[8 * 24];
-  ssize_t g2 = safe_read(cb, (uintptr_t)cbs, (size_t)n * 24);
-  if (g2 <= 0) { dprintf(logfd, "SUBSCMD cmdbufs unreadable\n"); return; }
-  hexdump("cmdbufs", cb, (size_t)g2, 2);
+  if (nsub == 0 || nsub > 8) nsub = 1;
+  dprintf(logfd, "SUBSCMDS n=%u ptr=0x%llx\n", nsub, (unsigned long long)p);
+  for (uint32_t i = 0; i < nsub; i++) {
+    unsigned char sc[128];
+    char tag[24];
+    ssize_t got = safe_read(sc, (uintptr_t)(p + (uint64_t)i * 80), 80);
+    if (got < 80) { dprintf(logfd, "SUBSCMD%d unreadable got=%zd\n", i, got); continue; }
+    snprintf(tag, sizeof(tag), "subcmd%u", i);
+    hexdump(tag, sc, 80, 2);
+    uint32_t n = 0;
+    uint64_t cbs = 0;
+    memcpy(&n, sc + 64, 4);
+    memcpy(&cbs, sc + 72, 8);
+    dprintf(logfd, "SUBSCMD%d num_cmdbufs=%u cmdbufs=0x%llx\n", i, n, (unsigned long long)cbs);
+    if (n == 0 || n > 8) continue;
+    unsigned char cb[8 * 24];
+    ssize_t g2 = safe_read(cb, (uintptr_t)cbs, (size_t)n * 24);
+    if (g2 <= 0) { dprintf(logfd, "SUBSCMD%d cmdbufs unreadable\n", i); continue; }
+    snprintf(tag, sizeof(tag), "cmdbufs%u", i);
+    hexdump(tag, cb, (size_t)g2, 2);
+  }
 }
 
 #include <signal.h>
