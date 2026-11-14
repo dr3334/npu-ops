@@ -1,0 +1,5 @@
+# diff fc_a vs fc_e_out16
+size: 7635 vs 7635 (delta +0)
+diff bytes=37   inside noise=36   outside noise=1
+ranges (outside noise, top 40):
+    6343..6343    len=1

@@ -40,11 +40,11 @@ O_SCALE = B_SCALE * 32.0        # requant 倍率 1/32（设备契约）
 
 
 # ----------------------------------------------------------------- 模型（数据 -> tflite）
-def _codes(spec):
-    """按变体声明生成 FC 的三个常量张量（输入码 / 权重码 / bias 码）。
+def _floats(spec):
+    """按变体声明生成 FC 的浮点源数据（量化/转 fp16 之前的那一份）。
 
-    量化参数固定成 build_ops.py 的 fc int8 那一档，所以 weights.kind=base 的变体
-    与 ops/fc_1x64x64_int8/model.tflite 是同一份夹具（同 seed、同量化、同张量命名）。
+    weights.kind=base 的变体与 build_ops.py 的 fc 夹具同 seed、同张量命名，所以
+    _codes() 出来的就是 ops/fc_1x64x64_int8/model.tflite 那一份夹具。
     """
     import numpy as np
     m, k, n = int(spec["m"]), int(spec["k"]), int(spec["n"])
@@ -63,29 +63,81 @@ def _codes(spec):
         pass
     else:
         raise SystemExit("weights.kind 未知: %r" % kind)
+    return a_f, w_f, b_f
+
+
+def _codes(spec):
+    """按变体声明生成 FC 的三个常量张量（输入码 / 权重码 / bias 码）。
+
+    码值始终按 A_SCALE/W_SCALE/B_SCALE 这一档生成（与 build_ops.py 的 fc int8 一致）；
+    **声明**出来的量化参数另外由 model.quant 决定（见 _declared_quant）——
+    这样「只改量化配置」的变体可以保持码值逐字节不变，差异只能来自元数据。
+    """
+    import numpy as np
+    a_f, w_f, b_f = _floats(spec)
     a_q = np.clip(np.round(a_f / A_SCALE), -127, 127).astype(np.int8)
     w_q = np.clip(np.round(w_f / W_SCALE), -127, 127).astype(np.int8)
     b_q = np.round(b_f / B_SCALE).astype(np.int32)
     return a_q, w_q, b_q
 
 
+def _declared_quant(spec):
+    """写进模型里的**声明**量化参数（int8 用）。
+
+    model.quant = {"input": scale, "weights": scale, "output": scale}（都可缺省）：
+    bias 的 scale 由 input*weights 推出；output 缺省 = bias*32（requant 倍率 1/32）。
+    缺省全部不写时与票 03 的基准逐字节相同。
+    """
+    q = spec.get("quant") or {}
+    qa = float(q.get("input", A_SCALE))
+    qw = float(q.get("weights", W_SCALE))
+    qb = qa * qw
+    qo = float(q.get("output", qb * 32.0))
+    return qa, qw, qb, qo
+
+
 def build_model(spec):
-    """写出 FULLY_CONNECTED 的 tflite 字节（复用 tools/build_ops.py 的 flatbuffer 助手，不改它）。"""
+    """写出 FULLY_CONNECTED 的 tflite 字节（复用 tools/build_ops.py 的 flatbuffer 助手，不改它）。
+
+    model.dtype（可选）: "int8"（缺省）| "fp16" —— 票 04 的 FC-E 用来做 int8<->fp16 对照。
+    """
     import flatbuffers
     sys.path.insert(0, str(TOOLS))
     import build_ops as bo            # 只 import，不改（公共工具）
+    import numpy as np
     S = bo.S
     m, k, n = int(spec["m"]), int(spec["k"]), int(spec["n"])
-    a_q, w_q, b_q = _codes(spec)
+    dtype = str(spec.get("dtype", "int8"))
+    a_f, w_f, b_f = _floats(spec)
     b = flatbuffers.Builder(4096)
     buffers = [bo.buf_empty(b)]                       # 0: IO 占位（输入张量不带数据）
-    buffers.append(bo.buf_data(b, w_q))               # 1: 权重常量
-    buffers.append(bo.buf_data(b, b_q))               # 2: bias 常量
-    buffers.append(bo.buf_empty(b))                   # 3: 输出占位
-    t_in = bo.tensor(b, "input", [m, k], bo.I8, 0, bo.quant_tensor(b, [A_SCALE], [0]))
-    t_w = bo.tensor(b, "weights", [n, k], bo.I8, 1, bo.quant_tensor(b, [W_SCALE], [0]))
-    t_b = bo.tensor(b, "bias", [n], bo.I32, 2, bo.quant_tensor(b, [B_SCALE], [0]))
-    t_out = bo.tensor(b, "output", [m, n], bo.I8, 3, bo.quant_tensor(b, [O_SCALE], [0]))
+    if dtype == "fp16":
+        a16 = a_f.astype(np.float16)
+        w16 = w_f.astype(np.float16)
+        b16 = b_f.astype(np.float16)
+        buffers.append(bo.buf_data(b, w16))           # 1: 权重常量（fp16）
+        buffers.append(bo.buf_data(b, b16))           # 2: bias 常量（fp16）
+        buffers.append(bo.buf_empty(b))               # 3: 输出占位
+        t_in = bo.tensor(b, "input", [m, k], bo.F16, 0)
+        t_w = bo.tensor(b, "weights", [n, k], bo.F16, 1)
+        t_b = bo.tensor(b, "bias", [n], bo.F16, 2)
+        t_out = bo.tensor(b, "output", [m, n], bo.F16, 3)
+        quant = {"input": None, "weights": None, "bias": None, "output": None}
+        weight_bytes, bias_bytes = int(w16.nbytes), int(b16.nbytes)
+    elif dtype == "int8":
+        a_q, w_q, b_q = _codes(spec)
+        qa, qw, qb, qo = _declared_quant(spec)
+        buffers.append(bo.buf_data(b, w_q))           # 1: 权重常量
+        buffers.append(bo.buf_data(b, b_q))           # 2: bias 常量
+        buffers.append(bo.buf_empty(b))               # 3: 输出占位
+        t_in = bo.tensor(b, "input", [m, k], bo.I8, 0, bo.quant_tensor(b, [qa], [0]))
+        t_w = bo.tensor(b, "weights", [n, k], bo.I8, 1, bo.quant_tensor(b, [qw], [0]))
+        t_b = bo.tensor(b, "bias", [n], bo.I32, 2, bo.quant_tensor(b, [qb], [0]))
+        t_out = bo.tensor(b, "output", [m, n], bo.I8, 3, bo.quant_tensor(b, [qo], [0]))
+        quant = {"input": qa, "weights": qw, "bias": qb, "output": qo}
+        weight_bytes, bias_bytes = int(w_q.nbytes), int(b_q.nbytes)
+    else:
+        raise SystemExit("model.dtype 未知: %r" % dtype)
     S.FullyConnectedOptionsStart(b)
     S.FullyConnectedOptionsAddFusedActivationFunction(b, 0)
     S.FullyConnectedOptionsAddWeightsFormat(b, 0)
@@ -96,15 +148,17 @@ def build_model(spec):
     blob = bo.finish(b, buffers,
                      [bo.opcode(b, S.BuiltinOperator.FULLY_CONNECTED)],
                      [t_in, t_w, t_b, t_out], [op], [0], [3],
-                     "bbdiff FC %dx%dx%d int8" % (m, k, n))
+                     "bbdiff FC %dx%dx%d %s" % (m, k, n, dtype))
     meta = {
         "op": "FULLY_CONNECTED", "m": m, "k": k, "n": n,
         "shapes": {"input": [m, k], "weights": [n, k], "bias": [n], "output": [m, n]},
-        "dtype": "int8",
+        "dtype": dtype,
         "weights": spec.get("weights") or {"kind": "base"},
-        "weight_bytes": int(w_q.nbytes),
-        "bias_bytes": int(b_q.nbytes),
-        "quant": {"input": A_SCALE, "weights": W_SCALE, "bias": B_SCALE, "output": O_SCALE},
+        "weight_bytes": weight_bytes,
+        "bias_bytes": bias_bytes,
+        "quant": quant,
+        "quant_codes": ({"input": A_SCALE, "weights": W_SCALE, "bias": B_SCALE}
+                        if dtype == "int8" else None),
         "tflite_bytes": len(blob),
         "sha256_tflite": hashlib.sha256(blob).hexdigest(),
     }
