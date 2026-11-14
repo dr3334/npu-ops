@@ -19,6 +19,7 @@ compile() 的四步（票面 ①②③④）：
 run() 只走自建提交器：plan.txt 驱动 probe/npu_run（/dev/apusys），不 dlopen 任何厂商库。
 """
 import hashlib
+import struct
 import json
 import os
 import shutil
@@ -57,6 +58,21 @@ def _sha256_bytes(b):
 
 
 ALLOC_ALIGN = 4096   # 抓取时 runtime 对数据缓冲就是 4 KiB；大张量（FC 权重）按 4 KiB 向上取整
+
+
+def _count_patches(asset_dir, patch_idx, iovas):
+    """数命令流里会有几个地址字要重定位。
+
+    不能只数"非 0 的 IOVA 槽"：融合图里同一个缓冲可能被引用多次
+    （SwiGLU 融合图里 gate 既进 LOGISTIC 又进 MUL，于是 A 有两个地址字）。
+    """
+    p = asset_dir / ("cmd%d.bin" % patch_idx)
+    if not p.exists():
+        return None
+    want = {(v >> 4) & 0xffffffff for v in iovas if v}
+    data = p.read_bytes()
+    return sum(1 for o in range(0, len(data) - 3, 4)
+               if struct.unpack_from("<I", data, o)[0] in want)
 
 
 def _alloc_for(nbytes):
@@ -416,10 +432,12 @@ class Graph:
         else:
             bytes_b, n_inputs, extra = op["b"].nbytes, 2, ""
             in_b = "%s/b.bin" % run_dev_dir
-        # 命令流里有几个地址字 = iova.txt 里几个非 0 槽（一元且没有 LUT 时只有 A 和 C 两处）
+        # 命令流的地址字个数：直接数（融合图会把同一个缓冲引用多次，不能靠"几个非 0 槽"推）
         iova_txt = art / "asset" / "iova.txt"
         iovas = [int(x, 16) for x in iova_txt.read_text().split()[:3]]
-        expect_patches = sum(1 for v in iovas if v)
+        expect_patches = _count_patches(art / "asset", 2, iovas)
+        if expect_patches is None:
+            expect_patches = sum(1 for v in iovas if v)
         plan = Plan.from_asset(
             asset_dir=cap["asset_dir"], iova_txt=iova_txt,
             alloc_a=_alloc_for(op["a"].nbytes), alloc_b=_alloc_for(max(bytes_b, 1)),
