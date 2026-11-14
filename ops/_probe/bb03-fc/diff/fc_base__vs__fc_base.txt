@@ -1,0 +1,4 @@
+# diff fc_base vs fc_base
+size: 7635 vs 7635 (delta +0)
+diff bytes=0   inside noise=0   outside noise=0
+ranges (outside noise, top 40):

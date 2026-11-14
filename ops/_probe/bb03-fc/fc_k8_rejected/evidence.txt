@@ -1,0 +1,26 @@
+# fc_k8_rejected
+note: 失败变体（K=8 违反 16 B 行规则 → --disallow-bridge 拒绝）：证明失败实验的命令/日志/退出码也留在证据目录里
+flags: -
+model.tflite bytes=1520 sha256=ab5dc2474ffb2184703188923cfcdeba194328b16b633a2787e04327f59ae3fe
+weight_bytes=512 bias_bytes=256
+attempts=9  classes={}  dropped(off-class)=0
+kept runs: -
+attempt1 [None]: rc=1 bytes=0 sha256=- seconds=0.17
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla
+attempt2 [None]: rc=1 bytes=0 sha256=- seconds=0.17
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla
+attempt3 [None]: rc=1 bytes=0 sha256=- seconds=0.17
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla
+attempt4 [None]: rc=1 bytes=0 sha256=- seconds=0.18
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla
+attempt5 [None]: rc=1 bytes=0 sha256=- seconds=0.18
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla
+attempt6 [None]: rc=1 bytes=0 sha256=- seconds=0.18
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla
+attempt7 [None]: rc=1 bytes=0 sha256=- seconds=0.18
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla
+attempt8 [None]: rc=1 bytes=0 sha256=- seconds=0.18
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla
+attempt9 [None]: rc=1 bytes=0 sha256=- seconds=0.18
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla
+error: attempt 1 没有产出 .dla（rc=1）
