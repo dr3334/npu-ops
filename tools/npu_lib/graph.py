@@ -313,6 +313,27 @@ class Graph:
         self._tensors.append(out)
         return out
 
+    def logistic(self, x):
+        """LOGISTIC（sigmoid），一元。**目前只有 fp16 有证据**。
+
+        int8 版在探针阶段 64/64 失配、至今没定性（docs/OWN-SUBMITTER.md §5），所以这里直接拒绝 int8，
+        免得把一个未定性的算子混进块里。fp16 版厂商路径两条都过：
+        `ops/logistic_1x64_fp16`（max_abs 0）与 `ops/logistic_8x128_fp16`（SwiGLU 形状，max_abs 4.883e-04）。
+        """
+        self._check_tensor(x, "logistic")
+        if x.dtype.kind != "fp16":
+            raise UnsupportedError(
+                "logistic: 只有 fp16 有板端证据（int8 版 64/64 失配未定性）")
+        if self._ops:
+            raise UnsupportedError(
+                "graph %r already has an op: one op per graph (3-buffer submitter)." % self.name)
+        out = Tensor("logistic_0", x.shape, DType.fp16(), producer=None)
+        self._ops.append({"kind": "logistic", "a": x, "b": None, "out": out, "index": 0,
+                          "max_ulp": 1})
+        out._producer = self._ops[-1]
+        self._tensors.append(out)
+        return out
+
     # ------------------------------------------------------------ 编译
     def compile(self, rebuild=False):
         if len(self._ops) != 1:

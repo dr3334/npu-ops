@@ -61,6 +61,8 @@ def code_inputs(op, shape, seed):
 def build(spec, outdir):
     op = spec["op"]
     if spec.get("dtype") == "fp16":
+        if op in UNOP_FP16:
+            return build_unop_fp16(spec, outdir)
         return build_binop_fp16(spec, outdir)
     if op == "fc":
         return build_fc(spec, outdir)
@@ -119,6 +121,54 @@ def build(spec, outdir):
         "reference": "int64_acc + tools/quant_contract.requant_int8",
         "seed": seed,
         "tflite_bytes": len(blob),
+    }
+    with open(os.path.join(outdir, "model.json"), "w") as f:
+        json.dump(meta, f, indent=2)
+    return meta
+
+
+UNOP_FP16 = {"logistic": "LOGISTIC", "relu": "RELU", "rsqrt": "RSQRT"}
+
+
+def build_unop_fp16(spec, outdir):
+    """一元算子 fp16（LOGISTIC / RELU / RSQRT）：张量 F16，无量化参数、无 options。"""
+    op = spec["op"]
+    shape = tuple(int(x) for x in spec["shape"])
+    builtin = UNOP_FP16[op]
+    seed = int(spec.get("seed", 20261113))
+
+    rng = np.random.default_rng(seed)
+    n = int(np.prod(shape))
+    if op == "rsqrt":
+        x = rng.uniform(0.1, 8.0, size=n)
+    else:
+        x = rng.uniform(-8.0, 8.0, size=n)
+    x[:3] = (-8.0, 0.0, 8.0) if op != "rsqrt" else (0.1, 1.0, 8.0)
+    x = np.asarray(x, dtype=np.float16).reshape(shape)
+    expected = golden_mod.reference_fp16(op, x)
+
+    bb = flatbuffers.Builder(4096)
+    buffers = [bo.buf_empty(bb), bo.buf_empty(bb)]
+    t_a = bo.tensor(bb, spec["in_name"], list(shape), bo.F16, 0)
+    t_o = bo.tensor(bb, spec["out_name"], list(shape), bo.F16, 1)
+    op_tbl = bo.operator(bb, 0, [0], [1], 0, None)
+    blob = bo.finish(bb, buffers, [bo.opcode(bb, getattr(bo.BuiltinOperator, builtin))],
+                     [t_a, t_o], [op_tbl], [0], [1],
+                     "npu_lib %s %s fp16" % (builtin, "x".join(str(d) for d in shape)))
+
+    os.makedirs(os.path.join(outdir, "golden"), exist_ok=True)
+    with open(os.path.join(outdir, "model.tflite"), "wb") as f:
+        f.write(blob)
+    x.tofile(os.path.join(outdir, "golden", spec["in_name"] + ".bin"))
+    expected.tofile(os.path.join(outdir, "golden", "expected.bin"))
+
+    meta = {
+        "name": spec["name"], "op": builtin, "shape": list(shape), "dtype": "fp16",
+        "inputs": [{"name": spec["in_name"], "shape": list(shape), "type": "float16"}],
+        "output": {"name": spec["out_name"], "shape": list(shape), "type": "float16"},
+        "numeric_rule": "ULP <= 1", "max_ulp": 1,
+        "reference": "float32 f(x) -> float16",
+        "seed": seed, "tflite_bytes": len(blob),
     }
     with open(os.path.join(outdir, "model.json"), "w") as f:
         json.dump(meta, f, indent=2)

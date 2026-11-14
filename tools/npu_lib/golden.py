@@ -25,7 +25,7 @@ def ulp_diff(got_fp16, exp_fp16):
     return np.abs(_fp16_bits(got_fp16) - _fp16_bits(exp_fp16))
 
 
-def reference_fp16(op, a_codes, b_codes, s_a=1.0, s_b=1.0, s_out=1.0, zp_out=0, axis=None):
+def reference_fp16(op, a_codes, b_codes=None, s_a=1.0, s_b=1.0, s_out=1.0, zp_out=0, axis=None):
     """fp16 的独立参考：用 float32 算再落回 fp16（规则 R3：与 flatbuffer 生成无关）。"""
     a = np.asarray(a_codes, dtype=np.float32)
     b = None if b_codes is None else np.asarray(b_codes, dtype=np.float32)
@@ -39,6 +39,10 @@ def reference_fp16(op, a_codes, b_codes, s_a=1.0, s_b=1.0, s_out=1.0, zp_out=0, 
         y = a.mean(axis=(-1 if axis is None else int(axis)), keepdims=True)
     elif op == "rsqrt":
         y = 1.0 / np.sqrt(a)
+    elif op == "logistic":
+        y = 1.0 / (1.0 + np.exp(-a))
+    elif op == "relu":
+        y = np.maximum(a, 0.0)
     else:
         raise ValueError("reference_fp16: unsupported op %r" % (op,))
     return np.asarray(y, dtype=np.float16)
@@ -56,7 +60,7 @@ def ratio_for(op, s_a, s_b, s_out):
         return s_a / s_out
     if op in ("mul", "fc"):
         return (s_a * s_b) / s_out
-    if op in ("softmax", "mean", "rsqrt"):
+    if op in ("softmax", "mean", "rsqrt", "logistic", "relu"):
         return 1.0          # 这几个不是"整数累加 + requant"，没有 multiplier 这个概念
     raise ValueError("golden: unsupported op %r" % (op,))
 
