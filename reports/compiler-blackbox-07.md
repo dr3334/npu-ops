@@ -39,11 +39,13 @@ adb shell "cd /data/local/tmp/npuops && MTKNN_ENABLE_PROFILER=1 MTKNN_PROFILING_
 --Xruntime <options>      Pass options to the neuron runtime. Enclose option string by single quotation.
 ```
 
-试过的 option 字符串（宿主 x86 `neuronrt`，`-m null`，profiler 环境变量开/关两种）：`''`、
-`nbThreads:2`、`nbThreads=2`、`{"nbThreads":2}`、`parallelismOption:single`、`profiling-level:3`、
-`profilingLevel=3`、`profil:3`、`dump-profiling-result`、`garbage`。
-**全部 rc=0、输出逐字节相同、等级不变**——既不报错也不生效（`garbage` 也一样），说明这条通道不是「检查字符串」的。
-证据：`ops/_probe/bb07-prof/25-xruntime-and-levels.sh` 的运行输出、`04/05/15/16` 的字符串清单。
+试过的 option 字符串——**宿主**（`-m null`，profiler 环境变量开/关两种）：`''`、`nbThreads:2`、`nbThreads=2`、`{"nbThreads":2}`、
+`parallelismOption:single`、`profiling-level:3`、`profilingLevel=3`、`profil:3`、`dump-profiling-result`、`garbage`；
+**板端**（健康态，`-m hw`，`full_p0`，`-c 5`）：`''`、`garbage`、`profiling-level:3`、`nbThreads:2`、`{"parallelismOption":"single"}`。
+
+两端一致：**全部 rc=0、输出行完全相同、等级不变**——既不报错也不生效（`garbage` 与合法串一样被吞掉）。板端这一次的时延也全在噪声带里
+（0.762 / 0.792 / 0.895(无选项) / 0.990 / 1.052 ms/inf，顺序无关），没有「选项生效」的痕迹。
+证据：`board/xruntime-hw-clean.txt`（板端干净态）、`25-xruntime-and-levels.sh`（宿主）、`04/05/15/16` 的字符串清单。
 
 它最终落到 `NeuronRuntime_create_with_options(const char* options, ...)`（`RuntimeAPI.h:102`）。运行时里与它相关的打印只有
 `Runtime options:` / ` - options:` / `  - nbThreads:` / `  - dlaBuffer:`（`libneuron_runtime.so` strings），**没有任何 profile/dump 类字段**；
@@ -115,7 +117,9 @@ INFO: The profiling level is now set to 3
 ```
 
 - 这几张表是**阶段级**（输入/输出/推理、以及推理内部的 Transit Execute），不是每层；
-- **板端**上 level 3 只写 JSON、不打印这些表（`board/level3-console-hw.txt`：2 行，0 个 Summary）——宿主与板端的控制台行为不同，记一笔；
+- **板端**上 level 1/2/3 **都只打印 3 行**（`Inference repeats for N times.` / `Total inference time = …` / `Avg. FPS : …`），
+  没有任何 Summary 表，也没有「Per-OP」字样；level 3 唯一多出来的是那两个 JSON（`board/perop-matrix-L{1,2,3}.txt`）——
+  宿主与板端的控制台行为不同，记一笔（`board/level3-console-hw.txt` 是坏板期抓的，**不作证据**）；
 - `MTKNN_PER_OP_PROFILE=1` 在宿主 `-m null` 与板端都**没有**产生额外的「Per-OP Report」（strings 里有
   `MVPU Per-OP Profiling Report - Core#{}`，但那要靠**真实 PMU 数据**，见 §6）。
 
@@ -223,7 +227,7 @@ dla_info.json        : 同一批 flow id -> {opIndices[], bufferAccesses[{buffer
 | 9 | `MTKNN_PER_OP_PROFILE` 没有额外效果 | 宿主 + 板端都无 Per-OP Report | **推测**（可能是板端/hw 版本不支持，或要更高 level） | 在别的芯片/运行时版本上出现 Per-OP Report |
 | 10 | level 3 的观测开销 7.2× | 1.35 → 9.74 ms/inf | **已验证（单图单机）** | 换图重复，若差值消失即推翻 |
 | 11 | 板端控制台 level 3 不打印表（只写 JSON） | `board/level3-console-hw.txt` 2 行 | **已验证** | —— |
-| 12 | **level 3 跑完板子进入 `MDLA timeout` 坏态** | §8 的 dmesg | **已验证（本机复现两次）** | 干净 reboot 后同序列复跑若不再坏，则说明是偶发 |
+| 12 | **level 3 跑完板子进入 `MDLA timeout` 坏态**（reboot 可恢复，恢复后需 `adb root`） | §8 的 dmesg + 重启后的恢复记录 | **已验证** | 干净 reboot 后同序列复跑若不再坏，则说明是偶发 |
 
 ## 8. 后遗症：level 3 之后板子坏了（重要）
 
@@ -245,7 +249,11 @@ dmesg（`ops/_probe/bb07-prof/board/dmesg-apu.txt`）：
 
 - `ret=-5` 且 `time=25,003,555`（≈25 s 超时），**known-good 算子同样失败**，`-c 1` 也一样，等 20 s 不恢复；
 - 判定：**不是我们的 DLA，是设备状态**（APU 卡死），需要 reboot 才能恢复；
-- 纪律建议：把 level 3 profiling 当成「会弄坏板子」的实验，跑之前先 `tools/healthcheck.sh --quick`，跑完立刻 `--quick`，坏了就 reboot。
+- **实测恢复路径**：设备自己重启了（`uptime` 回到 1 min），重启后 `adb shell` 退回 `uid=2000(shell)`、
+  连 `/vendor/lib64/mt6897/libneuron_runtime.so` 都 `Permission denied`、`dmesg` 也读不了，此时
+  `neuronrt` 报 `Unable to open Neuron Runtime library`；**`adb root` 之后一切恢复**（known-good 10 次：0.4537 ms/inf）；
+- 纪律建议：把 level 3 profiling 当成「会弄坏板子」的实验，跑之前先 `tools/healthcheck.sh --quick`，跑完立刻 `--quick`，
+  坏了就 reboot，reboot 之后先 `adb root` 再跑。
 
 ## 9. 遗留
 
