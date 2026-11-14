@@ -64,6 +64,7 @@ typedef struct {
   char cmdbuf_file[3][64];
   char extra_file[64];
   char in_a[MAXSTRING], in_b[MAXSTRING], out[MAXSTRING];
+  char dump_b[MAXSTRING];        /* 调试：跑完把 B 缓冲也落盘（查"是不是写到了别的缓冲"） */
   uint64_t old_iova[3];
   uint32_t alloc[3];
   int dir[3];
@@ -119,6 +120,7 @@ static int parse_plan(const char *path, plan_t *p) {
     else if (!strcmp(k, "in_a")) snprintf(p->in_a, MAXSTRING, "%s", v);
     else if (!strcmp(k, "in_b")) snprintf(p->in_b, MAXSTRING, "%s", v);
     else if (!strcmp(k, "out")) snprintf(p->out, MAXSTRING, "%s", v);
+    else if (!strcmp(k, "dump_b")) snprintf(p->dump_b, MAXSTRING, "%s", v);
     else if (!strcmp(k, "old_a")) p->old_iova[0] = strtoull(v, NULL, 0);
     else if (!strcmp(k, "old_b")) p->old_iova[1] = strtoull(v, NULL, 0);
     else if (!strcmp(k, "old_c")) p->old_iova[2] = strtoull(v, NULL, 0);
@@ -146,7 +148,10 @@ static int parse_plan(const char *path, plan_t *p) {
     fprintf(stderr, "plan: asset_dir / out / (bytes_a+bytes_out or n_elems) required\n");
     return -1;
   }
-  if (p->n_inputs == 2 && !p->in_b[0]) { fprintf(stderr, "plan: n_inputs=2 needs in_b\n"); return -1; }
+  /* extra_file 时 B 的内容来自资产（LUT/常量），不需要 in_b */
+  if (p->n_inputs == 2 && !p->in_b[0] && !p->extra_file[0]) {
+    fprintf(stderr, "plan: n_inputs=2 needs in_b (or extra_file)\n"); return -1;
+  }
   return 0;
 }
 
@@ -387,6 +392,12 @@ int main(int argc, char **argv) {
   usleep(200000);   /* rc=0 只代表提交成功 */
   dma_buf_sync(c.handle, (1u << 30) | 1u);
   dma_buf_sync(c.handle, (1u << 31) | 1u);
+  if (pl.dump_b[0] && pl.n_inputs == 2) {
+    dma_buf_sync(b1.handle, (1u << 30) | 1u);
+    dma_buf_sync(b1.handle, (1u << 31) | 1u);
+    if (write_file(pl.dump_b, b1.host, pl.bytes_b)) { rc = 3; goto done; }
+    printf("DUMP_B %s (%u bytes)\n", pl.dump_b, pl.bytes_b);
+  }
   if (write_file(pl.out, c.host, pl.bytes_out)) { rc = 3; goto done; }
   printf("RC=0 patches=%u out=%s\n", hits, pl.out);
 

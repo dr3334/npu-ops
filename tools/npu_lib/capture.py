@@ -23,7 +23,8 @@ def _sh(script, check=True):
     return env.dev_shell(script, check=check, capture=True)
 
 
-def capture(name, artifacts_dir, dla_path, a_path, b_path, timeout_note=""):
+def capture(name, artifacts_dir, dla_path, a_path, b_path=None, timeout_note=""):
+    """跑一次厂商 runtime 抓资产。b_path=None 表示一元算子（只推 a.bin，mkasset 收 "-"）。"""
     """跑一次厂商 runtime 抓资产；返回 dict（含 iova/cmdbufs/vendor_out 路径）。"""
     art = Path(artifacts_dir)
     cap = art / "capture"
@@ -37,17 +38,20 @@ def capture(name, artifacts_dir, dla_path, a_path, b_path, timeout_note=""):
     _sh("mkdir -p %s/asset" % run_dir)
     env.dev_push(dla_path, "%s/model.dla" % run_dir)
     env.dev_push(a_path, "%s/a.bin" % run_dir)
-    env.dev_push(b_path, "%s/b.bin" % run_dir)
+    if b_path:
+        env.dev_push(b_path, "%s/b.bin" % run_dir)
     # mkasset.py 也要看这两个文件（按前 64 字节认 A/B 缓冲）
     shutil.copy(a_path, cap / "a.bin")
-    shutil.copy(b_path, cap / "b.bin")
+    if b_path:
+        shutil.copy(b_path, cap / "b.bin")
     vendor_remote = "%s/vendor_out.bin" % run_dir
 
     # 记录器默认写 probe/io2.<pid>.log 与 probe/buf/（相对 cwd），所以必须先 cd $DEV
     cmd = ("cd %s && rm -f probe/io2.*.log && rm -rf probe/buf && mkdir -p probe/buf && "
            "LD_PRELOAD=%s/probe/libiolog2.so LD_LIBRARY_PATH=%s/lib "
-           "%s/bin/neuronrt -m hw -a %s/model.dla -i %s/a.bin -i %s/b.bin -o %s -c 1 2>&1"
-           % (DEV, DEV, DEV, DEV, run_dir, run_dir, run_dir, vendor_remote))
+           "%s/bin/neuronrt -m hw -a %s/model.dla -i %s/a.bin%s -o %s -c 1 2>&1"
+           % (DEV, DEV, DEV, DEV, run_dir, run_dir,
+              ("" if not b_path else " -i %s/b.bin" % run_dir), vendor_remote))
     r = _sh(cmd, check=False)
     if r.returncode != 0:
         raise NpuLibError("vendor capture run failed (rc=%d): %s" % (r.returncode, r.stdout))
@@ -77,10 +81,11 @@ def capture(name, artifacts_dir, dla_path, a_path, b_path, timeout_note=""):
     assert_dir.mkdir(parents=True)
     shutil.copy(vendor_local, assert_dir / "vendor_out.bin")   # 它用它反查真正的输出缓冲
     r = env.run([env.python3(), "probe/mkasset.py", str(cap_log), str(bufdir),
-                 str(cap / "a.bin"), str(cap / "b.bin"), str(assert_dir)],
+                 str(cap / "a.bin"), str(cap / "b.bin") if b_path else "-", str(assert_dir)],
                 cwd=env.REPO_ROOT, capture=True)
     shutil.copy(a_path, assert_dir / "a.bin")
-    shutil.copy(b_path, assert_dir / "b.bin")
+    if b_path:
+        shutil.copy(b_path, assert_dir / "b.bin")
 
     iova = (assert_dir / "iova.txt").read_text().split()
     files = sorted(p.name for p in assert_dir.iterdir())

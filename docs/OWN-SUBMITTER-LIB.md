@@ -243,9 +243,11 @@ requant 口径（为什么这一票的 `int8_tol = 0`）：本库把输出 scale
 5. **广播**按票面要求不支持，形状不同显式报 `BroadCastError`。
 6. **换形状仍要重新捕获资产**（形状烘在命令流里，ADR 0002 已写明这是本阶段的性质）。
    `compile()` 把它自动化了，但没有消除它；`artifacts/<name>/` 的数量会随形状增长。
-7. **需要额外缓冲的算子**（SOFTMAX 的 LUT、常量权重 FC 的 8 KiB 常量区）：
-   plan 已经有 `extra_file` 字段，但本票没在这两个算子上出证据；
-   常量权重 FC 还压着 OWN-SUBMITTER §10.3 那个 IoVA 契约未解。
+7. **需要额外缓冲的算子**：`extra_file` 字段现在**有证据**了 ——
+   SOFTMAX 的 LUT/scratch 缓冲（`[1,8,16]` int8，4 KiB）走 `extra_file=scratch.bin` 重放，
+   与厂商设备输出**逐字节相同**（0/128），见 [`reports/npu-lib-softmax.md`](../reports/npu-lib-softmax.md)。
+   还差的：把 softmax 做成 `Graph` 的一等算子（要 `output_zero_point=-128` 的 golden 与 int8_tol=2 登记）。
+   常量权重 FC 仍压着 OWN-SUBMITTER §10.3 那个 IoVA 契约未解。
 8. **"命令自生成"仍未开始**：本包把"重放捕获的命令流"工程化了，没有生成命令。
 9. **锁与并发**：库自己用目录锁（与 `tools/devlock.sh` 同一把，`NPU_LOCK_HELD=1` 表示外层已持锁）。
    板子只有一台，长跑矩阵仍应整体包在 `devlock.sh run` 里。
