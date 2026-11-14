@@ -18,7 +18,7 @@ import quant_contract as qc  # noqa: E402  (公共工具，只 import)
 #   ADD/SUB: acc 在 input scale 的格子里 -> multiplier = s_in / s_out
 #   MUL    : acc = a*b，单位是 s_a*s_b        -> multiplier = s_a*s_b / s_out
 #   FC     : acc = a @ w.T（W 是 [N,K]，第二个输入），单位是 s_a*s_w
-OP_ACC = ("add", "sub", "mul", "fc", "softmax")
+OP_ACC = ("add", "sub", "mul", "fc", "softmax", "mean", "rsqrt")
 
 
 def ratio_for(op, s_a, s_b, s_out):
@@ -26,16 +26,34 @@ def ratio_for(op, s_a, s_b, s_out):
         return s_a / s_out
     if op in ("mul", "fc"):
         return (s_a * s_b) / s_out
-    if op == "softmax":
-        return 1.0          # softmax 不是"整数累加 + requant"，没有 multiplier 这个概念
+    if op in ("softmax", "mean", "rsqrt"):
+        return 1.0          # 这几个不是"整数累加 + requant"，没有 multiplier 这个概念
     raise ValueError("golden: unsupported op %r" % (op,))
 
 
-def reference(op, a_codes, b_codes, s_a, s_b, s_out, zp_out=0):
+def reference(op, a_codes, b_codes, s_a, s_b, s_out, zp_out=0, axis=None):
     """-> (expected int8 array, int64 accumulator, ratio)
 
     FC 的 a 是 [M,K]、b 是 [N,K]（TFLite 的权重布局），输出按行展平是 [M,N]。
     """
+    if op == "mean":
+        # 整数归约 + 仓库的两步舍入契约（与 ops/mean_4x16_int8 那条已上板的约定一致：
+        # 输出 scale == 输入 scale，于是 multiplier = 1/K，码值 = round(sum/K)）
+        a = np.asarray(a_codes, dtype=np.int64)
+        ax = -1 if axis is None else int(axis)
+        acc = a.sum(axis=ax, keepdims=True)
+        k = a.shape[ax]
+        ratio = s_a / (k * s_out)
+        codes = qc.requant_int8(acc, ratio)
+        if int(zp_out):
+            codes = np.clip(codes.astype(np.int64) + int(zp_out), -128, 127)
+        return codes.astype(np.int8), acc, ratio
+    if op == "rsqrt":
+        x = np.asarray(a_codes, dtype=np.float64) * s_a
+        if (x <= 0).any():
+            raise ValueError("golden rsqrt: 输入必须全为正（码值 > 0）")
+        codes = np.clip(np.rint((1.0 / np.sqrt(x)) / s_out), -128, 127)
+        return codes.astype(np.int8), None, 1.0
     if op == "softmax":
         # 浮点算再量化（设备是 LUT 定点实现，按登记容差比，不要求逐位）
         x = np.asarray(a_codes, dtype=np.float64) * s_a          # 输入 zp 约定为 0

@@ -37,6 +37,8 @@ res.ok                           # True 才算过
 | `g.add/sub/mul(a, b)` | 同形状、无广播、同 dtype | 已实现；形状不同 -> `BroadCastError`（显式报错，不悄悄广播） |
 | `g.fc(x, w)` | `x[M,K]` × `w[N,K]`（**权重是运行时输入**）-> `[M,N]`，`s_out = s_a*s_w*32`（可显式给） | 已实现（int8）；见 [`reports/npu-lib-fc.md`](../reports/npu-lib-fc.md) |
 | `g.softmax(x)` | 沿最后一维；int8 输出 `(1/256, zp=-128)` | 已实现；一元 + LUT 缓冲（`extra_file`），见 [`reports/npu-lib-softmax.md`](../reports/npu-lib-softmax.md) |
+| `g.mean(x, axis=-1)` | 整数归约 + 两步舍入；输出 scale 缺省 = 输入 scale（厂商约定） | 已实现；0/8，见 [`reports/npu-lib-mean-rsqrt.md`](../reports/npu-lib-mean-rsqrt.md) |
+| `g.rsqrt(x)` | 一元；输入码值须 > 0 | 已实现；0/128，同上 |
 | `g.compile()` | 四步流水线，见 §2 | 已实现 |
 | `g.run(inputs)` | dict{输入名: int8 码} -> `Output` | 已实现，只走 /dev/apusys |
 | `g.verify(out)` | 两道门，见 §4 | 已实现，返回 `VerifyResult`（`.ok == 同源 且 数值在 `int8_tol` 内；tol=0 即逐位） |

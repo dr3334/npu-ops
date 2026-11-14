@@ -267,6 +267,44 @@ class Graph:
         self._tensors.append(out)
         return out
 
+    def mean(self, x, axis=-1, out_scale=None):
+        """MEAN（keep_dims=True），沿 axis 归约。int8。
+
+        输出尺度缺省取 `s_in`（= ops/mean_4x16_int8 那条已上板的厂商约定：out scale == in scale，
+        于是 multiplier = 1/K、码值 = round(sum/K)）；真实用途按数据显式给。
+        """
+        self._check_tensor(x, "mean")
+        if self._ops:
+            raise UnsupportedError(
+                "graph %r already has an op: one op per graph (3-buffer submitter)." % self.name)
+        ax = int(axis) % len(x.shape)
+        shape = list(x.shape)
+        shape[ax] = 1
+        if out_scale is None:
+            out_scale = x.dtype.scale
+        out = Tensor("mean_0", tuple(shape), DType.int8(out_scale, 0), producer=None)
+        self._ops.append({"kind": "mean", "a": x, "b": None, "out": out, "index": 0,
+                          "axis": ax, "tol": 0})
+        out._producer = self._ops[-1]
+        self._tensors.append(out)
+        return out
+
+    def rsqrt(self, x, out_scale=None):
+        """RSQRT（一元），int8。输入码值必须 > 0。"""
+        self._check_tensor(x, "rsqrt")
+        if self._ops:
+            raise UnsupportedError(
+                "graph %r already has an op: one op per graph (3-buffer submitter)." % self.name)
+        if out_scale is None:
+            # 缺省把 y 的满量程放在 1.0 上（y = 1/sqrt(x) 常见量级 O(1)）
+            out_scale = 1.0 / 127.0
+        out = Tensor("rsqrt_0", x.shape, DType.int8(out_scale, 0), producer=None)
+        self._ops.append({"kind": "rsqrt", "a": x, "b": None, "out": out, "index": 0,
+                          "tol": 0})
+        out._producer = self._ops[-1]
+        self._tensors.append(out)
+        return out
+
     # ------------------------------------------------------------ 编译
     def compile(self, rebuild=False):
         if len(self._ops) != 1:
@@ -297,6 +335,8 @@ class Graph:
             "int8_tol": op.get("tol", 0),
             "seed": 20261113,
         }
+        if op["kind"] == "mean":
+            spec["axis"] = op["axis"]
         if op["kind"] == "fc":
             # FC 的两个输入与输出是三个不同形状：binop 的单 "shape" 不够用
             spec["shapes"] = {"a": list(op["a"].shape), "b": list(op["b"].shape),
@@ -346,11 +386,15 @@ class Graph:
         else:
             bytes_b, n_inputs, extra = op["b"].nbytes, 2, ""
             in_b = "%s/b.bin" % run_dev_dir
+        # 命令流里有几个地址字 = iova.txt 里几个非 0 槽（一元且没有 LUT 时只有 A 和 C 两处）
+        iova_txt = art / "asset" / "iova.txt"
+        iovas = [int(x, 16) for x in iova_txt.read_text().split()[:3]]
+        expect_patches = sum(1 for v in iovas if v)
         plan = Plan.from_asset(
-            asset_dir=cap["asset_dir"], iova_txt=art / "asset" / "iova.txt",
+            asset_dir=cap["asset_dir"], iova_txt=iova_txt,
             alloc_a=_alloc_for(op["a"].nbytes), alloc_b=_alloc_for(max(bytes_b, 1)),
             alloc_c=_alloc_for(op["out"].nbytes),
-            dir0=1, dir1=2, dir2=1, patch_idx=2, expect_patches=3,
+            dir0=1, dir1=2, dir2=1, patch_idx=2, expect_patches=expect_patches,
             bytes_a=op["a"].nbytes, bytes_b=bytes_b, bytes_out=op["out"].nbytes,
             n_inputs=n_inputs, extra_file=extra,
             in_a="%s/a.bin" % run_dev_dir, in_b=in_b,
@@ -483,14 +527,14 @@ class Graph:
                        else np.fromfile(art.golden / (op["b"].name + ".bin"), dtype=np.int8))
         # golden 要按张量形状算：fc 是矩阵乘，softmax 沿最后一维归约
         # （一维码流直接算会把整块当成一行 —— softmax 就变成全张量归一化了）
-        if op["kind"] in ("fc", "softmax"):
+        if op["kind"] in ("fc", "softmax", "mean", "rsqrt"):
             a_codes = a_codes.reshape(op["a"].shape)
         if op["kind"] == "fc":
             b_codes = b_codes.reshape(op["b"].shape)
         expected, acc, ratio = golden_mod.reference(
             op["kind"], a_codes, b_codes,
             op["a"].dtype.scale, 1.0 if op["b"] is None else op["b"].dtype.scale,
-            op["out"].dtype.scale, zp_out=op["out"].dtype.zero_point)
+            op["out"].dtype.scale, zp_out=op["out"].dtype.zero_point, axis=op.get("axis"))
         exp_arr = np.asarray(expected, dtype=np.int8).ravel()
         exp_bytes = exp_arr.tobytes()
         # 容差：int8_tol 为 0 时逐位比；>0 时按 |diff| <= tol（softmax 这类定点/LUT 实现）

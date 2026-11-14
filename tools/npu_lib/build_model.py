@@ -64,6 +64,10 @@ def build(spec, outdir):
         return build_fc(spec, outdir)
     if op == "softmax":
         return build_softmax(spec, outdir)
+    if op == "mean":
+        return build_mean(spec, outdir)
+    if op == "rsqrt":
+        return build_rsqrt(spec, outdir)
     shape = tuple(spec["shape"])
     n = int(np.prod(shape))
     sa = float(spec["in_scale"])
@@ -113,6 +117,98 @@ def build(spec, outdir):
         "reference": "int64_acc + tools/quant_contract.requant_int8",
         "seed": seed,
         "tflite_bytes": len(blob),
+    }
+    with open(os.path.join(outdir, "model.json"), "w") as f:
+        json.dump(meta, f, indent=2)
+    return meta
+
+
+def build_mean(spec, outdir):
+    """MEAN（对 axis 归约，keep_dims=True），int8。
+
+    axis 是 int32 常量张量（TFLite 的 MEAN 就是这么接的），所以图上有两个输入张量、
+    但**运行期只有一个输入**（axis 是常量）。
+    输出形状保持 rank：最后一维变 1（[1,8,16] -> [1,8,1]）。
+    """
+    shape = tuple(int(x) for x in spec["shape"])
+    axis = int(spec.get("axis", -1))
+    if axis < 0:
+        axis += len(shape)
+    out_shape = list(shape)
+    out_shape[axis] = 1
+    s_in = float(spec["in_scale"])
+    s_out = float(spec["out_scale"])
+    seed = int(spec.get("seed", 20261113))
+
+    rng = np.random.default_rng(seed)
+    a = rng.integers(-127, 128, size=shape).astype(np.int8)
+    expected = golden_mod.reference("mean", a, None, s_in, 1.0, s_out, axis=axis)[0]
+
+    ax = np.asarray([axis], dtype=np.int32)
+    bb = flatbuffers.Builder(4096)
+    buffers = [bo.buf_empty(bb), bo.buf_data(bb, ax), bo.buf_empty(bb)]
+    t_a = bo.tensor(bb, spec["in_name"], list(shape), bo.I8, 0, bo.quant_tensor(bb, [s_in], [0]))
+    t_ax = bo.tensor(bb, "axis", [1], bo.I32, 1)
+    t_o = bo.tensor(bb, spec["out_name"], out_shape, bo.I8, 2, bo.quant_tensor(bb, [s_out], [0]))
+    S.ReducerOptionsStart(bb)
+    S.ReducerOptionsAddKeepDims(bb, True)
+    opt = S.ReducerOptionsEnd(bb)
+    op_tbl = bo.operator(bb, 0, [0, 1], [2], bo.BuiltinOptions.ReducerOptions, opt)
+    blob = bo.finish(bb, buffers, [bo.opcode(bb, bo.BuiltinOperator.MEAN)],
+                     [t_a, t_ax, t_o], [op_tbl], [0], [2],
+                     "npu_lib MEAN %s axis=%d int8" % ("x".join(str(d) for d in shape), axis))
+
+    os.makedirs(os.path.join(outdir, "golden"), exist_ok=True)
+    with open(os.path.join(outdir, "model.tflite"), "wb") as f:
+        f.write(blob)
+    a.tofile(os.path.join(outdir, "golden", spec["in_name"] + ".bin"))
+    expected.tofile(os.path.join(outdir, "golden", "expected.bin"))
+    meta = {
+        "name": spec["name"], "op": "MEAN", "shape": list(shape), "out_shape": out_shape,
+        "axis": axis, "keep_dims": True, "dtype": "int8",
+        "inputs": [{"name": spec["in_name"], "shape": list(shape), "type": "int8", "scale": s_in}],
+        "output": {"name": spec["out_name"], "shape": out_shape, "type": "int8", "scale": s_out},
+        "int8_tol": int(spec.get("int8_tol", 0)),
+        "reference": "mean over axis (float64) -> quantize",
+        "seed": seed, "tflite_bytes": len(blob),
+    }
+    with open(os.path.join(outdir, "model.json"), "w") as f:
+        json.dump(meta, f, indent=2)
+    return meta
+
+
+def build_rsqrt(spec, outdir):
+    """RSQRT（一元，无选项），int8。输入必须是正数（码值 > 0），否则 1/sqrt(0) 溢出。"""
+    shape = tuple(int(x) for x in spec["shape"])
+    s_in = float(spec["in_scale"])
+    s_out = float(spec["out_scale"])
+    seed = int(spec.get("seed", 20261113))
+
+    rng = np.random.default_rng(seed)
+    a = rng.integers(1, 128, size=shape).astype(np.int8)      # 正数，避开 0
+    expected = golden_mod.reference("rsqrt", a, None, s_in, 1.0, s_out)[0]
+
+    bb = flatbuffers.Builder(4096)
+    buffers = [bo.buf_empty(bb), bo.buf_empty(bb)]
+    t_a = bo.tensor(bb, spec["in_name"], list(shape), bo.I8, 0, bo.quant_tensor(bb, [s_in], [0]))
+    t_o = bo.tensor(bb, spec["out_name"], list(shape), bo.I8, 1, bo.quant_tensor(bb, [s_out], [0]))
+    op_tbl = bo.operator(bb, 0, [0], [1], 0, None)
+    blob = bo.finish(bb, buffers, [bo.opcode(bb, bo.BuiltinOperator.RSQRT)],
+                     [t_a, t_o], [op_tbl], [0], [1],
+                     "npu_lib RSQRT %s int8" % "x".join(str(d) for d in shape))
+
+    os.makedirs(os.path.join(outdir, "golden"), exist_ok=True)
+    with open(os.path.join(outdir, "model.tflite"), "wb") as f:
+        f.write(blob)
+    a.tofile(os.path.join(outdir, "golden", spec["in_name"] + ".bin"))
+    expected.tofile(os.path.join(outdir, "golden", "expected.bin"))
+    meta = {
+        "name": spec["name"], "op": "RSQRT", "shape": list(shape), "dtype": "int8",
+        "inputs": [{"name": spec["in_name"], "shape": list(shape), "type": "int8", "scale": s_in}],
+        "output": {"name": spec["out_name"], "shape": list(shape), "type": "int8", "scale": s_out},
+        "int8_tol": int(spec.get("int8_tol", 0)),
+        "reference": "1/sqrt(x) (float64) -> quantize",
+        "seed": seed, "tflite_bytes": len(blob),
     }
     with open(os.path.join(outdir, "model.json"), "w") as f:
         json.dump(meta, f, indent=2)
