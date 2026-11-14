@@ -1,7 +1,7 @@
 # 黑盒研究 04：FC-A…FC-E 控制变量矩阵（只动一个维度）
 
 日期：2026-11-14 · SDK 7.0.8 / `ncc-tflite` 7.3.15 · 纯离线（只编译 + 文件差分，未上板）
-票：`04-controlled-experiments.md` · 规格：[spec.md](../../.scratch/compiler-blackbox/spec.md) ·
+票：`04-controlled-experiments.md` · 规格：[spec.md](../.scratch/compiler-blackbox/spec.md) ·
 上一票：[03](./compiler-blackbox-03.md)（工具与噪声标定方法）
 
 ## 0. 一句话

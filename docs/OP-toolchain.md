@@ -21,7 +21,7 @@
 | `dla-packer` | 把若干 `.dla` 打成 `.dlb` | `-o` / `--share-tmp-buf` / `--ext-static-data` / `-l 0..9` |
 | `readdlb` | 读 `.dlb`，打印结构信息 | `--share-tmp-buf-alignment` |
 | `extract-shared` | 抽取共享权重（ADR 0006 那条路） | 无 `--help`（`Option 'help' does not exist`） |
-| `mdla-bwhint` | 给 `.dla` 编码/解码带宽提示 | `-d`（dump）、`-o`、`-v` |
+| `mdla-bwhint` | 给 `.dla` 编码/解码带宽提示 | `-d`（dump）、`-o`、`-v`；**注意 `-d` 的用法是 `mdla-bwhint -d <hint> <dla>`（要两个位置参数），只给 `.dla` 会打印 usage —— 我们还没跑出有效 dump** |
 
 ## 2. `ncc-tflite` 的开关（按用途分组，全部来自 `--help`）
 
@@ -37,7 +37,8 @@
 ./tools/compile.sh ops/fc_1x64x64_int8/model.tflite /tmp/x.dla \
   --gen-debug-info --gen-urate-info --verbose
 ```
--> 调试信息 / urate 信息写进 `.dla`（运行时可用于 profiling），`--verbose` 加细节。
+实测（`fc_1x64x64_int8`，同一模型）：plain **7532 B** / `--gen-debug-info` **8088 B**（+556）/ `--gen-urate-info` **7818 B**（+286）/ `--show-l1-req` 7546 B。
+-> 调试信息 / urate 信息确实**写进 `.dla`**（体积可见）；它们是否有可读结构**未验**（没有官方读取器）。
 
 ```bash
 ./tools/compile.sh ops/fc_1x64x64_int8/model.tflite /tmp/x.dla --check-target-only   # 只判目标支持

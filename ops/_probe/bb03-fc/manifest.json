@@ -1,10 +1,10 @@
 {
   "experiment": "bb03-fc",
-  "generated_at": "2026-11-14T12:09:53+0800",
+  "generated_at": "2026-11-14T13:37:37+0800",
   "matrix": "tools/bbdiff-matrix-blackbox03.json",
   "repeats": 5,
   "noise": {
-    "bytes": 214,
+    "bytes": 218,
     "runs": [
       [
         152,
@@ -164,7 +164,7 @@
       ],
       [
         1105,
-        1106
+        1107
       ],
       [
         1109,
@@ -200,11 +200,11 @@
       ],
       [
         1162,
-        1162
+        1163
       ],
       [
         1166,
-        1166
+        1167
       ],
       [
         1170,
@@ -272,31 +272,27 @@
       ],
       [
         1272,
-        1272
+        1273
       ],
       [
         1284,
         1284
       ],
       [
-        1324,
-        1324
-      ],
-      [
         1328,
-        1328
+        1329
       ],
       [
         1332,
-        1332
+        1333
       ],
       [
-        1364,
-        1364
+        1360,
+        1360
       ],
       [
-        1396,
-        1396
+        1392,
+        1392
       ],
       [
         1471,
@@ -329,10 +325,6 @@
       [
         2135,
         2138
-      ],
-      [
-        2187,
-        2187
       ],
       [
         2851,
@@ -379,6 +371,10 @@
         6851
       ],
       [
+        6947,
+        6947
+      ],
+      [
         7071,
         7078
       ],
@@ -411,10 +407,6 @@
         11203
       ],
       [
-        11299,
-        11299
-      ],
-      [
         11423,
         11430
       ],
@@ -436,11 +428,11 @@
       ]
     ],
     "per_variant": {
-      "fc_base": 115,
-      "fc_w_cal": 115,
+      "fc_base": 105,
+      "fc_w_cal": 119,
       "fc_w_swap": 115,
-      "fc_n128": 126,
-      "fc_extract": 119
+      "fc_n128": 106,
+      "fc_extract": 127
     },
     "max_size": 11987
   },
@@ -496,24 +488,29 @@
           "bias": 6.200012400024799e-05,
           "output": 0.0019840039680079358
         },
+        "quant_codes": {
+          "input": 0.007874015748031496,
+          "weights": 0.007874015748031496,
+          "bias": 6.200012400024799e-05
+        },
         "tflite_bytes": 5104,
         "sha256_tflite": "85b1e4016a08737433192955c89cc240d30af1c124193b378bc20a7070f233d2"
       },
       "error": "",
       "ok": true,
       "classes": {
-        "class0": 5,
-        "class1": 4
+        "class0": 7,
+        "class1": 2
       },
       "dropped_off_class": 4,
       "attempts": [
         {
           "attempt": 1,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.34,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.4,
           "bytes": 7635,
-          "sha256": "ee03c1736688e7bd37f5e6828a8c822018dbee11057599ff0c3cc3a963fe8c04",
+          "sha256": "772b9026b8dc7f69ef5a43b27d4dd94b76a801bff12ab78de63326fe249175c4",
           "class": "modal",
           "kept": true,
           "run": 1
@@ -521,140 +518,140 @@
         {
           "attempt": 2,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 7635,
-          "sha256": "f4f3de3cb30ede84f9cc57fa6bfa01091ca818a1ceb333c8a7d866e10ea0d95b",
-          "class": "off-class",
-          "kept": false
-        },
-        {
-          "attempt": 3,
-          "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
-          "bytes": 7635,
-          "sha256": "b14c70141c7ae198c8a71ab425582b44944a87b0e03b4ea691aa59a6f55251be",
+          "sha256": "b4d0c2ee22e8ca364e1986bc539c5808418a16183b07de829d5d1646ce26fb39",
           "class": "modal",
           "kept": true,
           "run": 2
         },
         {
+          "attempt": 3,
+          "rc": 0,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.39,
+          "bytes": 7635,
+          "sha256": "6ada10e2d7c098a0b4a72f36b1cc89cd8a59c86021ce9bcf624998903bff9fdd",
+          "class": "modal",
+          "kept": true,
+          "run": 3
+        },
+        {
           "attempt": 4,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.4,
           "bytes": 7635,
-          "sha256": "55a3c346d22c380b2e54b7f0a14a159147662dab193b340983f1de8eda946593",
+          "sha256": "6dcdccca329b3f9f987e9342b7587d5797d39cb6c5820a15ad5fd5b88e5fce84",
           "class": "off-class",
           "kept": false
         },
         {
           "attempt": 5,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.31,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.41,
           "bytes": 7635,
-          "sha256": "7cdb1791855fc03d935c57a59fbe649d500f81e172281d280257597285abf097",
-          "class": "off-class",
-          "kept": false
-        },
-        {
-          "attempt": 6,
-          "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.31,
-          "bytes": 7635,
-          "sha256": "e60ed4362f1b7d19d7653886c68226caf17af70d76cd95250a775fbed53f7f63",
-          "class": "off-class",
-          "kept": false
-        },
-        {
-          "attempt": 7,
-          "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
-          "bytes": 7635,
-          "sha256": "57786800e00baea93214db73345706f41a5bfe4281391e9d3f2a36513aad3e68",
-          "class": "modal",
-          "kept": true,
-          "run": 3
-        },
-        {
-          "attempt": 8,
-          "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.31,
-          "bytes": 7635,
-          "sha256": "3160086dcb3700e7e9739ce5bb7c1a34e4bb3bc2fed1e263bd172db9bb4ba8e1",
+          "sha256": "3a489743d9ffc1668ed751e11b0a21560181155ed2b398593a5b66aafd827c5c",
           "class": "modal",
           "kept": true,
           "run": 4
         },
         {
-          "attempt": 9,
+          "attempt": 6,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.4,
           "bytes": 7635,
-          "sha256": "7586e190813ad7eaf7c0696cdc9745c2132d8b32653a007f3b1bbf197bc5e214",
+          "sha256": "b54987ac9bec0533237182bb61b864614fb0d4a3c509881b41066c305e586604",
           "class": "modal",
           "kept": true,
           "run": 5
+        },
+        {
+          "attempt": 7,
+          "rc": 0,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
+          "bytes": 7635,
+          "sha256": "c9cc510d1d3eea7e0c16cd966f60ddd8bf2f5882a42c5d2b245ad6acaa6c6c33",
+          "class": "off-class",
+          "kept": false
+        },
+        {
+          "attempt": 8,
+          "rc": 0,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.35,
+          "bytes": 7635,
+          "sha256": "4bbf9a2c98ef1b002013ddc696c43a4fe64362be3103ddeea6d9ba975a1a91a0",
+          "class": "off-class",
+          "kept": false
+        },
+        {
+          "attempt": 9,
+          "rc": 0,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
+          "bytes": 7635,
+          "sha256": "d1a646e363fb412cb61fffbcdad5fef718564ff456825fa670e3d9eed8ee53d0",
+          "class": "off-class",
+          "kept": false
         }
       ],
       "runs": [
         {
           "attempt": 1,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.34,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.4,
           "bytes": 7635,
-          "sha256": "ee03c1736688e7bd37f5e6828a8c822018dbee11057599ff0c3cc3a963fe8c04",
+          "sha256": "772b9026b8dc7f69ef5a43b27d4dd94b76a801bff12ab78de63326fe249175c4",
           "class": "modal",
           "kept": true,
           "run": 1
         },
         {
-          "attempt": 3,
+          "attempt": 2,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 7635,
-          "sha256": "b14c70141c7ae198c8a71ab425582b44944a87b0e03b4ea691aa59a6f55251be",
+          "sha256": "b4d0c2ee22e8ca364e1986bc539c5808418a16183b07de829d5d1646ce26fb39",
           "class": "modal",
           "kept": true,
           "run": 2
         },
         {
-          "attempt": 7,
+          "attempt": 3,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.39,
           "bytes": 7635,
-          "sha256": "57786800e00baea93214db73345706f41a5bfe4281391e9d3f2a36513aad3e68",
+          "sha256": "6ada10e2d7c098a0b4a72f36b1cc89cd8a59c86021ce9bcf624998903bff9fdd",
           "class": "modal",
           "kept": true,
           "run": 3
         },
         {
-          "attempt": 8,
+          "attempt": 5,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.31,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.41,
           "bytes": 7635,
-          "sha256": "3160086dcb3700e7e9739ce5bb7c1a34e4bb3bc2fed1e263bd172db9bb4ba8e1",
+          "sha256": "3a489743d9ffc1668ed751e11b0a21560181155ed2b398593a5b66aafd827c5c",
           "class": "modal",
           "kept": true,
           "run": 4
         },
         {
-          "attempt": 9,
+          "attempt": 6,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.4,
           "bytes": 7635,
-          "sha256": "7586e190813ad7eaf7c0696cdc9745c2132d8b32653a007f3b1bbf197bc5e214",
+          "sha256": "b54987ac9bec0533237182bb61b864614fb0d4a3c509881b41066c305e586604",
           "class": "modal",
           "kept": true,
           "run": 5
@@ -700,24 +697,29 @@
           "bias": 6.200012400024799e-05,
           "output": 0.0019840039680079358
         },
+        "quant_codes": {
+          "input": 0.007874015748031496,
+          "weights": 0.007874015748031496,
+          "bias": 6.200012400024799e-05
+        },
         "tflite_bytes": 5104,
         "sha256_tflite": "5fe7706b49ab2f362c5bb818595b1a764b86f281448488f116711d1fc1802945"
       },
       "error": "",
       "ok": true,
       "classes": {
-        "class0": 8,
-        "class1": 1
+        "class0": 5,
+        "class1": 4
       },
       "dropped_off_class": 4,
       "attempts": [
         {
           "attempt": 1,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.39,
           "bytes": 7635,
-          "sha256": "90f01b5a6d31d2dcb80714827ed46f48b46768b112ad82972d523fff92a03f8b",
+          "sha256": "1972f7b48045892003969dc20e342815242ed71a5807630869f964ea5a3417e6",
           "class": "modal",
           "kept": true,
           "run": 1
@@ -725,10 +727,10 @@
         {
           "attempt": 2,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.39,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 7635,
-          "sha256": "39aad6c4f5e147ba806262b1dc8c0734bea8384efa78e44632989ca1f8c0b454",
+          "sha256": "24cd6917598c22c9c98bdb20901c6bbc80e0734f72ec3346f68126acc369a4ba",
           "class": "modal",
           "kept": true,
           "run": 2
@@ -736,85 +738,85 @@
         {
           "attempt": 3,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.31,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.39,
           "bytes": 7635,
-          "sha256": "0cb45a8b00d7d9f157bf86125058e1611a78eaee3eb29126cda1348e46d6f9c7",
+          "sha256": "2dd511ac67e6eb07abbc8e181013ca76db42aa0a80399c6d4df63c0b1386cecb",
+          "class": "off-class",
+          "kept": false
+        },
+        {
+          "attempt": 4,
+          "rc": 0,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
+          "bytes": 7635,
+          "sha256": "d4f127984331404a8b5af6e995a1664ca95d72f1513be6c91b03d47102a350d4",
           "class": "modal",
           "kept": true,
           "run": 3
         },
         {
-          "attempt": 4,
+          "attempt": 5,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.33,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.37,
           "bytes": 7635,
-          "sha256": "4255da71bab3340951c2596318b0c0ca47e39ba14d24fd253fd73ca9f6ee0597",
+          "sha256": "13a8bdcf1d02c81f4d3c099167b88b729d3af22be7fa901cad346813cdada333",
+          "class": "off-class",
+          "kept": false
+        },
+        {
+          "attempt": 6,
+          "rc": 0,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.41,
+          "bytes": 7635,
+          "sha256": "8e3db091447a924f7ea4ae9e4397ab6d6b9aae7a9bc447f85babd3c49696e000",
           "class": "modal",
           "kept": true,
           "run": 4
         },
         {
-          "attempt": 5,
-          "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.34,
-          "bytes": 7635,
-          "sha256": "7963e3603a6d28941a937e357e91e551769c0e167a61c3c56ce8b6742aadf133",
-          "class": "modal",
-          "kept": true,
-          "run": 5
-        },
-        {
-          "attempt": 6,
-          "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.34,
-          "bytes": 7635,
-          "sha256": "9d3afe14166dbdbbd5c9f523de3edea4544009d63194457f2dc4c324f29a28ab",
-          "class": "off-class",
-          "kept": false
-        },
-        {
           "attempt": 7,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.34,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 7635,
-          "sha256": "99bd1b4f1e1bf679923081a8fd9bbfdf65822384a5ca69c411d12eb2e534e584",
+          "sha256": "329a3a45556840e710c8639c3f8c39e1780ab7092e9f5ce1914e2bca33cafc89",
           "class": "off-class",
           "kept": false
         },
         {
           "attempt": 8,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.3,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.39,
           "bytes": 7635,
-          "sha256": "a759a48868f237e94a92181f9bcbcf91d5dd36f22d192610ff03eb902823aa4a",
+          "sha256": "88f3f38921ff60e094617057716a6540c327e8b2087fc559c537312283b299bd",
           "class": "off-class",
           "kept": false
         },
         {
           "attempt": 9,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
           "seconds": 0.35,
           "bytes": 7635,
-          "sha256": "f99d23f55e4f40303c9c91ba461ddd8746b7e4e9c5088c0c395c3e78b6b54687",
-          "class": "off-class",
-          "kept": false
+          "sha256": "bebe8200fcaf4cb238bf39cdc5c38e45ccab1980cf825491ffad6c77d5854a8c",
+          "class": "modal",
+          "kept": true,
+          "run": 5
         }
       ],
       "runs": [
         {
           "attempt": 1,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.39,
           "bytes": 7635,
-          "sha256": "90f01b5a6d31d2dcb80714827ed46f48b46768b112ad82972d523fff92a03f8b",
+          "sha256": "1972f7b48045892003969dc20e342815242ed71a5807630869f964ea5a3417e6",
           "class": "modal",
           "kept": true,
           "run": 1
@@ -822,43 +824,43 @@
         {
           "attempt": 2,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.39,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 7635,
-          "sha256": "39aad6c4f5e147ba806262b1dc8c0734bea8384efa78e44632989ca1f8c0b454",
+          "sha256": "24cd6917598c22c9c98bdb20901c6bbc80e0734f72ec3346f68126acc369a4ba",
           "class": "modal",
           "kept": true,
           "run": 2
         },
         {
-          "attempt": 3,
+          "attempt": 4,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.31,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 7635,
-          "sha256": "0cb45a8b00d7d9f157bf86125058e1611a78eaee3eb29126cda1348e46d6f9c7",
+          "sha256": "d4f127984331404a8b5af6e995a1664ca95d72f1513be6c91b03d47102a350d4",
           "class": "modal",
           "kept": true,
           "run": 3
         },
         {
-          "attempt": 4,
+          "attempt": 6,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.33,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.41,
           "bytes": 7635,
-          "sha256": "4255da71bab3340951c2596318b0c0ca47e39ba14d24fd253fd73ca9f6ee0597",
+          "sha256": "8e3db091447a924f7ea4ae9e4397ab6d6b9aae7a9bc447f85babd3c49696e000",
           "class": "modal",
           "kept": true,
           "run": 4
         },
         {
-          "attempt": 5,
+          "attempt": 9,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.34,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.35,
           "bytes": 7635,
-          "sha256": "7963e3603a6d28941a937e357e91e551769c0e167a61c3c56ce8b6742aadf133",
+          "sha256": "bebe8200fcaf4cb238bf39cdc5c38e45ccab1980cf825491ffad6c77d5854a8c",
           "class": "modal",
           "kept": true,
           "run": 5
@@ -904,165 +906,170 @@
           "bias": 6.200012400024799e-05,
           "output": 0.0019840039680079358
         },
+        "quant_codes": {
+          "input": 0.007874015748031496,
+          "weights": 0.007874015748031496,
+          "bias": 6.200012400024799e-05
+        },
         "tflite_bytes": 5104,
         "sha256_tflite": "3014644d9610c8352c9d5d903cacbcae3a3fda7674e6b43fb7f7a0c3c204ca05"
       },
       "error": "",
       "ok": true,
       "classes": {
-        "class0": 7,
-        "class1": 2
+        "class0": 3,
+        "class1": 6
       },
       "dropped_off_class": 4,
       "attempts": [
         {
           "attempt": 1,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.39,
           "bytes": 7635,
-          "sha256": "2d76bbc997d424ecf75b3c5652fb78b57166a641c81a8da8daf07ba1a3ade83e",
+          "sha256": "3459d1bfbd83421cdedf4c1e0bb7c886bb529c4ff645b1937c572b396af02f67",
+          "class": "off-class",
+          "kept": false
+        },
+        {
+          "attempt": 2,
+          "rc": 0,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.39,
+          "bytes": 7635,
+          "sha256": "b8aa624ebbabc741067fe0c4a6d9ae161bf4d9e77e3c63bdfdf6fc42ba902484",
+          "class": "off-class",
+          "kept": false
+        },
+        {
+          "attempt": 3,
+          "rc": 0,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
+          "bytes": 7635,
+          "sha256": "46493b31f07a72c2aed5cfb4593193caccf87abeca44540f350d4f7a34bb1138",
           "class": "modal",
           "kept": true,
           "run": 1
         },
         {
-          "attempt": 2,
+          "attempt": 4,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.34,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.39,
           "bytes": 7635,
-          "sha256": "693845241ca7537ffca0eb97c2b93d25853a1fa6589b549065a6cf94eacf3942",
+          "sha256": "6b73884e889076d270e957513f68ccffd78b26c7b46d3d373c094addca309c8c",
           "class": "modal",
           "kept": true,
           "run": 2
         },
         {
-          "attempt": 3,
+          "attempt": 5,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 7635,
-          "sha256": "6d01de0588a5dc3e214170df5b72e63632811d6d96c1e294453387437c3a70d5",
+          "sha256": "635ee575c900bef1e960a49a94c3cb196590cb6808b758ba8630d1e45298df04",
           "class": "modal",
           "kept": true,
           "run": 3
         },
         {
-          "attempt": 4,
+          "attempt": 6,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
           "seconds": 0.39,
           "bytes": 7635,
-          "sha256": "2ede07fc4f84673ace7849535dc6b2d1a3552657df25fc4fc8a1f4e64e9ae6db",
+          "sha256": "13cbf36543babade22fac5a995bc51fb713b38e401549cecdf3adb20426c47c2",
           "class": "modal",
           "kept": true,
           "run": 4
         },
         {
-          "attempt": 5,
+          "attempt": 7,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.37,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.42,
           "bytes": 7635,
-          "sha256": "01b70ce63d754c71ba88460f99b6cfbfea655621a7597de38fb1a423dbf3fc9f",
+          "sha256": "975cfd67ac74c2c88d0650bcbbcc33982b91dc3c157fb7820f3c0a39260c755f",
           "class": "modal",
           "kept": true,
           "run": 5
         },
         {
-          "attempt": 6,
-          "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
-          "bytes": 7635,
-          "sha256": "adab21a2b5c74b205d7ce4e4b962892323bf624969de55ab953ebac7284d9ce0",
-          "class": "off-class",
-          "kept": false
-        },
-        {
-          "attempt": 7,
-          "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.36,
-          "bytes": 7635,
-          "sha256": "39275dee6875a4be73085870db4044206c0efba149db58abccb7ea1158d3b673",
-          "class": "off-class",
-          "kept": false
-        },
-        {
           "attempt": 8,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 7635,
-          "sha256": "1ffde2194d94cb60657c830c2801c473f476d908e50b6fec1dfbe4eea2654c0e",
+          "sha256": "350317fb75adb3a19638e8ad5109e3ac86f3fb77bdf2bc921d823736773192f0",
           "class": "off-class",
           "kept": false
         },
         {
           "attempt": 9,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 7635,
-          "sha256": "03a1df2f47964b98b283a2fd7b654d45960964f4e2df38f2f6985c49c876e71f",
+          "sha256": "67c1a895899b6f1aae0184c06a02f3a36de08aff17c6b56660a36034918982ad",
           "class": "off-class",
           "kept": false
         }
       ],
       "runs": [
         {
-          "attempt": 1,
+          "attempt": 3,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 7635,
-          "sha256": "2d76bbc997d424ecf75b3c5652fb78b57166a641c81a8da8daf07ba1a3ade83e",
+          "sha256": "46493b31f07a72c2aed5cfb4593193caccf87abeca44540f350d4f7a34bb1138",
           "class": "modal",
           "kept": true,
           "run": 1
         },
         {
-          "attempt": 2,
+          "attempt": 4,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.34,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.39,
           "bytes": 7635,
-          "sha256": "693845241ca7537ffca0eb97c2b93d25853a1fa6589b549065a6cf94eacf3942",
+          "sha256": "6b73884e889076d270e957513f68ccffd78b26c7b46d3d373c094addca309c8c",
           "class": "modal",
           "kept": true,
           "run": 2
         },
         {
-          "attempt": 3,
+          "attempt": 5,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.35,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 7635,
-          "sha256": "6d01de0588a5dc3e214170df5b72e63632811d6d96c1e294453387437c3a70d5",
+          "sha256": "635ee575c900bef1e960a49a94c3cb196590cb6808b758ba8630d1e45298df04",
           "class": "modal",
           "kept": true,
           "run": 3
         },
         {
-          "attempt": 4,
+          "attempt": 6,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
           "seconds": 0.39,
           "bytes": 7635,
-          "sha256": "2ede07fc4f84673ace7849535dc6b2d1a3552657df25fc4fc8a1f4e64e9ae6db",
+          "sha256": "13cbf36543babade22fac5a995bc51fb713b38e401549cecdf3adb20426c47c2",
           "class": "modal",
           "kept": true,
           "run": 4
         },
         {
-          "attempt": 5,
+          "attempt": 7,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.37,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.42,
           "bytes": 7635,
-          "sha256": "01b70ce63d754c71ba88460f99b6cfbfea655621a7597de38fb1a423dbf3fc9f",
+          "sha256": "975cfd67ac74c2c88d0650bcbbcc33982b91dc3c157fb7820f3c0a39260c755f",
           "class": "modal",
           "kept": true,
           "run": 5
@@ -1108,6 +1115,11 @@
           "bias": 6.200012400024799e-05,
           "output": 0.0019840039680079358
         },
+        "quant_codes": {
+          "input": 0.007874015748031496,
+          "weights": 0.007874015748031496,
+          "bias": 6.200012400024799e-05
+        },
         "tflite_bytes": 9456,
         "sha256_tflite": "61c0300b544e388abe1392608cbf8a4f0a67fa646eb5daf0147dcee5fe825768"
       },
@@ -1122,10 +1134,10 @@
         {
           "attempt": 1,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.33,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 11987,
-          "sha256": "67199a3e76f0afb3a487634fb34000188e69e6894fd27b15f2060be2ee991ff1",
+          "sha256": "4430c89c28cdb9221e8bfd16d9e103b112e36dfee42f6bbd6e6bee73c02d97a3",
           "class": "modal",
           "kept": true,
           "run": 1
@@ -1133,10 +1145,10 @@
         {
           "attempt": 2,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.37,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.39,
           "bytes": 11987,
-          "sha256": "76dea75afadc291b7f2e6658466e346925d9371f63dcca9de75cca9466427fe2",
+          "sha256": "48e46ad364f1c02e227f307a2689fd20fcae005af953563ea2846d0883fb10b5",
           "class": "modal",
           "kept": true,
           "run": 2
@@ -1144,10 +1156,10 @@
         {
           "attempt": 3,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.38,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.4,
           "bytes": 11987,
-          "sha256": "c1c3d9c34724f0477dc0dc616585c11c8a6934a6dd9a14ba64c2bd73d84310c3",
+          "sha256": "9f8c337b0f848c1c59042471ae468fc8122dfb74cc9880580a6dee1966b30f11",
           "class": "modal",
           "kept": true,
           "run": 3
@@ -1155,10 +1167,10 @@
         {
           "attempt": 4,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.37,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 11987,
-          "sha256": "14364ebbdce3ecc77faf80ce29e30da19176c6cead9a59ae218da5b6a5324e37",
+          "sha256": "ac70501867176ae3e1a2493cb6abfc4b54b7a4aaff0b80995d4c07a83aec782d",
           "class": "modal",
           "kept": true,
           "run": 4
@@ -1166,20 +1178,20 @@
         {
           "attempt": 5,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
           "seconds": 0.38,
           "bytes": 11987,
-          "sha256": "75291c95500f836649ec8dbd6cd8a61bdbb4995d3c933201913bd284795df059",
+          "sha256": "45ebe57285000ea0b7b4c3076071c8b19bef730558f9a91d1e83df672b3405af",
           "class": "off-class",
           "kept": false
         },
         {
           "attempt": 6,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.39,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.4,
           "bytes": 11987,
-          "sha256": "0249bbab433fe959aad0250c833d30e5454fd4ce3792c830767f388ffe208277",
+          "sha256": "5bf5e5518d719b861772ad2d63477feccb019a1fc2beb1213235699d991fd34b",
           "class": "modal",
           "kept": true,
           "run": 5
@@ -1187,30 +1199,30 @@
         {
           "attempt": 7,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.36,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 11987,
-          "sha256": "36d3fe27ce814180ae9fb32680b650533fc1ecdfba73fb6778d9674a00e097e8",
+          "sha256": "3f4188107ccd02fd95803b21b3d823cfb51cee865c470cc26ddb488395bae835",
           "class": "off-class",
           "kept": false
         },
         {
           "attempt": 8,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.32,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.39,
           "bytes": 11987,
-          "sha256": "c9a76b28a2261d528bbbf3f9ce924d31f97c57ab0704273eadfc66d07f08e574",
+          "sha256": "5c5667587c6ed5cd8fffac308cb23af348b0f7220619927c07b82138259c6661",
           "class": "off-class",
           "kept": false
         },
         {
           "attempt": 9,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.39,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.37,
           "bytes": 11987,
-          "sha256": "2ed3468747bb372297e0c552911e2b205fd3ede309443ca93ae6d246eaf940bd",
+          "sha256": "1cc8ff014c9b0f808d75b6737519f926a80a29b4bd28b99f4a612357cf755af9",
           "class": "off-class",
           "kept": false
         }
@@ -1219,10 +1231,10 @@
         {
           "attempt": 1,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.33,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 11987,
-          "sha256": "67199a3e76f0afb3a487634fb34000188e69e6894fd27b15f2060be2ee991ff1",
+          "sha256": "4430c89c28cdb9221e8bfd16d9e103b112e36dfee42f6bbd6e6bee73c02d97a3",
           "class": "modal",
           "kept": true,
           "run": 1
@@ -1230,10 +1242,10 @@
         {
           "attempt": 2,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.37,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.39,
           "bytes": 11987,
-          "sha256": "76dea75afadc291b7f2e6658466e346925d9371f63dcca9de75cca9466427fe2",
+          "sha256": "48e46ad364f1c02e227f307a2689fd20fcae005af953563ea2846d0883fb10b5",
           "class": "modal",
           "kept": true,
           "run": 2
@@ -1241,10 +1253,10 @@
         {
           "attempt": 3,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.38,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.4,
           "bytes": 11987,
-          "sha256": "c1c3d9c34724f0477dc0dc616585c11c8a6934a6dd9a14ba64c2bd73d84310c3",
+          "sha256": "9f8c337b0f848c1c59042471ae468fc8122dfb74cc9880580a6dee1966b30f11",
           "class": "modal",
           "kept": true,
           "run": 3
@@ -1252,10 +1264,10 @@
         {
           "attempt": 4,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.37,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.38,
           "bytes": 11987,
-          "sha256": "14364ebbdce3ecc77faf80ce29e30da19176c6cead9a59ae218da5b6a5324e37",
+          "sha256": "ac70501867176ae3e1a2493cb6abfc4b54b7a4aaff0b80995d4c07a83aec782d",
           "class": "modal",
           "kept": true,
           "run": 4
@@ -1263,10 +1275,10 @@
         {
           "attempt": 6,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.39,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.4,
           "bytes": 11987,
-          "sha256": "0249bbab433fe959aad0250c833d30e5454fd4ce3792c830767f388ffe208277",
+          "sha256": "5bf5e5518d719b861772ad2d63477feccb019a1fc2beb1213235699d991fd34b",
           "class": "modal",
           "kept": true,
           "run": 5
@@ -1314,6 +1326,11 @@
           "bias": 6.200012400024799e-05,
           "output": 0.0019840039680079358
         },
+        "quant_codes": {
+          "input": 0.007874015748031496,
+          "weights": 0.007874015748031496,
+          "bias": 6.200012400024799e-05
+        },
         "tflite_bytes": 5104,
         "sha256_tflite": "85b1e4016a08737433192955c89cc240d30af1c124193b378bc20a7070f233d2"
       },
@@ -1327,10 +1344,10 @@
         {
           "attempt": 1,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/static.bin",
-          "seconds": 0.45,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin",
+          "seconds": 0.41,
           "bytes": 3813,
-          "sha256": "43eb62454db67a0a13d0ebbb03c4e436a6331d2d11071ad90b6bc2e78dc0a9e6",
+          "sha256": "82b14cf5a0e702ffaa22d9ced62f7eb58c86b21fbe1bd2fdcc37e448f95a83b5",
           "class": "modal",
           "kept": true,
           "run": 1
@@ -1338,10 +1355,10 @@
         {
           "attempt": 2,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/static.bin",
-          "seconds": 0.39,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin",
+          "seconds": 0.4,
           "bytes": 3813,
-          "sha256": "c5a4f43e806581b2f30dbf8a28b6d93dfce15b466ae0ed70f38a56b30c706eed",
+          "sha256": "49261f62b275c64d80258451708550ebb5ec49ff238891978eb0288207791b8c",
           "class": "modal",
           "kept": true,
           "run": 2
@@ -1349,10 +1366,10 @@
         {
           "attempt": 3,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/static.bin",
-          "seconds": 0.38,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin",
+          "seconds": 0.41,
           "bytes": 3813,
-          "sha256": "3480d18233d3767ce8fba4879891b817e4cabab545fc32543f2b803dd84e634a",
+          "sha256": "292704d90335c78fd40ef48e624b49ea6ab9fbd6ff529d78b30f527c76d2dd61",
           "class": "modal",
           "kept": true,
           "run": 3
@@ -1360,10 +1377,10 @@
         {
           "attempt": 4,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/static.bin",
-          "seconds": 0.39,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin",
+          "seconds": 0.4,
           "bytes": 3813,
-          "sha256": "9eac37a1ed1d050ce3f4067fe0aed79cc67415c40582d42b94fb4ab141483224",
+          "sha256": "cf10e402c145b3e9c310eef90854e04875c311255e81dd6842b08d9112cd9cb7",
           "class": "modal",
           "kept": true,
           "run": 4
@@ -1371,10 +1388,10 @@
         {
           "attempt": 5,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/static.bin",
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin",
           "seconds": 0.38,
           "bytes": 3813,
-          "sha256": "53bacfa994294e7562d65ccd674cf84e55ca32d269a2fb0fe3503da080a376a1",
+          "sha256": "8f91f6c74675cab61346238fa2b2ee2d65ef78c4ca4e8767846427129ef26f22",
           "class": "modal",
           "kept": true,
           "run": 5
@@ -1382,40 +1399,40 @@
         {
           "attempt": 6,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/static.bin",
-          "seconds": 0.37,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin",
+          "seconds": 0.41,
           "bytes": 3813,
-          "sha256": "815684d3d0827333937c1e7d8b987c832a17fdd41fcccb943546f7615e4f4d15",
+          "sha256": "955ee8c7fc8a159805a3a506918ebbc830ae0ee6aac9bc103ec24f35585ee5c0",
           "class": "off-class",
           "kept": false
         },
         {
           "attempt": 7,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/static.bin",
-          "seconds": 0.41,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin",
+          "seconds": 0.4,
           "bytes": 3813,
-          "sha256": "79a4c807fbe3dcb8ad17ab326f9a92660d2835bb9f04467c051883e15402cad4",
+          "sha256": "bc238333026e471ad9d8add584ac701c5b8369a9f42aa717923d4937a0872781",
           "class": "off-class",
           "kept": false
         },
         {
           "attempt": 8,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/static.bin",
-          "seconds": 0.38,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin",
+          "seconds": 0.41,
           "bytes": 3813,
-          "sha256": "da1dffe3b2aa46e15677c6c98da9314e4fa1303e194aad996d0351715ecba867",
+          "sha256": "26eaeebf226c90b2d5dffedaf057a070ccec83857e90b7f7bdb7137de3ff3958",
           "class": "off-class",
           "kept": false
         },
         {
           "attempt": 9,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/static.bin",
-          "seconds": 0.35,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin",
+          "seconds": 0.45,
           "bytes": 3813,
-          "sha256": "ec84b7aaf6c6124194e704398c2322912ca376102461eca97b74af72c523ef35",
+          "sha256": "0bb5c0f0ecf62136b6a0ff41b6ce5237b056782891b4f45af936aa994e49a2bb",
           "class": "off-class",
           "kept": false
         }
@@ -1424,10 +1441,10 @@
         {
           "attempt": 1,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/static.bin",
-          "seconds": 0.45,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin",
+          "seconds": 0.41,
           "bytes": 3813,
-          "sha256": "43eb62454db67a0a13d0ebbb03c4e436a6331d2d11071ad90b6bc2e78dc0a9e6",
+          "sha256": "82b14cf5a0e702ffaa22d9ced62f7eb58c86b21fbe1bd2fdcc37e448f95a83b5",
           "class": "modal",
           "kept": true,
           "run": 1
@@ -1435,10 +1452,10 @@
         {
           "attempt": 2,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/static.bin",
-          "seconds": 0.39,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin",
+          "seconds": 0.4,
           "bytes": 3813,
-          "sha256": "c5a4f43e806581b2f30dbf8a28b6d93dfce15b466ae0ed70f38a56b30c706eed",
+          "sha256": "49261f62b275c64d80258451708550ebb5ec49ff238891978eb0288207791b8c",
           "class": "modal",
           "kept": true,
           "run": 2
@@ -1446,10 +1463,10 @@
         {
           "attempt": 3,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/static.bin",
-          "seconds": 0.38,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin",
+          "seconds": 0.41,
           "bytes": 3813,
-          "sha256": "3480d18233d3767ce8fba4879891b817e4cabab545fc32543f2b803dd84e634a",
+          "sha256": "292704d90335c78fd40ef48e624b49ea6ab9fbd6ff529d78b30f527c76d2dd61",
           "class": "modal",
           "kept": true,
           "run": 3
@@ -1457,10 +1474,10 @@
         {
           "attempt": 4,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/static.bin",
-          "seconds": 0.39,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin",
+          "seconds": 0.4,
           "bytes": 3813,
-          "sha256": "9eac37a1ed1d050ce3f4067fe0aed79cc67415c40582d42b94fb4ab141483224",
+          "sha256": "cf10e402c145b3e9c310eef90854e04875c311255e81dd6842b08d9112cd9cb7",
           "class": "modal",
           "kept": true,
           "run": 4
@@ -1468,10 +1485,10 @@
         {
           "attempt": 5,
           "rc": 0,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/static.bin",
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin",
           "seconds": 0.38,
           "bytes": 3813,
-          "sha256": "53bacfa994294e7562d65ccd674cf84e55ca32d269a2fb0fe3503da080a376a1",
+          "sha256": "8f91f6c74675cab61346238fa2b2ee2d65ef78c4ca4e8767846427129ef26f22",
           "class": "modal",
           "kept": true,
           "run": 5
@@ -1517,6 +1534,11 @@
           "bias": 6.200012400024799e-05,
           "output": 0.0019840039680079358
         },
+        "quant_codes": {
+          "input": 0.007874015748031496,
+          "weights": 0.007874015748031496,
+          "bias": 6.200012400024799e-05
+        },
         "tflite_bytes": 1520,
         "sha256_tflite": "ab5dc2474ffb2184703188923cfcdeba194328b16b633a2787e04327f59ae3fe"
       },
@@ -1528,8 +1550,8 @@
         {
           "attempt": 1,
           "rc": 1,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.17,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.18,
           "bytes": 0,
           "sha256": "",
           "class": null,
@@ -1538,8 +1560,8 @@
         {
           "attempt": 2,
           "rc": 1,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.17,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.18,
           "bytes": 0,
           "sha256": "",
           "class": null,
@@ -1548,8 +1570,8 @@
         {
           "attempt": 3,
           "rc": 1,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.17,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.18,
           "bytes": 0,
           "sha256": "",
           "class": null,
@@ -1558,7 +1580,7 @@
         {
           "attempt": 4,
           "rc": 1,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
           "seconds": 0.18,
           "bytes": 0,
           "sha256": "",
@@ -1568,7 +1590,7 @@
         {
           "attempt": 5,
           "rc": 1,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
           "seconds": 0.18,
           "bytes": 0,
           "sha256": "",
@@ -1578,7 +1600,7 @@
         {
           "attempt": 6,
           "rc": 1,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
           "seconds": 0.18,
           "bytes": 0,
           "sha256": "",
@@ -1588,7 +1610,7 @@
         {
           "attempt": 7,
           "rc": 1,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
           "seconds": 0.18,
           "bytes": 0,
           "sha256": "",
@@ -1598,8 +1620,8 @@
         {
           "attempt": 8,
           "rc": 1,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
-          "seconds": 0.18,
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
+          "seconds": 0.19,
           "bytes": 0,
           "sha256": "",
           "class": null,
@@ -1608,7 +1630,7 @@
         {
           "attempt": 9,
           "rc": 1,
-          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb03/ops/_probe/bb03-fc/_build/model.dla",
+          "cmd": "bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla",
           "seconds": 0.18,
           "bytes": 0,
           "sha256": "",
@@ -1628,9 +1650,9 @@
       "a": "fc_base",
       "b": "fc_n128",
       "diff_bytes": 10251,
-      "outside_noise": 10117,
-      "inside_noise": 134,
-      "noise_share": 0.0131,
+      "outside_noise": 10121,
+      "inside_noise": 130,
+      "noise_share": 0.0127,
       "size_a": 7635,
       "size_b": 11987,
       "runs_outside": [
@@ -1675,12 +1697,12 @@
           544
         ],
         [
-          1636,
-          1636
+          1324,
+          1324
         ],
         [
-          1660,
-          1660
+          1364,
+          1364
         ]
       ],
       "ok": true,
@@ -1693,9 +1715,9 @@
       "note": "\u2461 \u5f62\u72b6\u4e0e\u6743\u91cd\u90fd\u4e0d\u53d8\uff1a\u7b2c 5 \u6b21\uff08holdout\uff0c\u4e0d\u53c2\u4e0e\u566a\u58f0\u6807\u5b9a\uff09\u5fc5\u987b\u4e0e\u7b2c 1 \u6b21\u9664\u566a\u58f0\u533a\u5916\u9010\u5b57\u8282\u76f8\u540c\uff08\u4f59\u91cf 8 B\uff1a\u566a\u58f0\u504f\u79fb\u96c6\u5408\u672c\u8eab\u6709\u6296\u52a8\uff09",
       "variant": "fc_base",
       "holdout_run": 5,
-      "diff_bytes": 34,
+      "diff_bytes": 101,
       "outside_noise": 0,
-      "inside_noise": 34,
+      "inside_noise": 101,
       "size_delta": 0,
       "runs_outside": [],
       "ok": true,
@@ -1710,9 +1732,9 @@
       "b": "fc_w_swap",
       "zone": "weight",
       "zone_bytes": 4096,
-      "diff_bytes": 4181,
-      "outside_noise": 4041,
-      "inside_noise": 140,
+      "diff_bytes": 4184,
+      "outside_noise": 4042,
+      "inside_noise": 142,
       "escaped_zone": 0,
       "escape_runs": [],
       "ok": true,
@@ -1764,9 +1786,9 @@
       "zone": "weight",
       "zone_bytes": 4096,
       "diff_bytes": 10251,
-      "outside_noise": 10117,
-      "inside_noise": 134,
-      "escaped_zone": 6072,
+      "outside_noise": 10121,
+      "inside_noise": 130,
+      "escaped_zone": 6075,
       "escape_runs": [
         [
           1,
@@ -1809,12 +1831,12 @@
           544
         ],
         [
-          1636,
-          1636
+          1324,
+          1324
         ],
         [
-          1660,
-          1660
+          1364,
+          1364
         ]
       ],
       "ok": false,
@@ -1825,9 +1847,9 @@
       "kind": "noise_budget",
       "expect": "pass",
       "note": "\u2461 \u7684\u7b2c\u4e8c\u4e2a\u534a\u8fb9\uff1a\u566a\u58f0\u533a\u672c\u8eab\u4e0d\u5f97\u8d85\u8fc7\u4ea7\u7269\u7684 5%\uff08\u5426\u5219\u300c\u9664\u566a\u58f0\u533a\u5916\u76f8\u540c\u300d\u5c31\u6ca1\u6709\u4fe1\u606f\u91cf\uff09",
-      "noise_bytes": 214,
+      "noise_bytes": 218,
       "max_size": 11987,
-      "share": 0.0179,
+      "share": 0.0182,
       "ok": true,
       "as_expected": true
     }

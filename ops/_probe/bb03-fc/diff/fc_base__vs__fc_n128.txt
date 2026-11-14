@@ -1,6 +1,6 @@
 # diff fc_base vs fc_n128
 size: 7635 vs 11987 (delta +4352)
-diff bytes=10251   inside noise=134   outside noise=10117
+diff bytes=10251   inside noise=130   outside noise=10121
 ranges (outside noise, top 40):
        1..1       len=1
       21..21      len=1
@@ -12,6 +12,9 @@ ranges (outside noise, top 40):
      401..401     len=1
      497..497     len=1
      544..544     len=1
+    1324..1324    len=1
+    1364..1364    len=1
+    1396..1396    len=1
     1636..1636    len=1
     1660..1660    len=1
     1664..1664    len=1
@@ -39,6 +42,3 @@ ranges (outside noise, top 40):
     1835..1840    len=6
     1843..1855    len=13
     1859..1872    len=14
-    1875..1880    len=6
-    1883..1888    len=6
-    1891..1892    len=2

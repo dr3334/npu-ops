@@ -62,7 +62,7 @@ def _floats(spec):
     elif kind == "base":
         pass
     else:
-        raise SystemExit("weights.kind 未知: %r" % kind)
+        raise ValueError("weights.kind 未知: %r" % kind)
     return a_f, w_f, b_f
 
 
@@ -137,7 +137,7 @@ def build_model(spec):
         quant = {"input": qa, "weights": qw, "bias": qb, "output": qo}
         weight_bytes, bias_bytes = int(w_q.nbytes), int(b_q.nbytes)
     else:
-        raise SystemExit("model.dtype 未知: %r" % dtype)
+        raise ValueError("model.dtype 未知: %r" % dtype)
     S.FullyConnectedOptionsStart(b)
     S.FullyConnectedOptionsAddFusedActivationFunction(b, 0)
     S.FullyConnectedOptionsAddWeightsFormat(b, 0)
@@ -342,6 +342,8 @@ class Variant(object):
             a["run"] = n
 
     def write_evidence(self):
+        if getattr(self, "_ev", None) is not None:
+            return self._ev          # 同一变体只写一次盘（调用方两处都要返回值的习惯导致的重复调用）
         lines = ["# %s" % self.id, "note: %s" % (self.note or "-"),
                  "flags: %s" % (" ".join(self.flags) if self.flags else "-"),
                  "model.tflite bytes=%d sha256=%s" % (
@@ -353,17 +355,18 @@ class Variant(object):
                  "kept runs: %s" % (", ".join("attempt%d" % r["attempt"] for r in self.runs) or "-")]
         for a in self.attempts:
             lines.append("attempt%d [%s%s]: rc=%s bytes=%d sha256=%s seconds=%.2f" % (
-                a["attempt"], a["class"], "" if a["kept"] else "",
+                a["attempt"], a["class"], "" if a["kept"] else " [off-class]",
                 a["rc"], a["bytes"], a["sha256"] or "-", a["seconds"]))
             lines.append("  cmd: %s" % a["cmd"])
         if self.error:
             lines.append("error: %s" % self.error)
         (self.dir / "evidence.txt").write_text("\n".join(lines) + "\n")
-        return {"id": self.id, "note": self.note, "flags": self.flags,
+        self._ev = {"id": self.id, "note": self.note, "flags": self.flags,
                 "model": self.meta, "error": self.error, "ok": self.ok,
                 "classes": self.classes, "dropped_off_class": self.dropped,
                 "attempts": [{k: v for k, v in a.items() if k != "dla"} for a in self.attempts],
                 "runs": [{k: v for k, v in r.items() if k != "dla"} for r in self.runs]}
+        return self._ev
 
 
 def measure_noise(variants, upto=None):

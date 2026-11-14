@@ -1,5 +1,5 @@
-noise bytes=214  runs=107  (union over 6 variants x 5 kept repeats, calibration window = first 4)
-per-variant noisy bytes: {"fc_base": 115, "fc_w_cal": 115, "fc_w_swap": 115, "fc_n128": 126, "fc_extract": 119}
+noise bytes=218  runs=105  (union over 6 variants x 5 kept repeats, calibration window = first 4)
+per-variant noisy bytes: {"fc_base": 105, "fc_w_cal": 119, "fc_w_swap": 115, "fc_n128": 106, "fc_extract": 127}
 runs:
      152..152    len=1
      200..200    len=1
@@ -40,7 +40,7 @@ runs:
     1094..1094   len=1
     1096..1096   len=1
     1100..1102   len=3
-    1105..1106   len=2
+    1105..1107   len=3
     1109..1110   len=2
     1118..1118   len=1
     1131..1131   len=1
@@ -49,8 +49,8 @@ runs:
     1146..1146   len=1
     1150..1150   len=1
     1158..1158   len=1
-    1162..1162   len=1
-    1166..1166   len=1
+    1162..1163   len=2
+    1166..1167   len=2
     1170..1170   len=1
     1174..1174   len=1
     1178..1178   len=1
@@ -67,13 +67,12 @@ runs:
     1230..1230   len=1
     1242..1242   len=1
     1251..1251   len=1
-    1272..1272   len=1
+    1272..1273   len=2
     1284..1284   len=1
-    1324..1324   len=1
-    1328..1328   len=1
-    1332..1332   len=1
-    1364..1364   len=1
-    1396..1396   len=1
+    1328..1329   len=2
+    1332..1333   len=2
+    1360..1360   len=1
+    1392..1392   len=1
     1471..1471   len=1
     1563..1563   len=1
     1575..1575   len=1
@@ -82,7 +81,6 @@ runs:
     1743..1743   len=1
     1931..1931   len=1
     2135..2138   len=4
-    2187..2187   len=1
     2851..2851   len=1
     2931..2931   len=1
     3027..3027   len=1
@@ -94,6 +92,7 @@ runs:
     6163..6166   len=4
     6231..6234   len=4
     6851..6851   len=1
+    6947..6947   len=1
     7071..7078   len=8
     7080..7083   len=4
     7086..7088   len=3
@@ -102,7 +101,6 @@ runs:
    10515..10518  len=4
    10583..10586  len=4
    11203..11203  len=1
-   11299..11299  len=1
    11423..11430  len=8
    11432..11435  len=4
    11438..11440  len=3

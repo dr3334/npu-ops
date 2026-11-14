@@ -1,10 +1,9 @@
 # diff fc_base vs fc_w_cal
 size: 7635 vs 7635 (delta +0)
-diff bytes=4135   inside noise=96   outside noise=4039
+diff bytes=4122   inside noise=82   outside noise=4040
 ranges (outside noise, top 40):
     1951..2134    len=184
-    2139..2186    len=48
-    2188..2259    len=72
+    2139..2259    len=121
     2261..2521    len=261
     2523..2576    len=54
     2578..2590    len=13

@@ -35,10 +35,10 @@ ops/_probe/bb03-fc/
     model.json           tflite 的形状/量化/权重来源/字节数
     evidence.txt         9 次尝试的类别与保留情况 + 每次的命令行/rc/sha256
     attempt1..9.compile.log   每次编译的完整日志（失败变体也在这）
-    attempt1..9.dla      （不入库，可由同一条命令重建）
+    attempt1..9.dla      （不入库；重跑同一条命令得到同样大小/同样结构，但字节不逐位相同 —— 尾部嵌 UUID，见 §2.1）
 ```
 
-`.dla` / `.tflite` / `*.bin` / `_build/` 不入库（`.gitignore`），重跑一条命令即可重建；**判定依据（日志、json、diff 区间）入库**。
+`.dla` / `.tflite` / `*.bin` / `_build/` 不入库（`.gitignore`）。注意：**重跑得到的是「同样大小、同样结构」，不是逐位相同的字节**（尾部嵌 UUID），所以结论靠「日志 + json + diff 区间」复核，不能靠 `.dla` 的 sha256。
 
 ### 矩阵是数据
 
@@ -189,3 +189,15 @@ cat ops/_probe/bb03-fc/report.md ops/_probe/bb03-fc/noise.txt
 ```
 
 判据（也是本票的验收口径）：四条 case 全 PASS、两条 control 按预期被红、`manifest.json` 里 `ok:true`、退出码 0。
+
+## 6. 更正与需要 Lead 处理的事项（2026-11-14 两轴评审后补）
+
+**更正（重要）**：本票 `fc_n128` 变体把 weights 的 rng seed 也换了（基准用 `BASE_SEED`、该变体用 seed 7），
+所以「只改 N → 差分 10251 B」**不能全部归因给 N** —— 权重内容同时变了。
+干净的「只改 N」对照在票 04 的 `fc_b_n128`（同 seed，差分 10261 B、尺寸 +4352 = 权重 +4096 + bias +256），**以那张为准**。
+
+**已知局限**：`measure_noise` 把**所有变体**的重复差分取并集当噪声区，`classify` 复用同一张全局 mask ——
+某个字节在任何变体里抖过，就会在**所有**对照里被豁免。04 §5.3 已有 1 B 漏网的证据。下一票应改成**按变体分别标定噪声区**。
+
+**需要 Lead 处理的事项**（AGENT-BRIEF §2）：`tools/bbdiff.py` 与两份 `tools/bbdiff-matrix-*.json` 是**新的公共工具**，
+按规则「公共工具的行为变化由 Lead 统一改」—— 本票新增这两个文件，已在 PR #3 由 Lead 合并，特此登记。
