@@ -1,0 +1,46 @@
+=== fc p0 clean ===
+[rt] create rc=0
+[rt] loadNetworkFromFile rc=0
+[rt] inputs=1 outputs=1
+[rt] 20 inference(s) in 8982 us
+[rt] getProfiledQoSData rc=0 execBoostValue=100
+[subgraph 0] subcmds=1
+  cmd   0  exec_us=10         bandwidthMBps=0        boost=100 suggested_ms=0
+SUM_EXEC_US=10 CMDS=1 MEASURED_US=8982 LOOPS=20 PER_INF_US=449
+total 4
+-rw-rw-rw- 1 root root 64 2026-11-14 16:33 pq_out.bin
+=== fc p0 L3 ===
+[rt] create rc=0
+[rt] loadNetworkFromFile rc=0
+[rt] inputs=1 outputs=1
+[rt] 20 inference(s) in 8022 us
+[rt] getProfiledQoSData rc=0 execBoostValue=100
+[subgraph 0] subcmds=1
+  cmd   0  exec_us=17         bandwidthMBps=0        boost=100 suggested_ms=0
+SUM_EXEC_US=17 CMDS=1 MEASURED_US=8022 LOOPS=20 PER_INF_US=401
+total 4
+-rw-rw-rw- 1 root root 64 2026-11-14 16:33 pq_out.bin
+=== fc p3 clean ===
+[rt] create rc=0
+[rt] loadNetworkFromFile rc=0
+[rt] inputs=1 outputs=1
+[rt] 20 inference(s) in 7565 us
+[rt] getProfiledQoSData rc=0 execBoostValue=100
+[subgraph 0] subcmds=1
+  cmd   0  exec_us=10         bandwidthMBps=0        boost=100 suggested_ms=0
+SUM_EXEC_US=10 CMDS=1 MEASURED_US=7565 LOOPS=20 PER_INF_US=378
+total 4
+-rw-rw-rw- 1 root root 64 2026-11-14 16:33 pq_out.bin
+=== fc p3 L3 ===
+[rt] create rc=0
+[rt] loadNetworkFromFile rc=0
+[rt] inputs=1 outputs=1
+[rt] 20 inference(s) in 18740 us
+[rt] getProfiledQoSData rc=0 execBoostValue=100
+[subgraph 0] subcmds=1
+  cmd   0  exec_us=15         bandwidthMBps=0        boost=100 suggested_ms=0
+SUM_EXEC_US=15 CMDS=1 MEASURED_US=18740 LOOPS=20 PER_INF_US=937
+total 20
+-rw-rw-rw- 1 root root   695 2026-11-14 16:33 dla_info.json
+-rw-rw-rw- 1 root root 11943 2026-11-14 16:33 execution_result.json
+-rw-rw-rw- 1 root root    64 2026-11-14 16:33 pq_out.bin

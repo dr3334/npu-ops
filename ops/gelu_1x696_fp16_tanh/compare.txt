@@ -1,0 +1,9 @@
+op        : GELU {'T': 1, 'W': 696}  dtype=fp16
+expected  : 696 vals   device: 696 vals   logical shape=(1, 696)
+max_abs   : 1.953e-03
+rmse      : 3.414e-04
+rel_l2    : 1.054e-04
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-0.1694,8]  dev [-0.1693,8]
+tol       : atol=0.002 rtol=0.01
+PASS

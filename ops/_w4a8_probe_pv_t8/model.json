@@ -1,0 +1,55 @@
+{
+  "op": "BATCH_MATMUL",
+  "form": "probe",
+  "matmul": "P.V",
+  "shape": {
+    "H": 14,
+    "T": 8,
+    "HD": 64
+  },
+  "dtype": "int8",
+  "inputs": [
+    {
+      "name": "a",
+      "shape": [
+        14,
+        8,
+        8
+      ],
+      "type": "int8"
+    },
+    {
+      "name": "b",
+      "shape": [
+        14,
+        8,
+        64
+      ],
+      "type": "int8"
+    }
+  ],
+  "output": {
+    "name": "attn",
+    "shape": [
+      14,
+      8,
+      64
+    ],
+    "type": "int8"
+  },
+  "quant": {
+    "a": 0.007874015748031496,
+    "b": 0.007874015748031496,
+    "output": 0.007874015748031496
+  },
+  "int8_tol": 1,
+  "tolerance_rationale": "ADR 0005: the 4-bit tier does not promise bit-exactness; the operator criterion is |delta| <= 1 code and cosine >= 0.9999. Per-channel multipliers are outside reports/Q02-int8-bitexact.md (tensor-level only), so int8_tol=1.",
+  "expected": "COMPILE_FAIL (16 B row rule)",
+  "tflite": "model.tflite",
+  "tflite_bytes": 568,
+  "quality_criterion": {
+    "cosine_min": 0.9999,
+    "source": "ADR 0005 (operator-level)",
+    "code_criterion": "device vs quantised golden: |delta| <= int8_tol codes"
+  }
+}

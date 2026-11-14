@@ -1,0 +1,75 @@
+{
+  "op": "decoder_layer_t8_fp16",
+  "generated_at_utc": "2026-11-13T03:17:35Z",
+  "generated_at_local": "2026-11-13T11:17:35+0800",
+  "protocol": "NOTES 4: same .dla, same input, two e2e runs; the second run started from the file left by the first (e2e.sh does not rebuild model.tflite/model.dla/golden when they exist)",
+  "output_shape": [
+    8,
+    896
+  ],
+  "output_bytes": 14336,
+  "files": {
+    "out_r1.bin": {
+      "bytes": 14336,
+      "sha256": "390520c4e842c74a623abdfca881ab6971014e16e4208e23a6b41540b08102ba",
+      "mtime_utc": "2026-11-13T03:17:15Z"
+    },
+    "out_r2.bin": {
+      "bytes": 14336,
+      "sha256": "390520c4e842c74a623abdfca881ab6971014e16e4208e23a6b41540b08102ba",
+      "mtime_utc": "2026-11-13T03:17:16Z"
+    },
+    "out_device.bin": {
+      "bytes": 14336,
+      "sha256": "390520c4e842c74a623abdfca881ab6971014e16e4208e23a6b41540b08102ba",
+      "mtime_utc": "2026-11-13T03:17:16Z"
+    },
+    "golden/input.bin": {
+      "bytes": 14336,
+      "sha256": "5049611920340be848f86371f2f941cdf3ae0a1f15bb466070cc1d221c8728e3",
+      "mtime_utc": "2026-11-13T03:07:48Z"
+    },
+    "golden/expected.bin": {
+      "bytes": 14336,
+      "sha256": "91330e5d7e551def85c1a8059493437a2b8e75e8663ab0cbd287dcbc2288c8bc",
+      "mtime_utc": "2026-11-13T03:07:48Z"
+    },
+    "model.dla": {
+      "bytes": 29913364,
+      "sha256": "1703b98dc3b1b0ca481cee3c58a2ab8e6d5e7e2e3e238c8c7535e6dda651988b",
+      "mtime_utc": "2026-11-13T03:17:13Z"
+    },
+    "model.tflite": {
+      "bytes": 29878152,
+      "sha256": "6d2e10c7c9abd21999482eb2d8ff7d05d3941e2e81596f6ea175ea3bde76dc9f",
+      "mtime_utc": "2026-11-13T03:07:48Z"
+    }
+  },
+  "e2e_metadata": {
+    "op": "decoder_layer_t8_fp16",
+    "repeat": 3,
+    "ts": "2026-11-13T11:17:16+08:00"
+  },
+  "artifact_note": "model.dla is NOT byte-reproducible: this is the file the two runs above actually used; model.compile.log records the SIZE/SHA256 of its own compile and can differ by a few bytes. Regression compares numbers, never the .dla hash.",
+  "noise_floor": {
+    "max_abs": 0.0,
+    "n_diff": 0,
+    "n_total": 7168,
+    "rmse": 0.0,
+    "bitwise_identical": true
+  },
+  "noise_floor_value": 0.0,
+  "noise_floor_is_zero": true,
+  "device_vs_golden": {
+    "max_abs": 0.0023193359375,
+    "n_diff": 6377,
+    "n_total": 7168,
+    "rmse": 0.0004800700984272052,
+    "bitwise_identical": false,
+    "max_abs_relative": 0.004795557799091368,
+    "max_abs_expected": 0.483642578125,
+    "threshold": 0.013402044736010742,
+    "verdict": "PASS"
+  },
+  "conclusion": "noise floor 0 (bit-identical dumps) -> the device is deterministic for this .dla and input; the registered tolerance therefore rests on the fp16 floor, not on run-to-run jitter"
+}

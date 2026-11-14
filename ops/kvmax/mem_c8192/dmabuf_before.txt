@@ -1,0 +1,162 @@
+
+
+----------------------- DMA-BUF per-buffer stats -----------------------
+    Dmabuf Inode |     Size(bytes) |    Exporter Name                    |
+           69736 |        16642048 |  mtk_mm-uncached 
+             230 |           53248 |  mtk_mm-uncached 
+           41599 |           24576 |  mtk_mm-uncached 
+           43161 |        16384000 |           mtk_mm 
+           43246 |        16384000 |           mtk_mm 
+              17 |         1048576 |  mtk_mm-uncached 
+             220 |           53248 |  mtk_mm-uncached 
+             249 |           53248 |  mtk_mm-uncached 
+           38369 |           12288 |  mtk_mm-uncached 
+             210 |           53248 |  mtk_mm-uncached 
+           69744 |        16642048 |  mtk_mm-uncached 
+             239 |           53248 |  mtk_mm-uncached 
+           33297 |           12288 |  mtk_mm-uncached 
+             182 |           61440 |  mtk_mm-uncached 
+           42072 |           28672 |  mtk_mm-uncached 
+           39635 |           53248 |  mtk_mm-uncached 
+           41691 |          315392 |  mtk_mm-uncached 
+             229 |           53248 |  mtk_mm-uncached 
+           38858 |           16384 |  mtk_mm-uncached 
+              15 |            4096 |  mtk_mm-uncached 
+           41643 |          315392 |  mtk_mm-uncached 
+             219 |           53248 |  mtk_mm-uncached 
+              43 |        16642048 |           mtk_mm 
+             247 |           53248 |  mtk_mm-uncached 
+           38367 |           16384 |  mtk_mm-uncached 
+             209 |           53248 |  mtk_mm-uncached 
+           69742 |        16642048 |  mtk_mm-uncached 
+             237 |           53248 |  mtk_mm-uncached 
+           33295 |           16384 |  mtk_mm-uncached 
+             180 |            8192 |  mtk_mm-uncached 
+           69732 |        16642048 |  mtk_mm-uncached 
+             227 |           53248 |  mtk_mm-uncached 
+             255 |           53248 |  mtk_mm-uncached 
+           41613 |           24576 |  mtk_mm-uncached 
+              13 |            4096 |  mtk_mm-uncached 
+           41641 |          315392 |  mtk_mm-uncached 
+           43204 |        16384000 |           mtk_mm 
+              41 |        16642048 |           mtk_mm 
+             245 |           53248 |  mtk_mm-uncached 
+           41603 |           24576 |  mtk_mm-uncached 
+             207 |           53248 |  mtk_mm-uncached 
+           69740 |        16642048 |  mtk_mm-uncached 
+             235 |           53248 |  mtk_mm-uncached 
+           41688 |          315392 |  mtk_mm-uncached 
+           69730 |        16642048 |  mtk_mm-uncached 
+             225 |           53248 |  mtk_mm-uncached 
+             253 |           53248 |  mtk_mm-uncached 
+           41611 |          315392 |  mtk_mm-uncached 
+              11 |         1536000 | camera_dpe_isp7sp 
+             215 |           53248 |  mtk_mm-uncached 
+           42256 |           28672 |  mtk_mm-uncached 
+             243 |           53248 |  mtk_mm-uncached 
+             120 |        16330752 |  mtk_mm-uncached 
+             205 |           53248 |  mtk_mm-uncached 
+           69739 |        16642048 |  mtk_mm-uncached 
+             233 |           53248 |  mtk_mm-uncached 
+           41686 |          315392 |  mtk_mm-uncached 
+           69729 |        16384000 |           mtk_mm 
+             223 |           53248 |  mtk_mm-uncached 
+           39742 |           24576 |  mtk_mm-uncached 
+             251 |           53248 |  mtk_mm-uncached 
+           28225 |         4096000 |  mtk_mm-uncached 
+             213 |           53248 |  mtk_mm-uncached 
+           29350 |         4096000 |  mtk_mm-uncached 
+           43088 |        16384000 |           mtk_mm 
+             241 |           53248 |  mtk_mm-uncached 
+             203 |           53248 |  mtk_mm-uncached 
+           69737 |        16642048 |  mtk_mm-uncached 
+             231 |           53248 |  mtk_mm-uncached 
+           26161 |           53248 |  mtk_mm-uncached 
+           38860 |           12288 |  mtk_mm-uncached 
+              18 |            4096 |  mtk_mm-uncached 
+             221 |           53248 |  mtk_mm-uncached 
+             211 |           53248 |  mtk_mm-uncached 
+           69745 |        16642048 |  mtk_mm-uncached 
+             201 |           53248 |  mtk_mm-uncached 
+           69735 |        16642048 |  mtk_mm-uncached 
+           33288 |           16384 |  mtk_mm-uncached 
+              54 |            4096 |           mtk_mm 
+           38859 |           12288 |  mtk_mm-uncached 
+           41616 |          315392 |  mtk_mm-uncached 
+              16 |            4096 |  mtk_mm-uncached 
+           41644 |          315392 |  mtk_mm-uncached 
+              44 |        16642048 |           mtk_mm 
+             248 |           53248 |  mtk_mm-uncached 
+           69630 |           53248 |  mtk_mm-uncached 
+            3310 |           53248 |  mtk_mm-uncached 
+           38368 |           12288 |  mtk_mm-uncached 
+           69743 |        16642048 |  mtk_mm-uncached 
+             238 |           53248 |  mtk_mm-uncached 
+           33296 |           12288 |  mtk_mm-uncached 
+           42071 |           24576 |  mtk_mm-uncached 
+           42279 |           61440 |  mtk_mm-uncached 
+           41690 |          315392 |  mtk_mm-uncached 
+             228 |           53248 |  mtk_mm-uncached 
+           38857 |           16384 |  mtk_mm-uncached 
+           41614 |           28672 |  mtk_mm-uncached 
+              14 |            4096 |  mtk_mm-uncached 
+           41642 |          315392 |  mtk_mm-uncached 
+             218 |           53248 |  mtk_mm-uncached 
+              42 |        16642048 |           mtk_mm 
+             246 |           53248 |  mtk_mm-uncached 
+           41604 |           28672 |  mtk_mm-uncached 
+             208 |           53248 |  mtk_mm-uncached 
+           69741 |        16642048 |  mtk_mm-uncached 
+             236 |           53248 |  mtk_mm-uncached 
+           41689 |          315392 |  mtk_mm-uncached 
+           69731 |        16642048 |  mtk_mm-uncached 
+             226 |           53248 |  mtk_mm-uncached 
+             254 |           53248 |  mtk_mm-uncached 
+           41612 |          315392 |  mtk_mm-uncached 
+             198 |           53248 |  mtk_mm-uncached 
+           38799 |           53248 |  mtk_mm-uncached 
+              12 |         2138112 |  mtk_mm-uncached 
+           41640 |          315392 |  mtk_mm-uncached 
+             216 |           53248 |  mtk_mm-uncached 
+              40 |           24576 | snd_soc_mtk_common 
+             300 |           53248 |  mtk_mm-uncached 
+             244 |           53248 |  mtk_mm-uncached 
+           69711 |        16384000 |           mtk_mm 
+             206 |           53248 |  mtk_mm-uncached 
+             234 |           53248 |  mtk_mm-uncached 
+           41687 |          315392 |  mtk_mm-uncached 
+           39743 |           28672 |  mtk_mm-uncached 
+             252 |           53248 |  mtk_mm-uncached 
+           41639 |          315392 |  mtk_mm-uncached 
+             214 |           53248 |  mtk_mm-uncached 
+              39 |           24576 | snd_soc_mtk_common 
+           42255 |           24576 |  mtk_mm-uncached 
+             242 |           53248 |  mtk_mm-uncached 
+           41600 |           28672 |  mtk_mm-uncached 
+             204 |           53248 |  mtk_mm-uncached 
+           69738 |        16642048 |  mtk_mm-uncached 
+             232 |           53248 |  mtk_mm-uncached 
+           41685 |          315392 |  mtk_mm-uncached 
+              19 |            4096 |  mtk_mm-uncached 
+           69728 |        16384000 |           mtk_mm 
+             222 |           53248 |  mtk_mm-uncached 
+           69756 |       201326592 |  mtk_mm-uncached 
+             250 |           53248 |  mtk_mm-uncached 
+           41609 |            4096 |  mtk_mm-uncached 
+             194 |            8192 |           mtk_mm 
+             212 |           53248 |  mtk_mm-uncached 
+             240 |           53248 |  mtk_mm-uncached 
+           38360 |           16384 |  mtk_mm-uncached 
+             202 |           53248 |  mtk_mm-uncached 
+
+
+----------------------- DMA-BUF exporter stats -----------------------
+      Exporter Name              | Total Count |     Total Size(bytes)   |
+                 mtk_mm-uncached |          130| 470917120
+                          mtk_mm |           13| 181268480
+               camera_dpe_isp7sp |            1| 1536000
+              snd_soc_mtk_common |            2| 49152
+
+
+----------------------- DMA-BUF total stats -----------------------
+Total DMA-BUF count: 146, Total DMA-BUF size(bytes): 653770752

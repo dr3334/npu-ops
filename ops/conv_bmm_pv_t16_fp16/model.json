@@ -1,0 +1,66 @@
+{
+  "op": "CONV_2D",
+  "form": "conv",
+  "matmul": "P\u00b7V",
+  "shape": {
+    "T": 16,
+    "D": 64,
+    "H": 16,
+    "W": 1,
+    "C": 16,
+    "OC": 64,
+    "FH": 1,
+    "FW": 1,
+    "pad": "SAME",
+    "stride": 1
+  },
+  "dtype": "fp16",
+  "inputs": [
+    {
+      "name": "input",
+      "shape": [
+        1,
+        16,
+        1,
+        16
+      ],
+      "type": "fp16"
+    },
+    {
+      "name": "filter",
+      "shape": [
+        64,
+        1,
+        1,
+        16
+      ],
+      "type": "fp16"
+    }
+  ],
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      16,
+      1,
+      64
+    ],
+    "type": "fp16",
+    "bytes": 2048
+  },
+  "quant": {
+    "input": null,
+    "weights": null,
+    "bias": null,
+    "output": null
+  },
+  "codes": "-",
+  "reference": "float32_accum_to_fp16",
+  "filter_layout": "[OC,1,1,IC] = V transposed: rows are V columns",
+  "seed": 20261112,
+  "atol": 0.01,
+  "rtol": 0.03,
+  "spec": "conv_bmm_pv_t16_fp16",
+  "tflite": "model.tflite",
+  "tflite_bytes": 728
+}

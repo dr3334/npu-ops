@@ -1,0 +1,47 @@
+{
+  "op": "BATCH_MATMUL_PV_CONTROL_3D",
+  "shape": {
+    "T": 8,
+    "H": 14,
+    "HD": 64,
+    "rank": 3
+  },
+  "dtype": "float16",
+  "purpose": "compile-only control for ticket 06: count native layers for 3-D vs 4-D PV (3-D must be ONE BatchMatMulLayer; 4-D is lowered into 5 layers, E-112). No board run: the claim under test is a compile-time layer count.",
+  "inputs": [
+    {
+      "name": "p",
+      "shape": [
+        14,
+        8,
+        8
+      ],
+      "type": "float16"
+    },
+    {
+      "name": "v",
+      "shape": [
+        14,
+        8,
+        64
+      ],
+      "type": "float16"
+    }
+  ],
+  "output": {
+    "name": "a3",
+    "shape": [
+      14,
+      8,
+      64
+    ],
+    "type": "float16"
+  },
+  "compile_only": true,
+  "compile_only_note": "compile-only control: no board run and no device conclusion, so a tolerance does not apply - the numpy reference above was never compared against the device (the atol/rtol that used to be here had no measurement behind it)",
+  "p_source": "same fixed attention pass as the main model (temperature 1.0)",
+  "reference": "numpy float64 einsum on logical tensors",
+  "seed": 20261112,
+  "tflite": "model.tflite",
+  "tflite_bytes": 456
+}

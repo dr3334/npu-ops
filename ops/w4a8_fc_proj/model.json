@@ -1,0 +1,63 @@
+{
+  "op": "FULLY_CONNECTED",
+  "form": "w4a8",
+  "shape": {
+    "T": 16,
+    "K": 896,
+    "N": 896
+  },
+  "dtype": "int8",
+  "weights_dtype": "int4",
+  "ops_version": 9,
+  "input": {
+    "name": "input",
+    "shape": [
+      16,
+      896
+    ],
+    "type": "int8"
+  },
+  "output": {
+    "name": "out",
+    "shape": [
+      16,
+      896
+    ],
+    "type": "int8"
+  },
+  "quant": {
+    "input": 0.008275823772916035,
+    "output": 0.2011943251263411,
+    "weights_pc_min": 0.02523367665708065,
+    "weights_pc_max": 0.0490373894572258,
+    "weights_bytes": 401408,
+    "weights_elems": 802816
+  },
+  "int8_tol": 1,
+  "tolerance_rationale": "ADR 0005: the 4-bit tier does not promise bit-exactness; the operator criterion is |delta| <= 1 code and cosine >= 0.9999. Per-channel multipliers are outside reports/Q02-int8-bitexact.md (tensor-level only), so int8_tol=1.",
+  "tflite": "model.tflite",
+  "tflite_bytes": 427200,
+  "precision_tier": {
+    "weights": "int4, symmetric per-output-channel",
+    "activations": "int8, symmetric per-tensor (s = max|v|/127)",
+    "bias": "int32 per-channel (s[n] = s_a * s_w[n])",
+    "requant": "tools/quant_contract.py: two integer roundings, per-channel multipliers",
+    "builder": "tools/build_w4a8.py --w-bits 4"
+  },
+  "fp32_ref": "q_proj_pre_rope",
+  "quality_criterion": {
+    "cosine_min": 0.9999,
+    "source": "ADR 0005 (operator-level)",
+    "code_criterion": "device vs quantised golden: |delta| <= int8_tol codes"
+  },
+  "accuracy_vs_fp32": {
+    "reference": "independent float64 chain (tools/build_w4a8.py chain_f32)",
+    "cosine": 0.9999647316522977,
+    "rel_l2": 0.008398914282074748,
+    "max_abs": 0.19097223081495152,
+    "max_abs_over_maxabs_out": 0.007473336830142426,
+    "out_scale": 0.2011943251263411,
+    "one_code_real": 0.2011943251263411,
+    "note": "int8 quantisation error of the whole 4W8A path, no device involved"
+  }
+}

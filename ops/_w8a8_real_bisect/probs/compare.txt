@@ -1,0 +1,9 @@
+op        : DECODER_LAYER {'T': 16, 'D': 896, 'H': 14, 'KV': 2, 'HD': 64, 'I': 4864}  dtype=int8
+expected  : 3584 vals   device: 3584 vals   logical shape=(14, 16, 16)
+max_abs   : 1.000e+00
+rmse      : 1.032e-01
+rel_l2    : 6.964e-01
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [0,1]  dev [0,1]
+tol       : atol=0.001 rtol=0.01
+FAIL

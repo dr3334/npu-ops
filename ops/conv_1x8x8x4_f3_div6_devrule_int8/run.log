@@ -1,0 +1,11 @@
+D:/deepseek_ workspace/mtk/wt-convpool/ops/conv_1x8x8x4_f3_div6_devrule_int8/model.dla: 1 file pushed, 0 skipped. 7.9 MB/s (3707 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-convpool/ops/conv_1x8x8x4_f3_div6_devrule_int8/golden/input.bin: 1 file pushed, 0 skipped. 0.6 MB/s (256 bytes in 0.000s)
+Inference repeats for 3 times.
+Total inference time = 1.688 ms (0.562667 ms/inf)
+Avg. FPS : 1589
+/data/local/tmp/npuops/dla/conv_1x8x8x4_f3_div6_devrule_int8.out.bin: 1 file pulled, 0 skipped. 0.1 MB/s (512 bytes in 0.006s)
+op        : CONV_2D {'N': 1, 'H': 8, 'W': 8, 'C': 4, 'OH': 8, 'OW': 8, 'OC': 8, 'FH': 3, 'FW': 3, 'stride': 1, 'dilation': 1, 'mult': 1, 'padding': 'SAME', 'activation': 'NONE'}  dtype=int8
+expected  : 512 vals   device: 512 vals   logical shape=(1, 8, 8, 8)
+exact     : YES   mismatched=0/512
+contract  : int8_tol=0  max_abs_diff=0  fraction_off=0.0000%
+PASS

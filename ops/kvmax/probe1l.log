@@ -1,0 +1,52 @@
+===== 1L C=8192 build 2026-11-13T16:44:04+08:00 =====
+1L C=8192 build_rc=0 build_s=5
+ops/kvmax_1l_t8_c8192              18956336 B  decode l=1 T=8 C=8192  in=['x', 'mask', 'cos14', 'sin14', 'cos2', 'sin2', 'k_in', 'v_in']
+  saturation: {'L00_down': 1, 'L00_gate': 1, 'L00_k_fc': 1, 'L00_masked': 194, 'L00_n1_mean': 1, 'L00_n1_norm': 1, 'L00_n2_mean': 1, 'L00_o_proj': 1}
+1L C=8192 TFLITE=18956336
+1L C=8192 compile_rc=0 compile_s=8
+model.dla                                            exit=0  size=15139958  sha256=cd66c6cacf76c2ef
+EXIT=0
+SIZE=15139958
+===Graph[0] has 1 Execution Step(s)===
+ [ 0]: MDLA 5.0     5.8M   18K     43M   14M     69K   63M
+
+===== 1L C=8192 done 2026-11-13T16:44:17+08:00 =====
+===== 1L C=16384 build 2026-11-13T16:44:17+08:00 =====
+1L C=16384 build_rc=0 build_s=4
+ops/kvmax_1l_t8_c16384             22626352 B  decode l=1 T=8 C=16384  in=['x', 'mask', 'cos14', 'sin14', 'cos2', 'sin2', 'k_in', 'v_in']
+  saturation: {'L00_down': 1, 'L00_gate': 1, 'L00_k_fc': 1, 'L00_masked': 194, 'L00_mlp_y': 1, 'L00_n1_mean': 1, 'L00_n1_norm': 1, 'L00_n2_mean': 1}
+1L C=16384 TFLITE=22626352
+1L C=16384 compile_rc=0 compile_s=13
+model.dla                                            exit=0  size=15190548  sha256=c95dc0438c3e98b0
+EXIT=0
+SIZE=15190548
+===Graph[0] has 1 Execution Step(s)===
+ [ 0]: MDLA 5.0     11M    18K     89M   14M     94K   114M
+
+===== 1L C=16384 done 2026-11-13T16:44:35+08:00 =====
+===== 1L C=32768 build 2026-11-13T16:44:35+08:00 =====
+1L C=32768 build_rc=0 build_s=6
+ops/kvmax_1l_t8_c32768             29966384 B  decode l=1 T=8 C=32768  in=['x', 'mask', 'cos14', 'sin14', 'cos2', 'sin2', 'k_in', 'v_in']
+  saturation: {'L00_down': 1, 'L00_gate': 1, 'L00_k_fc': 1, 'L00_masked': 194, 'L00_mlp_y': 1, 'L00_n1_mean': 1, 'L00_n1_norm': 1, 'L00_n2_mean': 1}
+1L C=32768 TFLITE=29966384
+1L C=32768 compile_rc=0 compile_s=42
+model.dla                                            exit=0  size=15293972  sha256=625936c6f04860de
+EXIT=0
+SIZE=15293972
+===Graph[0] has 1 Execution Step(s)===
+ [ 0]: MDLA 5.0     23M    18K     197M  14M     146K  234M
+
+===== 1L C=32768 done 2026-11-13T16:45:24+08:00 =====
+===== 1L C=65536 build 2026-11-13T16:45:24+08:00 =====
+1L C=65536 build_rc=0 build_s=14
+ops/kvmax_1l_t8_c65536             44646448 B  decode l=1 T=8 C=65536  in=['x', 'mask', 'cos14', 'sin14', 'cos2', 'sin2', 'k_in', 'v_in']
+  saturation: {'L00_down': 1, 'L00_gate': 1, 'L00_k_fc': 1, 'L00_masked': 194, 'L00_mlp_y': 1, 'L00_n1_mean': 1, 'L00_n1_norm': 1, 'L00_n2_mean': 1}
+1L C=65536 TFLITE=44646448
+1L C=65536 compile_rc=1 compile_s=0
+model.dla                                            exit=1  (no .dla produced)
+EXIT=1
+SIZE=0
+ERROR: Cannot find an execution plan because of unsupported operations
+ERROR: Fail to compile ops/kvmax_1l_t8_c65536/model.tflite
+===== 1L C=65536 done 2026-11-13T16:45:39+08:00 =====
+PROBE1L_DONE 2026-11-13T16:45:39+08:00

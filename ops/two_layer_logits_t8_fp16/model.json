@@ -1,0 +1,141 @@
+{
+  "op": "TWO_LAYER_LOGITS_T8_FP16",
+  "role": "logits",
+  "graph": "x[8,896] -> 4 x FULLY_CONNECTED(W=embed.weight slice, b=0) -> CONCAT(axis=1) -> logits[8,151936]",
+  "shape": {
+    "T": 8,
+    "D": 896,
+    "Hq": 14,
+    "Hkv": 2,
+    "HD": 64,
+    "I": 4864,
+    "vocab": 151936
+  },
+  "dtype": "fp16",
+  "inputs": [
+    {
+      "name": "x",
+      "shape": [
+        8,
+        896
+      ],
+      "type": "float16",
+      "bytes": 14336,
+      "provenance": "logits graph input = h2_cpu, the fp16 handoff of the CPU chain (tools/chain_two_layer.sh REPLACES this file with layer 1's device out_device.bin before the board run)"
+    }
+  ],
+  "output": {
+    "name": "logits",
+    "shape": [
+      8,
+      151936
+    ],
+    "type": "float16",
+    "bytes": 2430976
+  },
+  "quant": {},
+  "reference": "numpy_float32_from_stored_fp16_one_final_rounding",
+  "reference_note": "golden/expected.bin is a plain numpy float32 matmul of the stored fp16 weights and input, in vocab chunks; it shares no code with the flatbuffer writer.",
+  "atol": 0.0154724121,
+  "rtol": 0.0154724121,
+  "tolerance_revision": {
+    "revision": 1,
+    "registered_before_run": true,
+    "policy": "NOTES 4 / 10.1: atol = rtol = max(k*2^-11*max|out|, k*floor), k=4; the propagation allowance enters through floor_chain (see basis). The own-error criterion B uses self_atol = self_rtol = max(k*2^-11*max|out|, k*floor_self).",
+    "basis": "max|logits| = 0.8267; the fp16 ULP at that magnitude is 0.0004883 (5.91e-04 relative). Device-independent floor = 3.8681e-03 abs = 7.92 ULP = 4.68e-03 relative, taken as max(floor_self=0.0000e+00, floor_chain=3.8681e-03): floor_self is this layer's own fp16 rounding floor (numpy chain with a fp16 rounding at EVERY tensor boundary vs the single-rounding golden -- what MDLA does, docs/OP-qkv.md 5.2), floor_chain is how far this layer's reference moves when it is fed the fp16-rounded previous-layer output instead of the exact one, i.e. the propagation the board handoff must introduce, estimated from numpy only. Registered atol = rtol = max(4*2^-11*max|out|, 4*floor) = 0.0154724; the 4*floor term dominates. NOTES 4's flat 2e-2 would be 2.42e-02 relative here, i.e. looser than the measured floor (weak). No device measurement entered this number.",
+    "self_atol": 0.0016145706,
+    "self_rtol": 0.0016145706,
+    "self_policy": "comparison B (CPU reference rebuilt from the board's own input, i.e. this layer's own error with the propagation removed) is judged against self_atol = self_rtol = max(k*2^-11*max|out|, k*floor_self), registered here before any device run.",
+    "max_abs_expected": 0.82666015625,
+    "ulp_at_max": 0.00048828125,
+    "floor_self": 0.0,
+    "floor_chain": 0.00386810302734375,
+    "floor_used": 0.00386810302734375,
+    "floor_ulp": 7.921875,
+    "rel_equivalent": 0.03418918706507494,
+    "under_2e-2_cap": false,
+    "top1": {
+      "enabled": false,
+      "why": "ADR 0003: under frozen random weights top-1 carries no semantics and one fp16 ULP flips near-ties, so argmax is not a criterion. Frozen until the real-weight stage. This ticket compares the logits VECTOR only."
+    }
+  },
+  "threshold_at_max": 0.02826283872127533,
+  "fp16_floor": {
+    "floor_self": 0.0,
+    "floor_chain": 0.00386810302734375,
+    "floor_used": 0.00386810302734375,
+    "ulp_at_max": 0.00048828125,
+    "max_abs_out": 0.82666015625,
+    "max_abs_out_ulp": 1693.0
+  },
+  "eps_register": {
+    "graph_eps": 1e-06,
+    "eps_stored_fp16": 1.0132789611816406e-06,
+    "note": "Qwen2.5 rms_norm_eps = 1e-6, as in ticket 09; it is numerically unobservable at this dynamic range (ticket 09 section 7 measured eps=0 vs 1e-6 at 0.20x threshold)"
+  },
+  "mask": {
+    "value": -4096.0,
+    "position": "ADD after MUL(1/sqrt(HD))",
+    "causal": "0 at j<=i, MASK at j>i",
+    "form": "const [H,T,T] baked in graph"
+  },
+  "rope": {
+    "convention": "qwen2_split_half",
+    "theta": 1000000.0,
+    "head_dim": 64,
+    "positions": "0..7",
+    "coherence": "both layers use the identical table (same THETA, POS0, T)"
+  },
+  "chain": {
+    "role": "logits",
+    "hands_to": null,
+    "handoff": "device out_device.bin is copied over the next op's golden/input.bin (NOTES 10.4 item 5); no CPU correction in between",
+    "weights_reload": "each layer is its own .dla, so the whole static weight block is pushed and loaded again per layer"
+  },
+  "weight_inventory": {
+    "rows": [
+      {
+        "tensor": "embed.weight (tied lm_head), 4 chunks",
+        "shape": [
+          151936,
+          896
+        ],
+        "bytes": 272269312,
+        "mib": 259.6562
+      }
+    ],
+    "total_bytes": 272573184,
+    "total_mib": 259.946
+  },
+  "stats": {
+    "input": {
+      "min": -1.267578125,
+      "max": 1.2626953125,
+      "abs_max": 1.267578125,
+      "rms": 0.3226358837561068
+    },
+    "output": {
+      "min": -0.71533203125,
+      "max": 0.82666015625,
+      "abs_max": 0.82666015625,
+      "rms": 0.14749673613278794
+    },
+    "traces": {
+      "input": {
+        "min": -1.267578125,
+        "max": 1.2626953125,
+        "abs_max": 1.267578125,
+        "rms": 0.3226358837561068
+      },
+      "logits": {
+        "min": -0.71533203125,
+        "max": 0.82666015625,
+        "abs_max": 0.82666015625,
+        "rms": 0.14749673613278794
+      }
+    }
+  },
+  "generator": "tools/build_two_layer.py",
+  "tflite": "model.tflite",
+  "tflite_bytes": 272574732
+}

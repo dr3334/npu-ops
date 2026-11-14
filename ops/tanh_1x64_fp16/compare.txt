@@ -1,0 +1,9 @@
+op        : TANH {'d0': 1, 'd1': 64}  dtype=fp16
+expected  : 64 vals   device: 64 vals   logical shape=(1, 64)
+max_abs   : 4.883e-04
+rmse      : 8.640e-05
+rel_l2    : 9.168e-05
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-1,1]  dev [-1,1]
+tol       : atol=0.002 rtol=0.01
+PASS

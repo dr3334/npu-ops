@@ -1,0 +1,94 @@
+{
+  "op": "PV_3D_BMM__O_PROJ__RESIDUAL_NEGATIVE_CONTROL",
+  "shape": {
+    "T": 8,
+    "H": 14,
+    "KV": 2,
+    "HD": 64,
+    "D": 896,
+    "PV_rank": 3
+  },
+  "dtype": "float16",
+  "inputs": [
+    {
+      "name": "in_pv",
+      "shape": [
+        14,
+        8,
+        72
+      ],
+      "type": "float16",
+      "bytes": 16128,
+      "layout": "per (head,token) row: p row (8) | v row (64); split in-graph by two SLICEs. Packed only because e2e.sh feeds 2 runtime inputs."
+    },
+    {
+      "name": "in_x",
+      "shape": [
+        8,
+        896
+      ],
+      "type": "float16",
+      "bytes": 14336,
+      "layout": "residual stream = fixture embed.weight rows 0..7"
+    }
+  ],
+  "output": {
+    "name": "out",
+    "shape": [
+      8,
+      896
+    ],
+    "type": "float16",
+    "bytes": 14336
+  },
+  "weights": {
+    "tensor": "layer0.attn.o_proj.weight",
+    "shape": [
+      896,
+      896
+    ],
+    "bias": "none in Qwen2.5 (a zero-filled [D] fp16 tensor is still fed, NOTES \u00a75.1: FC wants a third input)",
+    "fixture_weights_digest": "898fa3195d627a4ce055cbdb6fc762a12e74665b431e3ae09b530b4abdad18a4"
+  },
+  "graph": [
+    "SLICE(in_pv)->p [H,T,T]",
+    "SLICE(in_pv)->v [H,T,HD]",
+    "BATCH_MATMUL(p,v) adj=0/0 3-D",
+    "RESHAPE [H,T,HD] -> [T,896]   <-- NO TRANSPOSE (the bug)",
+    "FULLY_CONNECTED(o_proj,bias=0)",
+    "ADD(in_x,o) residual"
+  ],
+  "p_source": "fixed attention pass on fixture weights: embed rows -> RMSNorm(input_layernorm, eps=1e-6) -> q/k/v (with bias) -> RoPE(theta=1e6) -> scores/sqrt(HD) -> causal mask -> float32 softmax; v replicated 2->14 KV heads (head h uses kv h//7).",
+  "p_stats": {
+    "temperature": 1.0,
+    "p_max": 1.0,
+    "p_min": 0.0,
+    "p_argmax_frac_gt_0.99": 0.10379464285714286,
+    "p_rowsum_max_abs_err": 9.365019781881756e-08,
+    "p_entropy_bits_mean": 0.08627985417842865,
+    "scores_absmax_unmasked": 578.3323974609375,
+    "v_absmax": 0.13671875,
+    "x_absmax": 0.058929443359375,
+    "x_std": 0.01501946710050106
+  },
+  "reference": "numpy float64 on logical tensors (R3: independent of the flatbuffer writer)",
+  "fp16sim_lower_bound": {
+    "max_abs_sim_vs_golden": 6.103515625e-05,
+    "rel": 0.0007581129878460015,
+    "method": "fp16 rounding at BMM/FC/ADD boundaries, fp32 inside; numpy only"
+  },
+  "golden_stats": {
+    "max_abs_out": 0.08050931355683133,
+    "max_abs_attn_merged": 0.13671875145155354,
+    "max_abs_o_proj": 0.07201481098627482
+  },
+  "atol": 0.0001572447530406862,
+  "rtol": 0.0001572447530406862,
+  "tolerance_revision": 1,
+  "tolerance_reason": "NOTES \u00a710.1 form: atol = rtol = 4*2^-11*max|out| = 1.572e-04 (max|out| = 0.08051); device-independent fp16-simulation bound = 6.104e-05 max_abs, registered threshold is 2.6x that bound. The repo default 2e-2 is rejected a priori: it is larger than max|out| itself here, i.e. it could never catch a layout error.",
+  "seed": 20261112,
+  "purpose": "NEGATIVE control (intentionally WRONG math): the PV output [H,T,HD] is RESHAPEd straight to [T,896] with NO TRANSPOSE (NOTES \u00a710.2 trap). Compiles, runs in one execution step, and shows a large rel_l2 -> proves the main PASS is not vacuous and that the golden catches head-layout errors.",
+  "expected_result": "compare must FAIL by a large margin (rel_l2 ~ 1e-1)",
+  "tflite": "model.tflite",
+  "tflite_bytes": 1609064
+}

@@ -1,0 +1,71 @@
+{
+  "op": "DECODER_LAYER",
+  "form": "w4a8_group",
+  "stage": "out",
+  "shape": {
+    "T": 16,
+    "D": 896,
+    "H": 14,
+    "KV": 2,
+    "HD": 64,
+    "I": 4864,
+    "G": 1
+  },
+  "dtype": "int8",
+  "weights_dtype": "int4",
+  "input": {
+    "name": "x",
+    "shape": [
+      16,
+      896
+    ],
+    "type": "int8"
+  },
+  "output": {
+    "name": "out",
+    "shape": [
+      16,
+      896
+    ],
+    "type": "int8"
+  },
+  "quant": {
+    "input": 0.0006920521653543307,
+    "output": 0.023913064624179758
+  },
+  "int8_tol": 2,
+  "tolerance_rationale": "Register-before-run, before the first board run of this graph. Code level: int8_tol=2 because the layer contains the int8 RMSNorm chain (its RSQRT is a fixed-point LUT: docs/OP-rmsnorm.md 2.3 registers 4 codes for that chain, and the component run here measured max 2 codes on 6% of the values) plus one fp16<->int8 seam. Quality level: ADR 0005 cosine >= 0.9999 -- registered as the criterion, NOT adjusted afterwards.",
+  "group": 1,
+  "weight_rel_l2": {
+    "Wq": 0.18654165697876537,
+    "Wk": 0.14987488102601806,
+    "Wv": 0.17946497854098217,
+    "Wo": 0.20465552247097848,
+    "Wg": 0.1533217487416119,
+    "Wu": 0.15486038898900945,
+    "Wd": 0.2049480860641095
+  },
+  "weight_rel_l2_mean": 0.17623818040163927,
+  "layers_note": "1 K-split per distinct input tensor (n1, n2) + per matrix G FC + (G-1) ADD",
+  "fp32_ref": "out",
+  "tflite": "model.tflite",
+  "tflite_bytes": 7856192,
+  "quality_criterion": {
+    "cosine_min": 0.9999,
+    "source": "ADR 0005 (operator level, 8-bit and wider)",
+    "code_criterion": "device vs quantised golden: |delta| <= int8_tol codes",
+    "four_bit_criterion": "device == golden (0/1 code) + cosine(device,golden) - cosine(golden,fp64) <= 0.003"
+  },
+  "accuracy_vs_fp32": {
+    "reference": "independent float64 chain (tools/build_w4a8.py chain_f32)",
+    "cosine": 0.8658960428369632,
+    "rel_l2": 1.1028112960325498,
+    "max_abs": 2.7755196879839055,
+    "max_abs_over_maxabs_out": 0.9139140497307281,
+    "out_scale": 0.023913064624179758,
+    "one_code_real": 0.023913064624179758,
+    "note": "quantisation error of the whole path, no device involved"
+  },
+  "evidence_level": "offline only: numpy device model of the 4W8A group chain, NOT compiled / NOT board-run (device cosine figures in docs/OP-groupwise-scale.md for G=1/4/8 come from the layer-level numpy model, the device run was done for ops/q04b_layer_g4)",
+  "weights": "real Qwen2.5-0.5B-Instruct bf16 (/mnt/d/ai/Qwen2.5-0.5B-Instruct/model.safetensors), read-only"
+}

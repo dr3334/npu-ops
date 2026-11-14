@@ -1,0 +1,7 @@
+op        : RSQRT {'in': [16, 64], 'out': [16, 64]}  dtype=int16
+expected  : 1024 vals   device: 1024 vals   logical shape=(16, 64)
+exact     : NO   mismatched=913/1024
+contract  : int8_tol=1  max_abs_diff=23  fraction_off=89.1602%
+codes     : exact=111  <=1=333  <=2=505  <=3=670  <=5=871  <=10=993
+distribution: mean=3.18 median=3 p99=13 max=23
+FAIL

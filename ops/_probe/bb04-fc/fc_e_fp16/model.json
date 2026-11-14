@@ -1,0 +1,38 @@
+{
+  "op": "FULLY_CONNECTED",
+  "m": 1,
+  "k": 64,
+  "n": 64,
+  "shapes": {
+    "input": [
+      1,
+      64
+    ],
+    "weights": [
+      64,
+      64
+    ],
+    "bias": [
+      64
+    ],
+    "output": [
+      1,
+      64
+    ]
+  },
+  "dtype": "fp16",
+  "weights": {
+    "kind": "base"
+  },
+  "weight_bytes": 8192,
+  "bias_bytes": 128,
+  "quant": {
+    "input": null,
+    "weights": null,
+    "bias": null,
+    "output": null
+  },
+  "quant_codes": null,
+  "tflite_bytes": 8896,
+  "sha256_tflite": "53be36645365dae380f5b36e1ec159967f065beeed042a95d9db9daa88a4aab5"
+}

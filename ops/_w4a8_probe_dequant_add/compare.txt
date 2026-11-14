@@ -1,0 +1,9 @@
+op        : ADD {'T': 16, 'K': 64}  dtype=int8
+expected  : 1024 vals   device: 1024 vals   logical shape=(16, 64)
+max_abs   : 0.000e+00
+rmse      : 0.000e+00
+rel_l2    : 0.000e+00
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-4100,3.562]  dev [-4100,3.562]
+tol       : atol=0.02 rtol=0.02
+PASS

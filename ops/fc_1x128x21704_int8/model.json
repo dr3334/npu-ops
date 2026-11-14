@@ -36,7 +36,7 @@
   ],
   "reference": "int64_exact_requant",
   "codes": "full",
-  "int8_tol": 1,
+  "int8_tol": 0,
   "seed": 20261112,
   "tflite": "model.tflite",
   "tflite_bytes": 2865672

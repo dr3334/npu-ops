@@ -1,0 +1,53 @@
+{
+  "output_shape": [
+    8,
+    151936
+  ],
+  "output_bytes": 2430976,
+  "max_abs_expected": 2.197265625,
+  "atol": 0.004291534423828125,
+  "rtol": 0.004291534423828125,
+  "noise_floor": {
+    "r1_vs_r2": {
+      "max_abs": 0.0,
+      "n_diff": 0,
+      "n_total": 1215488,
+      "frac_diff": 0.0,
+      "rmse": 0.0
+    },
+    "r1_vs_r3": {
+      "max_abs": 0.0,
+      "n_diff": 0,
+      "n_total": 1215488,
+      "frac_diff": 0.0,
+      "rmse": 0.0
+    },
+    "r2_vs_r3": {
+      "max_abs": 0.0,
+      "n_diff": 0,
+      "n_total": 1215488,
+      "frac_diff": 0.0,
+      "rmse": 0.0
+    }
+  },
+  "noise_floor_value": 0.0,
+  "noise_floor_is_zero": true,
+  "device_vs_golden": {
+    "max_abs": 0.0009765625,
+    "n_diff": 2798,
+    "n_total": 1215488,
+    "frac_diff": 0.0023019560867733784,
+    "rmse": 6.245117908869253e-06,
+    "max_abs_relative": 0.00044444444444444447,
+    "ulp_at_max_expected": 0.001953125,
+    "max_err_in_ulp_at_max": 0.5,
+    "exact_fraction": 0.9976980439132266,
+    "within_1ulp_fraction": 0.9998387478938501,
+    "max_ulp_ratio_abs_ge_0.01": 1.0,
+    "n_abs_lt_0.01": 21180,
+    "max_abs_err_abs_lt_0.01": 7.62939453125e-06,
+    "rel_atol": 0.001953125,
+    "contract_headroom": 14.050483703613281,
+    "verdict": "PASS"
+  }
+}

@@ -1,0 +1,1 @@
+fp16-sim (layer-boundary fp16, fp32 accumulates) vs float32 golden: max_abs=8.2970e-04 rmse=1.5357e-04 rel_l2=3.1598e-04

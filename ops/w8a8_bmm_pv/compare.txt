@@ -1,0 +1,5 @@
+op        : BATCH_MATMUL {'H': 14, 'T': 16, 'HD': 64}  dtype=int8
+expected  : 14336 vals   device: 14336 vals   logical shape=(14, 16, 64)
+exact     : YES   mismatched=0/14336
+contract  : int8_tol=1  max_abs_diff=0  fraction_off=0.0000%
+PASS

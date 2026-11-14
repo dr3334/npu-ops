@@ -1,0 +1,7 @@
+op        : MEAN {'in': [16, 64], 'out': [16, 1]}  dtype=int16
+expected  : 16 vals   device: 16 vals   logical shape=(16, 1)
+exact     : NO   mismatched=6/16
+contract  : int8_tol=1  max_abs_diff=1  fraction_off=37.5000%
+codes     : exact=10  <=1=16  <=2=16  <=3=16  <=5=16  <=10=16
+distribution: mean=0.38 median=0 p99=1 max=1
+PASS

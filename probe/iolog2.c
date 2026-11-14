@@ -143,23 +143,33 @@ static void dump_pointers(const unsigned char *b, unsigned size, const char *why
    mutation experiments (E-105B/C): subcmd_infos@0x50, num_cmdbufs@+64, cmdbufs@+72. */
 static void dump_subcmds(const unsigned char *cmd, unsigned size) {
   if (size < 0x58) return;
+  /* mdw_cmd_in@0x48 = num_subcmds，@0x50 = subcmd_infos[]。**一块 40 op 的图会带 2 个子命令**，
+     只抓 subcmd[0] 会漏掉输出地址（整块重放卡在这里，见 reports/npu-lib-whole-block-probe.md）。 */
+  uint32_t nsub = 0;
+  memcpy(&nsub, cmd + 0x48, 4);
   uint64_t p = 0;
   memcpy(&p, cmd + 0x50, 8);
-  unsigned char sc[128];
-  ssize_t got = safe_read(sc, (uintptr_t)p, sizeof(sc));
-  if (got < 80) { dprintf(logfd, "SUBSCMD unreadable ptr=0x%llx got=%zd\n",
-                          (unsigned long long)p, got); return; }
-  hexdump("subcmd", sc, 80, 2);
-  uint32_t n = 0;
-  uint64_t cbs = 0;
-  memcpy(&n, sc + 64, 4);
-  memcpy(&cbs, sc + 72, 8);
-  dprintf(logfd, "SUBSCMD num_cmdbufs=%u cmdbufs=0x%llx\n", n, (unsigned long long)cbs);
-  if (n == 0 || n > 8) return;
-  unsigned char cb[8 * 24];
-  ssize_t g2 = safe_read(cb, (uintptr_t)cbs, (size_t)n * 24);
-  if (g2 <= 0) { dprintf(logfd, "SUBSCMD cmdbufs unreadable\n"); return; }
-  hexdump("cmdbufs", cb, (size_t)g2, 2);
+  if (nsub == 0 || nsub > 8) nsub = 1;
+  dprintf(logfd, "SUBSCMDS n=%u ptr=0x%llx\n", nsub, (unsigned long long)p);
+  for (uint32_t i = 0; i < nsub; i++) {
+    unsigned char sc[128];
+    char tag[24];
+    ssize_t got = safe_read(sc, (uintptr_t)(p + (uint64_t)i * 80), 80);
+    if (got < 80) { dprintf(logfd, "SUBSCMD%d unreadable got=%zd\n", i, got); continue; }
+    snprintf(tag, sizeof(tag), "subcmd%u", i);
+    hexdump(tag, sc, 80, 2);
+    uint32_t n = 0;
+    uint64_t cbs = 0;
+    memcpy(&n, sc + 64, 4);
+    memcpy(&cbs, sc + 72, 8);
+    dprintf(logfd, "SUBSCMD%d num_cmdbufs=%u cmdbufs=0x%llx\n", i, n, (unsigned long long)cbs);
+    if (n == 0 || n > 8) continue;
+    unsigned char cb[8 * 24];
+    ssize_t g2 = safe_read(cb, (uintptr_t)cbs, (size_t)n * 24);
+    if (g2 <= 0) { dprintf(logfd, "SUBSCMD%d cmdbufs unreadable\n", i); continue; }
+    snprintf(tag, sizeof(tag), "cmdbufs%u", i);
+    hexdump(tag, cb, (size_t)g2, 2);
+  }
 }
 
 #include <signal.h>
@@ -194,12 +204,18 @@ static ssize_t guarded_copy(void *dst, uintptr_t src, size_t n) {
   return done;
 }
 
+struct allocrec { uint64_t handle; uint32_t size; };
+#define MAXALLOC 64
+static struct allocrec g_allocs[MAXALLOC];
+static int g_nallocs = 0;
+static uint32_t g_pending_alloc_size = 0;   /* MEM ALLOC 请求里的 size（POST 时被响应覆盖） */
+
 static void dump_buffers(void) {
   const char *dir = getenv("IODIR");
   if (!dir) dir = "/data/local/tmp/npuops/probe/buf";
   char path[256];
   for (int i = 0; i < nmaps; i++) {
-    if (maps[i].len < 8 || maps[i].len > 65536) continue;
+    if (maps[i].len < 8 || maps[i].len > (64u << 20)) continue;  /* 64 MiB：真维度的常量区是 28 MB，4 MiB 上限会跳过它 */
     snprintf(path, sizeof(path), "%s/map%02d_fd%d_len%zx%s.bin", dir, i, maps[i].fd,
              maps[i].len, getenv("BUFSUFFIX") ? getenv("BUFSUFFIX") : "");
     int f = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -216,6 +232,41 @@ static void dump_buffers(void) {
     }
     close(f);
     dprintf(logfd, "BUFDUMP %s wrote=0x%zx/0x%zx\n", path, done, maps[i].len);
+  }
+  /* ALLOC 过但进程没 mmap 的缓冲（整块的 28 MB 常量区就是这样：厂商 runtime 把 .dla 的
+     内容直接写进这块 dma-buf，不经过 mmap，所以以前抓不到）。这里自己 mmap 一次再 dump。 */
+  dprintf(logfd, "ALLOCS n=%d (dumping unmapped allocations)\n", g_nallocs);
+  for (int a = 0; a < g_nallocs; a++) {
+    if (g_allocs[a].size < 8 || g_allocs[a].size > (64u << 20)) continue;
+    int seen = 0;
+    for (int i = 0; i < nmaps; i++)
+      if (maps[i].fd == (int)g_allocs[a].handle && maps[i].len == g_allocs[a].size) { seen = 1; break; }
+    if (seen) continue;
+    void *mp = real_mmap(NULL, g_allocs[a].size, PROT_READ | PROT_WRITE, MAP_SHARED,
+                         (int)g_allocs[a].handle, 0);
+    if (mp == MAP_FAILED) {
+      dprintf(logfd, "BUFDUMP-ALLOC skip fd=%d size=%u (mmap failed errno=%d)\n",
+              (int)g_allocs[a].handle, g_allocs[a].size, errno);
+      continue;
+    }
+    snprintf(path, sizeof(path), "%s/map%02d_fd%d_len%zx%s.bin", dir, 100 + a,
+             (int)g_allocs[a].handle, (size_t)g_allocs[a].size,
+             getenv("BUFSUFFIX") ? getenv("BUFSUFFIX") : "");
+    int f = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (f >= 0) {
+      size_t done = 0;
+      while (done < g_allocs[a].size) {
+        size_t chunk = g_allocs[a].size - done;
+        if (chunk > 4096) chunk = 4096;
+        ssize_t w = write(f, (const char *)mp + done, chunk);
+        if (w <= 0) break;
+        done += (size_t)w;
+      }
+      close(f);
+      dprintf(logfd, "BUFDUMP-ALLOC %s wrote=0x%zx/0x%zx\n", path, done,
+              (size_t)g_allocs[a].size);
+    }
+    munmap(mp, g_allocs[a].size);
   }
 }
 
@@ -257,6 +308,8 @@ int ioctl(int fd, int req_, ...) {
   if (apusys) {
     dprintf(logfd, "PRE  fd=%d nr=%u size=%u\n", fd, nr, size);
     if (arg && size >= 8 && size <= 256) hexdump("in ", arg, size, 2);
+    if (nr == 33 && arg && size >= 24 && *(const uint32_t *)arg == 0)
+      memcpy(&g_pending_alloc_size, (const char *)arg + 20, 4);
     if (nr == 34 && arg && size >= 8 && ((unsigned char *)arg)[0] == 0 /* RUN */) {
       static int patch_loaded = 0;
       if (!patch_loaded) { patch_loaded = 1; load_patch(); }
@@ -296,6 +349,16 @@ int ioctl(int fd, int req_, ...) {
   if (apusys) {
     dprintf(logfd, "POST fd=%d nr=%u size=%u ret=%d errno=%d\n", fd, nr, size, ret, err);
     if (arg && size >= 8 && size <= 256) hexdump("out", arg, size, 2);
+    /* 记下每次 ALLOC 的 (handle,size)，供 dump_buffers 补抓"没被 mmap 过"的缓冲 */
+    if (nr == 33 && arg && size >= 24 && ret == 0 && g_nallocs < MAXALLOC) {
+      uint64_t h = 0; memcpy(&h, arg, 8);
+      if (h && g_pending_alloc_size) {
+        g_allocs[g_nallocs].handle = h;
+        g_allocs[g_nallocs].size = g_pending_alloc_size;
+        g_nallocs++;
+      }
+      g_pending_alloc_size = 0;
+    }
   }  errno = err;
   return ret;
 }

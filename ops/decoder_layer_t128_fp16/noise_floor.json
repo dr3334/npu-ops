@@ -1,0 +1,117 @@
+{
+  "op": "DECODER_LAYER_T128_FP16",
+  "output_shape": [
+    128,
+    896
+  ],
+  "output_bytes": 229376,
+  "max_abs_expected": 0.626953125,
+  "ulp_at_max_expected": 0.00048828125,
+  "atol": 0.0678710938,
+  "rtol": 0.0678710938,
+  "threshold_at_max": 0.11042308807373047,
+  "noise_floor_value": 0.0,
+  "noise_floor_is_zero": true,
+  "noise_floor": {
+    "r1_vs_r2": {
+      "max_abs": 0.0,
+      "n_diff": 0,
+      "n_total": 114688,
+      "frac_diff": 0.0,
+      "rmse": 0.0
+    }
+  },
+  "device_vs_golden": {
+    "max_abs": 0.017333984375,
+    "n_diff": 110503,
+    "n_total": 114688,
+    "frac_diff": 0.9635096958705357,
+    "rmse": 0.0016714968370035866,
+    "max_abs_in_ulp": 35.5,
+    "max_abs_relative": 0.02764797507788162,
+    "rel_l2": 0.013110515623104736,
+    "bit_identical_codes": 4185,
+    "passes_registered_tolerance": true
+  },
+  "fp16_sim_vs_golden": {
+    "max_abs": 0.0169677734375,
+    "n_diff": 110357,
+    "n_total": 114688,
+    "frac_diff": 0.9622366768973214,
+    "rmse": 0.0016730452110200306,
+    "max_abs_in_ulp": 34.75,
+    "max_abs_relative": 0.02706386292834891,
+    "note": "device-independent floor: numpy chain with a fp16 rounding at every tensor boundary vs the single-rounding golden"
+  },
+  "registered_floor": {
+    "abs": 0.0169677734375,
+    "rel": 0.02706386292834891,
+    "ulp_at_max": 0.00048828125,
+    "max_abs_out": 0.626953125,
+    "sim_vs_golden_identical_codes": 4331,
+    "codes": 114688,
+    "note": "numpy chain with a fp16 rounding at every tensor boundary vs the single-rounding golden; device-independent"
+  },
+  "device_vs_fp16_sim": {
+    "max_abs": 0.00872802734375,
+    "n_diff": 87698,
+    "n_total": 114688,
+    "frac_diff": 0.7646658761160714,
+    "rmse": 0.0003668413935819585,
+    "max_abs_in_ulp": 17.875,
+    "bit_identical_codes": 26990
+  },
+  "device_minus_floor_in_ulp": 0.75,
+  "stage_floor": {
+    "n1": {
+      "max_abs": 1.05078125,
+      "sim_vs_golden": 0.00048828125,
+      "sim_vs_golden_in_ulp_of_stage": 0.5
+    },
+    "q3": {
+      "max_abs": 25.71875,
+      "sim_vs_golden": 0.0234375,
+      "sim_vs_golden_in_ulp_of_stage": 1.5
+    },
+    "scores": {
+      "max_abs": 5164.0,
+      "sim_vs_golden": 4.0,
+      "sim_vs_golden_in_ulp_of_stage": 1.0
+    },
+    "probs": {
+      "max_abs": 1.0,
+      "sim_vs_golden": 0.133056640625,
+      "sim_vs_golden_in_ulp_of_stage": 136.25
+    },
+    "attn": {
+      "max_abs": 0.146728515625,
+      "sim_vs_golden": 0.01656341552734375,
+      "sim_vs_golden_in_ulp_of_stage": 135.6875
+    },
+    "r1": {
+      "max_abs": 0.09228515625,
+      "sim_vs_golden": 0.002269744873046875,
+      "sim_vs_golden_in_ulp_of_stage": 37.1875
+    },
+    "n2": {
+      "max_abs": 3.673828125,
+      "sim_vs_golden": 0.0865020751953125,
+      "sim_vs_golden_in_ulp_of_stage": 44.2890625
+    },
+    "mlp_y": {
+      "max_abs": 1.552734375,
+      "sim_vs_golden": 0.0400390625,
+      "sim_vs_golden_in_ulp_of_stage": 41.0
+    },
+    "down": {
+      "max_abs": 0.59130859375,
+      "sim_vs_golden": 0.01702880859375,
+      "sim_vs_golden_in_ulp_of_stage": 34.875
+    },
+    "out": {
+      "max_abs": 0.626953125,
+      "sim_vs_golden": 0.0169677734375,
+      "sim_vs_golden_in_ulp_of_stage": 34.75
+    }
+  }
+}

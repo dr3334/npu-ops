@@ -1,0 +1,88 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/decoder_layer_t16_w4a16_real/model.tflite -d ops/decoder_layer_t16_w4a16_real/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T14:46:12+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ ElementWiseMulLayer<0>{MUL}
+   ├ MeanLayer<1>{MEAN}
+   ├ RSqrtLayer<2>{RSQRT}
+   ├ ElementWiseMulLayer<3>{MUL}
+   ├ ElementWiseMulLayer<4>{MUL}
+   ├ FullyConnectedLayer<5>{FULLY_CONNECTED}
+   ├ ReshapeLayer<6>{RESHAPE}
+   ├ SliceLayer<7>{SPLIT}
+   ├ ElementWiseMulLayer<11>{MUL}
+   ├ ElementWiseMulLayer<8>{MUL}
+   ├ SliceLayer<7>{SPLIT}
+   ├ ElementWiseMulLayer<10>{MUL}
+   ├ ElementWiseAddLayer<13>{ADD}
+   ├ ElementWiseMulLayer<9>{MUL}
+   ├ ElementWiseSubLayer<12>{SUB}
+   ├ ConcatLayer<14>{CONCATENATION}
+   ├ TransposeLayer<31>{TRANSPOSE}
+   ├ FullyConnectedLayer<15>{FULLY_CONNECTED}
+   ├ ReshapeLayer<16>{RESHAPE}
+   ├ SliceLayer<17>{SPLIT}
+   ├ ElementWiseMulLayer<21>{MUL}
+   ├ ElementWiseMulLayer<18>{MUL}
+   ├ SliceLayer<17>{SPLIT}
+   ├ ElementWiseMulLayer<20>{MUL}
+   ├ ElementWiseAddLayer<23>{ADD}
+   ├ ElementWiseMulLayer<19>{MUL}
+   ├ ElementWiseSubLayer<22>{SUB}
+   ├ ConcatLayer<24>{CONCATENATION}
+   ├ SliceLayer<27>{SPLIT}
+   ├ SliceLayer<27>{SPLIT}
+   ├ ConcatLayer<28>{CONCATENATION}
+   ├ TransposeLayer<32>{TRANSPOSE}
+   ├ BatchMatMulLayer<34>{BATCH_MATMUL}
+   ├ DequantizeLayer<35>{DEQUANTIZE}
+   ├ ElementWiseMulLayer<36>{MUL}
+   ├ ElementWiseAddLayer<37>{ADD}
+   ├ SoftMaxLayer<38>{SOFTMAX}
+   ├ QuantizeLayer<39>{QUANTIZE}
+   ├ FullyConnectedLayer<25>{FULLY_CONNECTED}
+   ├ ReshapeLayer<26>{RESHAPE}
+   ├ SliceLayer<29>{SPLIT}
+   ├ SliceLayer<29>{SPLIT}
+   ├ ConcatLayer<30>{CONCATENATION}
+   ├ TransposeLayer<33>{TRANSPOSE}
+   ├ BatchMatMulLayer<40>{BATCH_MATMUL}
+   ├ TransposeLayer<41>{TRANSPOSE}
+   ├ ReshapeLayer<42>{RESHAPE}
+   ├ FullyConnectedLayer<43>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<44>{ADD}
+   ├ ElementWiseMulLayer<45>{MUL}
+   ├ MeanLayer<46>{MEAN}
+   ├ RSqrtLayer<47>{RSQRT}
+   ├ ElementWiseMulLayer<48>{MUL}
+   ├ ElementWiseMulLayer<49>{MUL}
+   ├ FullyConnectedLayer<50>{FULLY_CONNECTED}
+   ├ SigmoidLayer<52>{LOGISTIC}
+   ├ ElementWiseMulLayer<53>{MUL}
+   ├ FullyConnectedLayer<51>{FULLY_CONNECTED}
+   ├ ElementWiseMulLayer<54>{MUL}
+   ├ FullyConnectedLayer<55>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<56>{ADD}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     28K    28K     0     7.3M    42K   7.4M
+
+Total Memory:
+  DRAM: 7.4M
+  L1:   940K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=7725923
+SHA256=56ec68e620df0d5bd27337936372ba0bf8fde739bb6d4f211d579041851a4f09

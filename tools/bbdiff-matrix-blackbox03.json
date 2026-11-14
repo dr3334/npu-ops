@@ -1,0 +1,170 @@
+{
+  "experiment": "bb03-fc",
+  "description": "票 03 的四个用例矩阵：FC(1,64,64) int8 常量权重为基准，只动一个维度（N / 权重 / 编译选项）。加变体只加一行 variants。 v2（06 起）：新增 default_noise_scope/noise_scopes（每变体各自标定噪声；union 只留作对照列），判定口径逐条不变。",
+  "repeats": 5,
+  "class_slack": 4,
+  "class_threshold_share": 0.15,
+  "zones": {
+    "weight": {
+      "from": "fc_base",
+      "to": "fc_w_cal",
+      "note": "只换权重（同形状、同 bias、同输入码）的离噪差分区，按 <=64 B 的小间隙合并成连续区间 = 权重区标定；判定用的是另一对权重（fc_w_swap）",
+      "gap": 64
+    }
+  },
+  "variants": [
+    {
+      "id": "fc_base",
+      "note": "基准 FC(1,64,64) int8 常量权重（票 01/02 的同一份夹具）",
+      "model": {
+        "op": "fc",
+        "m": 1,
+        "k": 64,
+        "n": 64,
+        "dtype": "int8"
+      }
+    },
+    {
+      "id": "fc_w_cal",
+      "note": "只换权重（rng seed 41）：权重区标定用",
+      "model": {
+        "op": "fc",
+        "m": 1,
+        "k": 64,
+        "n": 64,
+        "dtype": "int8",
+        "weights": {
+          "kind": "rng",
+          "seed": 41
+        }
+      }
+    },
+    {
+      "id": "fc_w_swap",
+      "note": "只换权重（rng seed 42）：与标定不是同一对，用来验 zone 收敛",
+      "model": {
+        "op": "fc",
+        "m": 1,
+        "k": 64,
+        "n": 64,
+        "dtype": "int8",
+        "weights": {
+          "kind": "rng",
+          "seed": 42
+        }
+      }
+    },
+    {
+      "id": "fc_n128",
+      "note": "只改 N：1,64,64 -> 1,64,128（权重/bias 跟着 N 变，输入码不变）",
+      "model": {
+        "op": "fc",
+        "m": 1,
+        "k": 64,
+        "n": 128,
+        "dtype": "int8",
+        "weights": {
+          "kind": "rng",
+          "seed": 7
+        }
+      }
+    },
+    {
+      "id": "fc_extract",
+      "note": "基准 + --extract-static-data（权重外置成侧文件）",
+      "model": {
+        "op": "fc",
+        "m": 1,
+        "k": 64,
+        "n": 64,
+        "dtype": "int8"
+      },
+      "flags": [
+        "--extract-static-data",
+        "{build}/static.bin"
+      ]
+    },
+    {
+      "id": "fc_k8_rejected",
+      "note": "失败变体（K=8 违反 16 B 行规则 → --disallow-bridge 拒绝）：证明失败实验的命令/日志/退出码也留在证据目录里",
+      "model": {
+        "op": "fc",
+        "m": 1,
+        "k": 8,
+        "n": 64,
+        "dtype": "int8",
+        "weights": {
+          "kind": "rng",
+          "seed": 9
+        }
+      }
+    }
+  ],
+  "checks": [
+    {
+      "id": "case1-n-changed",
+      "kind": "diff_outside_noise",
+      "a": "fc_base",
+      "b": "fc_n128",
+      "min_bytes": 1024,
+      "min_fraction": 0.01,
+      "max_noise_share": 0.1,
+      "note": "① 只改 N：差分必须报「有变化」，且变化不能由噪声解释（噪声内字节占比 <= 10%）"
+    },
+    {
+      "id": "case2-repeatable",
+      "kind": "repeatable",
+      "variant": "fc_base",
+      "holdout_run": 5,
+      "note": "② 形状与权重都不变：第 5 次（holdout，不参与噪声标定）必须与第 1 次除噪声区外逐字节相同（余量 8 B：噪声偏移集合本身有抖动）",
+      "allow_outside_bytes": 8
+    },
+    {
+      "id": "case3-weights-confined",
+      "kind": "diff_within_zone",
+      "a": "fc_base",
+      "b": "fc_w_swap",
+      "zone": "weight",
+      "note": "③ 只换权重：变化必须落在权重区内（zone 由另一对权重标定；余量 64 B = 压缩流/边界抖动，实测 2 B）",
+      "allow_outside_bytes": 64
+    },
+    {
+      "id": "case4-extract-shrinks",
+      "kind": "size_delta",
+      "a": "fc_base",
+      "b": "fc_extract",
+      "lo": 0.5,
+      "hi": 1.5,
+      "note": "④ --extract-static-data：缩量必须与权重字节同量级（0.5x~1.5x）"
+    },
+    {
+      "id": "control-same-input-no-change",
+      "kind": "diff_outside_noise",
+      "a": "fc_base",
+      "b": "fc_base",
+      "min_bytes": 1,
+      "expect": "fail",
+      "note": "对照：同一份产物不该报变化 —— 这条必须被判 FAIL，证明判定不是恒真"
+    },
+    {
+      "id": "control-shape-escapes-weight-zone",
+      "kind": "diff_within_zone",
+      "a": "fc_base",
+      "b": "fc_n128",
+      "zone": "weight",
+      "expect": "fail",
+      "note": "对照：改 N 的变化不可能全在权重区 —— 这条必须被判 FAIL"
+    },
+    {
+      "id": "case2b-noise-budget",
+      "kind": "noise_budget",
+      "max_share": 0.05,
+      "note": "② 的第二个半边：噪声区本身不得超过产物的 5%（否则「除噪声区外相同」就没有信息量）"
+    }
+  ],
+  "default_noise_scope": "per-variant",
+  "noise_scopes": [
+    "union",
+    "per-variant"
+  ]
+}

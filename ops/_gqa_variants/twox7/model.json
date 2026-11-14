@@ -1,0 +1,78 @@
+{
+  "op": "GQA_SCORES",
+  "variant": "twox7",
+  "shape": {
+    "T": 8,
+    "Hq": 14,
+    "Hkv": 2,
+    "HD": 64,
+    "kv_repeat": 7,
+    "adj_y": 1,
+    "rank": 3
+  },
+  "dtype": "fp16",
+  "inputs": [
+    {
+      "name": "q",
+      "shape": [
+        8,
+        14,
+        64
+      ],
+      "type": "fp16"
+    },
+    {
+      "name": "k",
+      "shape": [
+        8,
+        2,
+        64
+      ],
+      "type": "fp16"
+    }
+  ],
+  "output": {
+    "name": "scores",
+    "shape": [
+      14,
+      8,
+      8
+    ],
+    "type": "fp16",
+    "bytes": 1792
+  },
+  "quant": {
+    "q": null,
+    "k": null,
+    "scores": null
+  },
+  "reference": "numpy_float32_accum_to_fp16",
+  "qlayout": "graph inputs are [T,H,HD] (row-major FC output layout); the graph does TRANSPOSE[1,0,2] -> [H,T,HD] before the 3-D BMM (NOTES 10.2)",
+  "kv_replication": "SPLIT(axis=1,2) -> CONCAT([k0]*7) / CONCAT([k1]*7) -> CONCAT -> [T,14,HD]; head h reads KV head h//7",
+  "qk_source": {
+    "fixture": "/mnt/d/deepseek_ workspace/mtk/npu-ops/weights/qwen25_frozen",
+    "weights_digest": "898fa3195d627a4ce055cbdb6fc762a12e74665b431e3ae09b530b4abdad18a4",
+    "hidden": "N(0,1) float32 [8,896], numpy default_rng seed 20261113",
+    "rope": "split-half, theta=1e+06, positions 0..7",
+    "tensors": [
+      "layer0.attn.q_proj.weight",
+      "layer0.attn.q_proj.bias",
+      "layer0.attn.k_proj.weight",
+      "layer0.attn.k_proj.bias"
+    ]
+  },
+  "seed": 20261113,
+  "fp16_lower_bound": {
+    "method": "numpy sequential fp16 accumulation over d (K=64) vs float32 golden",
+    "max_abs": 12.0,
+    "max_out_abs": 5368.0,
+    "rel": 0.0022354694485842027
+  },
+  "tolerance_revision": "ticket-04 rev-1 (registered BEFORE the first board run)",
+  "atol": 10.484375,
+  "rtol": 10.484375,
+  "tolerance_reason": "max|out| = 5368 >> 1 (q/k are bias-dominated, measured fixture std 7.85/32.2), so the '<2e-2 absolute' rule of NOTES 4 does not apply; per NOTES 10.1 the contract is atol=rtol=4*2^-11*max|out| = 10.48, i.e. 4 fp16 ULP at the output scale. The independent (device-free) lower bound from sequential fp16 accumulation is 12 absolute (0.00224 relative). Re-registering to make a run green is forbidden.",
+  "scope": "scores only -- no 1/sqrt(HD) scaling and no causal mask (ticket 05)",
+  "tflite": "model.tflite",
+  "tflite_bytes": 2416
+}

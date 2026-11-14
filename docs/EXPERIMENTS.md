@@ -373,3 +373,92 @@ patch off=0x054 ... / 0x074 ... / 0x118 ...
 npu_add64 rc=0
 C[0..7] = 11 22 33 44 55 66 77 88        ← A=[10..80]×8 + B=[1..8]×8
 ```
+
+---
+
+# W6 并行批次索引（2026-11-12）
+
+四个 worktree 分支合并进 master，各自的分内实验保留在自己的文档里；这里是编号映射与一句话结论。
+
+| 分支 | 文档 | 本地编号 | 一句话结论 |
+|---|---|---|---|
+| `feat/shapeops` | `docs/OP-shapeops.md` | E-SHP-01…06 | RESHAPE/TRANSPOSE/CONCAT/SPLIT/PAD 全部落 MDLA 且逐位相等；失败只发生在 DRAM 边界行宽 <16 B |
+| `feat/actreduce` | `docs/OP-actreduce.md` | E-ACT-01…09 | RELU/LOGISTIC/TANH/MEAN/SUM 逐位；**SOFTMAX 是真实 NPU 算子（fp16+int8，beta 生效）** |
+| `feat/elem` | `docs/OP-elementwise.md` | E-ELEM-01…05 | MUL/SUB/MAX/MIN 逐位（4352 codes 零误差）；`K==4` 例外机制 UNKNOWN |
+| `feat/convpool` | `docs/OP-convpool.md` | CP-01…05 | CONV/DW/POOL 逐位；**反推出真实 int8 requant 规则并用未见乘子验证**；C=8 失败机制 UNKNOWN |
+
+合并后回归：`PASS=75 XFAIL=16 FAIL=0`（`tools/run_all.sh`，前后 healthcheck 均 PASS）。
+汇总表见 `docs/OP-MATRIX.md`。
+
+## 由本批次修正的既有结论
+
+1. **E-003 的 ±1 LSB 得到解释**：不是"MTK 的 requant 无法复现"，而是 gemmlowp 的**两次舍入**
+   （`round_half_up(acc·M0/2^31)` 再 `RoundingDivideByPOT(shift)`）。按该规则写 golden 即可逐位。
+2. **`.dla` 不可字节复现**（同 tflite 三次编译、大小相同、sha256 三次不同）；回归只比数值。
+3. **`--disallow-bridge` 的语义边界**被推到台面：convpool 发现 C=4/8 的失败其实由 **eDPA relayout**
+   （MDLA 自己的 DMA，仍是 NPU）填充，被我们的严格策略拒绝。是否允许它，是一个**政策选择**，待定。
+---
+
+## qwen25-attention 批次（2026-11-13，spec: `.scratch/qwen25-attention/spec.md`）
+
+背景：仓库已有 178 个单算子目录与一个玩具形状（单头 / head_dim=32）的整块。这一批把目标推到**真实形状**：
+hidden 896、14 query head / 2 KV head、head_dim 64、vocab 151936、T=8。全部 fp16、全部 `--disallow-bridge`、
+权重用「随机生成后冻结」的夹具（尺度=真实 Qwen2.5-0.5B-Instuct 逐张量实测，见 `docs/OP-weights.md`）。
+
+| 票 | 文档（本批次的实验记录） | 一句话结论 |
+|---|---|---|
+| 01 | `docs/OP-block.md` §10 / `docs/OP-gqa.md`（E-112） | 多 head「编不过」是 builder 的权重张量声明 bug，不是 ncc 的限制；修好后 2 头 31 层 / 14 头 33 层，**各 1 个执行步**，板端 PASS |
+| 02 | `docs/OP-weights.md` | 25 张量冻结夹具：同 seed 两次生成 **25/25 sha256 相同**；含 q/k/v 的 bias（真实权重里 bias std 7.85/32.2，比权重还大） |
+| 03 | `docs/OP-qkv.md` | QKV 投影+bias+RoPE，11 层/1 步；bias 反事实差 254–257×、误接 896 宽在**加载期**失败、无 RoPE 差 343–360× |
+| 04 | `docs/OP-gqa-scores.md` | 2→14 KV 复制（SPLIT+CONCAT）5 层、仍在 1 步；3-D BMM 出 `[14,8,8]` **逐位一致**；2×7 头=13 层、14 次 unroll=33 层（不采用） |
+| 05 | `docs/OP-masked-softmax.md` | 掩码+原生 SoftMax 3 层/1 步；被掩码位 **392/392 逐位 0**；掩码 −4096 vs −8192 两份 dump 逐位相同（已饱和）；**EXP 前提被推翻** |
+| 06 | `docs/OP-pv-o.md` | PV 3-D = **1 个原生层**，4-D 被降成 5 层；O 投影无 bias；残差独立成层；7 层/1 步 |
+| 07 | `docs/OP-swiglu-ffn.md` | SwiGLU 6 层/1 步/Temp 0；SiLU **不融合**（+2 层、同一步）；三个大张量各 8.72 MB |
+| 08 | `docs/OP-lm-head.md` | tied LM head：**FC 的 N ≤ 65535**（单体 151936 被编译期拒绝）→ 4×FC+CONCAT，5 层/1 步，板端 99.77% 逐位 |
+| 09 | `docs/OP-decoder-layer.md` | 1 层自包含整块，**61 层 / 1 执行步**，板端 9.50 ULP（设备无关下限 9.25），噪声底 0；首跑 FAIL 的证据与二分（attn_half/ffn_half）保留 |
+| 09+ | `docs/OP-decoder-layer.md` §14 | **T=128 prefill 档**：同样 61 层 / 1 步，板端 35.50 ULP（下限 34.75，设备只多 0.75）；T=8 产物逐字节未变 |
+| 10 | `docs/OP-two-layer.md` | 2 层串联（板端 h1 **字节**喂入第 2 层）+ tied LM head：h1 9.50 / h2 6.50 / logits 7.50 ULP，传播误差与本层误差分开（h2 本层 3.50、logits 本层 0.50 ULP），噪声底 0 |
+
+### 由本批次新增的方法论（值得复用）
+
+1. **每条「编译侧已通」都必须配一次板端对拍**。本批次三个负对照（h2 的 reshape、GQA 的 wrong_reshape、PV 的 badlayout）
+   都是 `EXIT=0` + 单执行步，但板端 `rel_l2` 0.14–1.23。编译通过只证明「能下沉」，不证明「算得对」。
+2. **没有正对照的「某算子不支持」不算结论**。EXP 探针第一版把 opcode 表偏移当成 opcode 索引，连 SOFTMAX 都报
+   `Fail to process the given model`——先跑一个已知可用的正对照，才能把「构造错」与「真不支持」分开（E-112 同类错误）。
+3. **阈值必须由独立于设备的下限支撑**：本批次噪声底实测全为 0（硬件确定性），于是阈值改按 fp16 末位口径
+   `4·2⁻¹¹·max|out|` 登记，并用「把 golden 逐层按 fp16 舍入」的模拟给出下限；登记一律在跑之前（`tolerance_revision`）。
+---
+
+## E-113 黑盒差分能否给出「产物结构 ⇄ 语义」
+
+- **假设**：把官方编译器当参考编译器，只改一个维度（N / K / 权重 / 量化），产物字节差分可归因到具体区段。
+- **预测**：若成立，「只改 N」的差异应集中在少数区段，且重复编译能标定出稳定的噪声区。
+- **做法**：新建 `tools/bbdiff.py`（编译→收集→两次一致性→差分→报告）+ 数据矩阵；FC-A…FC-E 九个变体，每变体编 9 次、留 5 次同类别。
+- **产物**：`tools/bbdiff.py`、`tools/bbdiff-matrix-blackbox0{3,4}.json`、`reports/compiler-blackbox-0{3,4}.md`、`ops/_probe/bb0{3,4}-fc/`
+- **结果**：成立。N 变体 +4352 B = 权重 +4096 + bias +256；K 变体 +4096 B；只换权重时差分锁在 4096 B 常量块内、逃出 0 B；**改 requant 比值只动一个字节（偏移 6343）**、改 scale 绝对大小零字节变化。噪声区 1.8–2.1%（尾部嵌绝对路径 + 命令行 + UUID）。
+- **适用范围**：ncc-tflite 7.3.15 / mdla5.0 / `FC(1,64,64)` 夹具。
+- **剩余疑问**：权重块内的**重排规则**未解；头部索引字节语义未解；同一模型连编会出现**整块换排布**（≈4.4 KB，机制未知）。
+
+---
+
+## E-114 两个官方开关能否替代我们的资产策略
+
+- **假设**：`--extract-static-data` 能把权重从产物里挪出来变成输入张量；`--resize` 能让一份产物吃多种形状。
+- **预测**：若外置成立，`.dla` 应缩小约一个权重的字节数，且喂回原始权重后输出与参考逐字节相同。
+- **做法**：`fc_1x64x64_int8` 用 `--extract-static-data` 重编；`neuronrt -d` 读输入表；喂回 tflite 里的 4096 B 常量缓冲比对。`--resize` / `--runtime-dynamic-shape` 各编一份。
+- **产物**：`reports/compiler-blackbox-02.md`
+- **结果**：外置**成立** —— 7545 → 3666 B，权重成为 input[1]（4096 B），输出与 `out_device.bin` **逐字节相同**。`--resize` 只是**编译期换形状**（必须给全部输入尺寸），产物仍只认一个尺寸；`--runtime-dynamic-shape` 编得过但无动态行为。**28 MB 常量那张图（61 层 decoder）上 extract 跑不完**：侧文件 0 字节、日志截断在层清单中间。
+- **适用范围**：fc 级模型；`--resize` 结论限 add / FC 这类两输入图。
+- **剩余疑问**：28 MB 上为何失败（bug 还是耗时）未定；侧文件 262,178 B 不是权重、`neuronrt` 也不消费，用途未知。
+
+---
+
+## E-115 官方 profiling 出口与每命令 PMU
+
+- **假设**：这套 SDK 存在可用的 profiling 出口，能拿到每层/每命令的耗时与带宽，而不只是总时延。
+- **预测**：若存在，per-command 时间之和应等于运行时自报的 `exec_us`，且墙钟 ≥ 该和。
+- **做法**：`ncc-tflite -P<n>` 编译期打等级（`--help` 里没有）+ 运行时 `MTKNN_ENABLE_PROFILER=1 MTKNN_PROFILING_LEVEL=<n>`；读 logcat（tag=`neuron`）与落盘 JSON；自建 `profqos` harness（`ops/_probe/bb07-prof/profqos.c`）。
+- **产物**：`reports/compiler-blackbox-07.md`、`docs/OP-toolchain.md` §7、`ops/_probe/bb07-prof/`
+- **结果**：成立。level 3 产出 `execution_result.json`(272 KB) + `dla_info.json`(21 KB)：每核 55 条命令、带 `opIndices` 与 `bufferAccesses`；**每核 sum = exec_us = 264 µs**；墙钟 692–1066 µs → **设备侧计算只占 25–39%**。副作用：level 3 跑完会让 APU 卡死（`[apusys&]MDLA timeout` / `ret=-5` / 25 s），连 known-good 都失败，只有 reboot 能清、且重启后需 `adb root`。
+- **适用范围**：ncc 7.3.15 / mt6897 / 单算子与短图。
+- **剩余疑问**：时钟未钉死（诚实区间 0.67–1.0 GHz）；14 个 PMU event 的语义未知；61 层图上的数字未采（票 08）。

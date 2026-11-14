@@ -1,0 +1,1 @@
+prepare C=8192 t=8 n=24 valid=16 s_h=2.691436e-04  k_in=50331648 B  sat=[('L00_n1_mean', 1), ('L00_n1_norm', 1), ('L00_q_as', 1), ('L00_k_fc', 1)]

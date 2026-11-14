@@ -1,0 +1,44 @@
+{
+  "op": "MUL",
+  "shape": {
+    "M": 8,
+    "K": 128
+  },
+  "dtype": "int8",
+  "inputs": [
+    {
+      "name": "a",
+      "shape": [
+        8,
+        128
+      ],
+      "type": "int8"
+    },
+    {
+      "name": "b",
+      "shape": [
+        8,
+        128
+      ],
+      "type": "int8"
+    }
+  ],
+  "output": {
+    "name": "out",
+    "shape": [
+      8,
+      128
+    ],
+    "type": "int8"
+  },
+  "quant": {
+    "input": 0.007874015748031496,
+    "input1": 0.007874015748031496,
+    "output": 6.200012400024799e-05
+  },
+  "int8_tol": 0,
+  "reference": "int64_exact_clip",
+  "quant_note": "codes in [-12,12]; out_scale = sa*sb so TFLite real_multiplier == 1 (no requant rounding); clamp edges injected at flat idx 0..7",
+  "tflite_options": "MulOptions",
+  "seed": 20261112
+}

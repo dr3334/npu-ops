@@ -107,7 +107,7 @@ R6 原生/回退分开 · R7 五个结论分开 · R8 持久交接 · R9 不删�
 | `probe/diff_cmd.py` | ✅ | 命令区差分 |
 | `tools/scan_shapes.py` | 待建 | W3 网格扫描 + 失败阶段分类 |
 | `tools/regress.py` | 待建 | 每次改动重跑所有 ops + golden，输出回归表 |
-| `probe/apusctl.c` | 待建 | 自有提交器（W4） |
+| `probe/apusctl.c` | ✅ | 自建提交器主程序；模板命令路径已达 L3.5（E-106B）。命令自生成为 L4，仍待建 |
 | `tools/record.py` | 待建 | 自动填实验记录头（设备指纹/commit/.dla sha256） |
 
 ---
@@ -152,6 +152,12 @@ R6 原生/回退分开 · R7 五个结论分开 · R8 持久交接 · R9 不删�
   （b）`probe/npu_hold` 已能独立 HANDSHAKE + MEM ALLOC → 直接推进 **E-106（apusctl 自主提交）**，
       字段命名（E-105）可以并行、不再是前置条件；
   （c）新增待办：解释 e102 命令区 368 B 与 fc 系列 400 B 的 32 B 差异。
+- **2026-11-14 · 加一条「黑盒参考编译器」线**：新增 `tools/bbdiff.py` + 矩阵（`*.json`）+ 三份报告；
+  原因：常量区落址（3/10）与真维度图的基址+偏移两件事都卡在「我们读不懂编译产物」，
+  所以先把官方编译器当黑盒做受控差分。结论：`.dla` 可切五段、权重块 4096 B 且块内重排、
+  requant 比值只占一个字节、`--extract-static-data` 能官方外置权重。详见 `docs/OP-dla-structure.md`。
+  影响 W4：命令生成不再只有「解 ISA」一条路，可以先解「地址/偏移 + tile 参数 + 权重重排」三样。
+
 ## 9. 计划完成度（2026-11-12 收口）
 
 | 流 | 状态 | 证据 |
@@ -174,3 +180,25 @@ R6 原生/回退分开 · R7 五个结论分开 · R8 持久交接 · R9 不删�
 
 结论：**当前等级 L3（动态权重、同 shape 任意 A/B、新进程）**；L3.5（自有提交器 + 模板命令）需要先做 subcmd_info 的逐字段变异；
 L4（自主生成命令）需要 ISA 表。这些都写进了 §5 的 backlog，不再作为"已完成"表述。
+
+---
+
+## 10. W6 并行泛化（2026-11-12 起）
+
+目标：把"单算子 → .dla → 板端 → 逐位对拍"的流程推广到**大部分常用算子**，用 git worktree + 多个 agent 并行。
+
+| worktree | 分支 | 范围 | 状态 |
+|---|---|---|---|
+| `wt-elem` | `feat/elem` | 逐元素二元：MUL / SUB / MAXIMUM / MINIMUM（+ 把 `npuadd` 泛化成二元库） | 进行中 |
+| `wt-shapeops` | `feat/shapeops` | 形状/布局：RESHAPE / TRANSPOSE / CONCAT / SPLIT / PAD | ✅ 完成（18 个 op dir，全部真实 MDLA 层，逐位相等） |
+| `wt-actreduce` | `feat/actreduce` | 激活/归约：RELU / LOGISTIC / TANH / SOFTMAX / MEAN / SUM | 进行中（编译全过，设备数值在跑） |
+| `wt-convpool` | `feat/convpool` | 卷积/池化：CONV_2D / DEPTHWISE_CONV_2D / MAX_POOL / AVG_POOL | 进行中 |
+
+共享约定：`docs/AGENT-BRIEF.md`；设备串行锁 `NPU_LOCK=/d/deepseek_ workspace/mtk/.npu-board.lock`；
+公共工具由 Lead 维护（e2e/compare/healthcheck/devlock/run_all），worktree 只 `git checkout master -- <file>` 同步，不自行修改。
+
+**合并流程**：`./tools/merge_worktrees.sh`（依次 merge `feat/*` → 跑 `run_all.sh` → `healthcheck.sh`）。
+已知需要 Lead 在合并后补的：
+1. 把各 `docs/OP-*.md` 的实验编号映射进 `docs/EXPERIMENTS.md`（保持 E-1xx 唯一）；
+2. 汇总成一张 `docs/OP-MATRIX.md`（算子 × 形状 × dtype × 编译层 × 数值 × 限制）；
+3. 更新 `docs/CAPABILITY.md`：把"K 必须是 16 的倍数"等规则与各算子新发现（如"DRAM 边界每行 ≥16 B"）合并。

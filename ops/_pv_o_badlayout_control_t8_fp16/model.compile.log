@@ -1,0 +1,33 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/pv_o_badlayout_control_t8_fp16/model.tflite -d ops/pv_o_badlayout_control_t8_fp16/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T10:23:56+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ SliceLayer<0>{SLICE}
+   ├ SliceLayer<1>{SLICE}
+   ├ BatchMatMulLayer<2>{BATCH_MATMUL}
+   ├ ReshapeLayer<3>{RESHAPE}
+   ├ FullyConnectedLayer<4>{FULLY_CONNECTED}
+   ├ ElementWiseAddLayer<5>{ADD}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     29K    14K     0     1.5M    11K   1.6M
+
+Total Memory:
+  DRAM: 1.6M
+  L1:   32K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=1630632
+SHA256=0ee5223e58fe8cafe26b3509767fa4bbdb13bf43ace18e84ce896c21a84ac9cc

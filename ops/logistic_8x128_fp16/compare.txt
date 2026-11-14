@@ -1,0 +1,9 @@
+op        : LOGISTIC {'d0': 8, 'd1': 128}  dtype=fp16
+expected  : 1024 vals   device: 1024 vals   logical shape=(8, 128)
+max_abs   : 4.883e-04
+rmse      : 4.197e-05
+rel_l2    : 6.323e-05
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [0.0003355,0.9995]  dev [0.0003355,0.9995]
+tol       : atol=0.002 rtol=0.01
+PASS

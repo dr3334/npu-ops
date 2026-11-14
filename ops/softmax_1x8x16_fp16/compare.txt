@@ -1,0 +1,9 @@
+op        : SOFTMAX {'d0': 1, 'd1': 8, 'd2': 16}  dtype=fp16
+expected  : 128 vals   device: 128 vals   logical shape=(1, 8, 16)
+max_abs   : 2.441e-04
+rmse      : 5.692e-05
+rel_l2    : 4.432e-04
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [0.0001472,0.5435]  dev [0.0001472,0.5435]
+tol       : atol=0.002 rtol=0.01
+PASS

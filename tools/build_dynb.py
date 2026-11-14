@@ -15,11 +15,12 @@ import os
 import numpy as np
 
 import build_ops as bo
+import quant_contract as qc
 
 SEED = 20261112
 
 
-def run(out_dir, m=1, k=64, n=64, tol=1):
+def run(out_dir, m=1, k=64, n=64, tol=0):
     rng = np.random.default_rng(SEED)
     s = 1.0 / 127.0
     o_scale = s * s * 32.0
@@ -31,8 +32,8 @@ def run(out_dir, m=1, k=64, n=64, tol=1):
 
     def expect(w):
         acc = a_q.astype(np.int64) @ w.astype(np.int64).T
-        y = np.round(acc * (s * s) / o_scale)
-        return np.clip(y, -128, 127).astype(np.int8)
+        # device contract: two integer roundings with the integer M0 (tools/quant_contract.py)
+        return qc.requant_int8(acc, (s * s) / o_scale)
 
     b = bo.flatbuffers.Builder(4096)
     buffers = [bo.buf_empty(b)]                # 0: placeholder for IO tensors

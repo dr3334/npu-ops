@@ -1,0 +1,4 @@
+zone weight: bytes=4096  source=fc_a vs fc_d_w_cal（离噪）
+FC-D：只换权重（同形状、同 bias、同输入码）的离噪差分区，按 <=64 B 小间隙合并 = 权重区标定；判定用的是另一对权重（fc_d_w_swap）
+runs:
+    1951..6046   len=4096

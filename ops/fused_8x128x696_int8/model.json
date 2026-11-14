@@ -1,0 +1,76 @@
+{
+  "op": "FUSED_FC_SILU_MUL",
+  "graph": [
+    "FULLY_CONNECTED",
+    "FULLY_CONNECTED",
+    "LOGISTIC",
+    "MUL",
+    "MUL"
+  ],
+  "shape": {
+    "T": 8,
+    "W": 696,
+    "K": 128
+  },
+  "op_shape": [
+    8,
+    696
+  ],
+  "dtype": "int8",
+  "input": {
+    "name": "input",
+    "shape": [
+      8,
+      128
+    ],
+    "type": "int8",
+    "bytes": 1024
+  },
+  "inputs": [
+    {
+      "name": "input",
+      "shape": [
+        8,
+        128
+      ],
+      "type": "int8"
+    }
+  ],
+  "output": {
+    "name": "output",
+    "shape": [
+      8,
+      696
+    ],
+    "type": "int8",
+    "bytes": 5568
+  },
+  "quant": {
+    "input": 0.0625,
+    "input_zp": 0,
+    "weights": 0.007874015748031496,
+    "weights_zp": 0,
+    "gate": 0.0625,
+    "up": 0.0625,
+    "sigmoid": 0.00390625,
+    "sigmoid_zp": -128,
+    "s": 0.0625,
+    "s_zp": 0,
+    "output": 0.5,
+    "output_zp": 0,
+    "requant": {
+      "fc": "1/127 (two-step rounding, OP-MATRIX \u00a73)",
+      "mul1": "2^-8",
+      "mul2": "2^-7"
+    }
+  },
+  "reference": "float64_exact_then_encode",
+  "alt_reference": "tflite_reference_two_step_then_plain_shift",
+  "seed": 20261112,
+  "prediction": "same, batch 8",
+  "generator": "tools/build_silu.py",
+  "tflite": "model.tflite",
+  "tflite_bytes": 185384,
+  "int8_tol": 3,
+  "tolerance_rationale": "codes of the output tensor; bound registered before the run = sigmoid 8-bit quantisation (<=0.25 code) + one shift rounding per requant (0.5 each) + the golden's own rounding (0.5); the fused variant adds the FC 1/127 requant (>=1 code, OP-MATRIX \u00a73).  1 code = out_scale in absolute terms."
+}

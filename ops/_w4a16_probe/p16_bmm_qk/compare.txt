@@ -1,0 +1,7 @@
+op        : BATCH_MATMUL {'in': [2, 16, 64], 'out': [2, 16, 16]}  dtype=int16
+expected  : 512 vals   device: 512 vals   logical shape=(2, 16, 16)
+exact     : YES   mismatched=0/512
+contract  : int8_tol=1  max_abs_diff=0  fraction_off=0.0000%
+codes     : exact=512  <=1=512  <=2=512  <=3=512  <=5=512  <=10=512
+distribution: mean=0.00 median=0 p99=0 max=0
+PASS

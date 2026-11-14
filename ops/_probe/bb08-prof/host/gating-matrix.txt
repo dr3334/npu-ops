@@ -1,0 +1,84 @@
+=== fc -P0 ask=1 rc=0 ===
+WARNING: To enable profiling level 1, please use -P1 option to re-compile the model
+
+=== fc -P0 ask=2 rc=0 ===
+WARNING: To enable profiling level 2, please use -P2 option to re-compile the model
+
+=== fc -P0 ask=3 rc=0 ===
+WARNING: To enable profiling level 3, please use -P3 option to re-compile the model
+
+=== fc -P1 ask=1 rc=0 ===
+INFO: The profiling level is now set to 1
+
+=== fc -P1 ask=2 rc=0 ===
+WARNING: The runtime profiling level is 2, but DLA only supports 1
+WARNING: To enable profiling level 2, please use -P2 option to re-compile the model
+INFO: The profiling level is now set to 1
+
+=== fc -P1 ask=3 rc=0 ===
+WARNING: The runtime profiling level is 3, but DLA only supports 1
+WARNING: To enable profiling level 3, please use -P3 option to re-compile the model
+INFO: The profiling level is now set to 1
+
+=== fc -P2 ask=1 rc=0 ===
+INFO: The profiling level is now set to 1
+
+=== fc -P2 ask=2 rc=0 ===
+INFO: The profiling level is now set to 2
+
+=== fc -P2 ask=3 rc=0 ===
+WARNING: The runtime profiling level is 3, but DLA only supports 2
+WARNING: To enable profiling level 3, please use -P3 option to re-compile the model
+INFO: The profiling level is now set to 2
+
+=== fc -P3 ask=1 rc=0 ===
+INFO: The profiling level is now set to 1
+
+=== fc -P3 ask=2 rc=0 ===
+INFO: The profiling level is now set to 2
+
+=== fc -P3 ask=3 rc=0 ===
+INFO: The profiling level is now set to 3
+
+=== dec -P0 ask=1 rc=0 ===
+WARNING: To enable profiling level 1, please use -P1 option to re-compile the model
+
+=== dec -P0 ask=2 rc=0 ===
+WARNING: To enable profiling level 2, please use -P2 option to re-compile the model
+
+=== dec -P0 ask=3 rc=0 ===
+WARNING: To enable profiling level 3, please use -P3 option to re-compile the model
+
+=== dec -P1 ask=1 rc=0 ===
+INFO: The profiling level is now set to 1
+
+=== dec -P1 ask=2 rc=0 ===
+WARNING: The runtime profiling level is 2, but DLA only supports 1
+WARNING: To enable profiling level 2, please use -P2 option to re-compile the model
+INFO: The profiling level is now set to 1
+
+=== dec -P1 ask=3 rc=0 ===
+WARNING: The runtime profiling level is 3, but DLA only supports 1
+WARNING: To enable profiling level 3, please use -P3 option to re-compile the model
+INFO: The profiling level is now set to 1
+
+=== dec -P2 ask=1 rc=0 ===
+INFO: The profiling level is now set to 1
+
+=== dec -P2 ask=2 rc=0 ===
+INFO: The profiling level is now set to 2
+
+=== dec -P2 ask=3 rc=0 ===
+WARNING: The runtime profiling level is 3, but DLA only supports 2
+WARNING: To enable profiling level 3, please use -P3 option to re-compile the model
+INFO: The profiling level is now set to 2
+
+=== dec -P3 ask=1 rc=0 ===
+INFO: The profiling level is now set to 1
+
+=== dec -P3 ask=2 rc=0 ===
+INFO: The profiling level is now set to 2
+
+=== dec -P3 ask=3 rc=0 ===
+INFO: The profiling level is now set to 3
+

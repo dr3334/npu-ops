@@ -1,0 +1,9 @@
+op=FULLY_CONNECTED+CONCATENATION chunks=4
+fixture=/mnt/d/deepseek_ workspace/mtk/npu-ops/weights/qwen25_frozen weights_digest=898fa3195d627a4ce055cbdb6fc762a12e74665b431e3ae09b530b4abdad18a4
+embed.weight sha256=40cdb3488dedade266d353dd674f2ed279dab6b7a4f3590bfbcb46f9bc859d7a shape=[151936, 896] bytes=272269312 (tied alias lm_head.weight: same object=True)
+input=[8, 896] row_rms=[0.999992, 1.000008, 0.999998, 0.999992, 1.000004, 1.000007, 0.999991, 1.000005]
+golden: abs_max=2.197266 min=-2.121094 max=2.197266 std=0.456503  (0.52 s)
+tflite=272574824 B  tensors=14 buffers=15 constant_bytes=272573184 weight=272269312 overhead=303872 (bias+zp=303872)
+one-weight-copy check: PASS
+tolerance (registered BEFORE device run): atol=0.00429153 rtol=0.00429153  [NOTES 10.1 exception: atol=rtol=4.0*2^-11*max|exp|]
+build 0.61 s

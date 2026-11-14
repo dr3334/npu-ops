@@ -1,0 +1,16 @@
+D:/deepseek_ workspace/mtk/wt-bmm/ops/conv_bmm_qk_t16_fp16/model.dla: 1 file pushed, 0 skipped. 8.1 MB/s (3084 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-bmm/ops/conv_bmm_qk_t16_fp16/golden/input.bin: 1 file pushed, 0 skipped. 3.9 MB/s (2048 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-bmm/ops/conv_bmm_qk_t16_fp16/golden/input1.bin: 1 file pushed, 0 skipped. 4.2 MB/s (2048 bytes in 0.000s)
+Inference repeats for 3 times.
+Total inference time = 4.025 ms (1.34167 ms/inf)
+Avg. FPS : 634.1
+/data/local/tmp/npuops/dla/conv_bmm_qk_t16_fp16.out.bin: 1 file pulled, 0 skipped. 0.2 MB/s (512 bytes in 0.003s)
+op        : CONV_2D {'T': 16, 'D': 64, 'H': 16, 'W': 1, 'C': 64, 'OC': 16, 'FH': 1, 'FW': 1, 'pad': 'SAME', 'stride': 1}  dtype=fp16
+expected  : 256 vals   device: 256 vals   logical shape=(1, 16, 1, 16)
+max_abs   : 0.000e+00
+rmse      : 0.000e+00
+rel_l2    : 0.000e+00
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-7.438,7.719]  dev [-7.438,7.719]
+tol       : atol=0.01 rtol=0.03
+PASS

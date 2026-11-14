@@ -1,0 +1,64 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/_tier_matrix/w4a8_probs/model.tflite -d ops/_tier_matrix/w4a8_probs/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T14:46:08+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ ElementWiseMulLayer<0>{MUL}
+   ├ MeanLayer<1>{MEAN}
+   ├ RSqrtLayer<2>{RSQRT}
+   ├ ElementWiseMulLayer<3>{MUL}
+   ├ ElementWiseMulLayer<4>{MUL}
+   ├ FullyConnectedLayer<5>{FULLY_CONNECTED}
+   ├ ReshapeLayer<6>{RESHAPE}
+   ├ SliceLayer<7>{SPLIT}
+   ├ ElementWiseMulLayer<11>{MUL}
+   ├ ElementWiseMulLayer<8>{MUL}
+   ├ SliceLayer<7>{SPLIT}
+   ├ ElementWiseMulLayer<10>{MUL}
+   ├ ElementWiseAddLayer<13>{ADD}
+   ├ ElementWiseMulLayer<9>{MUL}
+   ├ ElementWiseSubLayer<12>{SUB}
+   ├ ConcatLayer<14>{CONCATENATION}
+   ├ TransposeLayer<31>{TRANSPOSE}
+   ├ FullyConnectedLayer<15>{FULLY_CONNECTED}
+   ├ ReshapeLayer<16>{RESHAPE}
+   ├ SliceLayer<17>{SPLIT}
+   ├ ElementWiseMulLayer<21>{MUL}
+   ├ ElementWiseMulLayer<18>{MUL}
+   ├ SliceLayer<17>{SPLIT}
+   ├ ElementWiseMulLayer<20>{MUL}
+   ├ ElementWiseAddLayer<23>{ADD}
+   ├ ElementWiseMulLayer<19>{MUL}
+   ├ ElementWiseSubLayer<22>{SUB}
+   ├ ConcatLayer<24>{CONCATENATION}
+   ├ SliceLayer<27>{SPLIT}
+   ├ SliceLayer<27>{SPLIT}
+   ├ ConcatLayer<28>{CONCATENATION}
+   ├ TransposeLayer<32>{TRANSPOSE}
+   ├ BatchMatMulLayer<34>{BATCH_MATMUL}
+   ├ DequantizeLayer<35>{DEQUANTIZE}
+   ├ ElementWiseMulLayer<36>{MUL}
+   ├ ElementWiseAddLayer<37>{ADD}
+   ├ SoftMaxLayer<38>{SOFTMAX}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     14K    7.0K    0     482K    16K   520K
+
+Total Memory:
+  DRAM: 520K
+  L1:   64K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=528209
+SHA256=b7ca3b7e4aad182cf1d7d9a2c93d602601856d73e89d2c67bac481188fe6ddb9

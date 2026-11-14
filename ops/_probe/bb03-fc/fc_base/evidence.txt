@@ -1,0 +1,25 @@
+# fc_base
+note: 基准 FC(1,64,64) int8 常量权重（票 01/02 的同一份夹具）
+flags: -
+model.tflite bytes=5104 sha256=85b1e4016a08737433192955c89cc240d30af1c124193b378bc20a7070f233d2
+weight_bytes=4096 bias_bytes=256
+attempts=9  classes={"class0": 5, "class1": 4}  dropped(off-class)=4
+kept runs: attempt1, attempt2, attempt5, attempt6, attempt9
+attempt1 [modal]: rc=0 bytes=7635 sha256=b58c255590ea1d6d54ed3fb9299aa6b70e68e8313e94df6de6915c82bb792c45 seconds=3.82
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla
+attempt2 [modal]: rc=0 bytes=7635 sha256=4d46d1fe1d50b80db503704be7959487c11bb7d4283fdd2c18ca388cc3f3085b seconds=3.81
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla
+attempt3 [off-class [off-class]]: rc=0 bytes=7635 sha256=9455c9c7f04ff6b304e702bb5d1206f29addd033e4a27c4a6036a3103557e857 seconds=3.83
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla
+attempt4 [off-class [off-class]]: rc=0 bytes=7635 sha256=a80407f9798b60e9d270582022e63f73f75613785c5455891f227f3368b7692c seconds=3.84
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla
+attempt5 [modal]: rc=0 bytes=7635 sha256=cf0a574b42b8d2c3b92eee36be96343f68675e785b2112ecd9fbae9f4b3fc491 seconds=3.83
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla
+attempt6 [modal]: rc=0 bytes=7635 sha256=ef93ab157aaed11da04bb50a16995952e495090b5c4090ffe7d4bf9bd655a28d seconds=3.82
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla
+attempt7 [off-class [off-class]]: rc=0 bytes=7635 sha256=ba592bdbdedc1966b2a0d1f6ace4860894d62796cd58f21c0bc9fd4d57857aec seconds=3.83
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla
+attempt8 [off-class [off-class]]: rc=0 bytes=7635 sha256=2fafd90a0159a76cb060912c451724318368a560b115dde48ebc2a87c7ff170b seconds=3.82
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla
+attempt9 [modal]: rc=0 bytes=7635 sha256=4a3c4eae8b58e2de5a19af2028d3d0c94fb3ff561b2633c06a282118b3cdcc93 seconds=3.82
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla

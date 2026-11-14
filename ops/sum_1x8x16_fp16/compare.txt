@@ -1,0 +1,9 @@
+op        : SUM {'d0': 1, 'd1': 8, 'd2': 16}  dtype=fp16
+expected  : 8 vals   device: 8 vals   logical shape=(1, 8)
+max_abs   : 0.000e+00
+rmse      : 0.000e+00
+rel_l2    : 0.000e+00
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-15.93,3.244]  dev [-15.93,3.244]
+tol       : atol=0.1 rtol=0.01
+PASS

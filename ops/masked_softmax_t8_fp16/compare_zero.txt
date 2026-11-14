@@ -1,0 +1,9 @@
+op        : MUL+ADD+SOFTMAX (masked softmax) {'H': 14, 'T': 8, 'KVH': 2, 'HD': 64, 'D': 896}  dtype=float16
+expected  : 896 vals   device: 896 vals   logical shape=(14, 8, 8)
+max_abs   : 4.883e-04
+rmse      : 8.043e-05
+rel_l2    : 3.986e-04
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [7.236e-05,0.8071]  dev [7.23e-05,0.8076]
+tol       : atol=0.001 rtol=0.005
+PASS

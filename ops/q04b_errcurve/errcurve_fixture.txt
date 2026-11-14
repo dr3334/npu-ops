@@ -1,0 +1,26 @@
+=== int4 weight quantisation error vs group size (K=896, group = K/G) ===
+  G=1    group=896  Wq 0.1420  Wk 0.1403  Wv 0.1441  Wo 0.1410  Wg 0.1412  Wu 0.1408  Wd 0.1583   | mean 0.1440
+  G=2    group=448  Wq 0.1336  Wk 0.1327  Wv 0.1355  Wo 0.1329  Wg 0.1332  Wu 0.1329  Wd 0.1514   | mean 0.1360
+  G=4    group=224  Wq 0.1248  Wk 0.1245  Wv 0.1260  Wo 0.1244  Wg 0.1246  Wu 0.1246  Wd 0.1441   | mean 0.1276
+  G=8    group=112  Wq 0.1156  Wk 0.1154  Wv 0.1163  Wo 0.1154  Wg 0.1155  Wu 0.1154  Wd 0.1364   | mean 0.1186
+  G=16   group=56   Wq 0.1058  Wk 0.1058  Wv 0.1061  Wo 0.1056  Wg 0.1056  Wu 0.1056  Wd 0.1282   | mean 0.1090
+  G=32   group=28   Wq 0.0948  Wk 0.0949  Wv 0.0951  Wo 0.0947  Wg 0.0948  Wu 0.0948  Wd 0.1196   | mean 0.0984
+  G=64   group=14   Wq 0.0828  Wk 0.0828  Wv 0.0830  Wo 0.0827  Wg 0.0827  Wu 0.0827  Wd 0.1101   | mean 0.0867
+  G=128  group=7    Wq 0.0690  Wk 0.0691  Wv 0.0690  Wo 0.0689  Wg 0.0689  Wu 0.0689  Wd 0.0998   | mean 0.0734
+
+=== whole layer: only the WEIGHTS are group-quantised, rest float64 ===
+  G   group  out cosine   out rel_l2   probs cosine
+  1    896    0.9509612  3.1898e-01  0.9991874
+  2    448    0.9552018  3.0471e-01  0.9992718
+  4    224    0.9615520  2.8110e-01  0.9995305
+  8    112    0.9659866  2.6383e-01  0.9995029
+  16   56     0.9703511  2.4637e-01  0.9993943
+  32   28     0.9760796  2.2073e-01  0.9997727
+  64   14     0.9819651  1.9134e-01  0.9997631
+  128  7      0.9865161  1.6535e-01  0.9998790
+
+=== reference points ===
+  ticket 04 per-channel int4 layer: cosine 0.9130 (quantised golden vs fp64)
+  ticket 04 device layer          : cosine 0.9107
+  vendor 4-bit bin                : 0.5075 B/param -> group ~32-64
+  -> ops/q04b_errcurve/errcurve.json

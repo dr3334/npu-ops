@@ -1,0 +1,48 @@
+{
+  "op": "QWEN25_BLOCK_1L",
+  "shape": {
+    "T": 8,
+    "H": 64,
+    "HD": 32,
+    "FFN": 128
+  },
+  "dtype": "float16",
+  "inputs": [
+    {
+      "name": "x",
+      "shape": [
+        8,
+        64
+      ],
+      "type": "float16"
+    },
+    {
+      "name": "k",
+      "shape": [
+        8,
+        32
+      ],
+      "type": "float16"
+    },
+    {
+      "name": "vt",
+      "shape": [
+        32,
+        8
+      ],
+      "type": "float16"
+    }
+  ],
+  "output": {
+    "name": "out",
+    "shape": [
+      8,
+      64
+    ],
+    "type": "float16"
+  },
+  "atol": 0.02,
+  "rtol": 0.02,
+  "note": "RMSNorm and RoPE are applied outside the graph (see docs/OP-block.md)",
+  "tflite_bytes": 68048
+}

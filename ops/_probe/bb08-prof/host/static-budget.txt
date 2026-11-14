@@ -1,0 +1,21 @@
+shapes: T=8 D=896 Hq=14 Hkv=2 HD=64 I=4864
+  part               MACs   share    w_bytes   share  act_bytes
+  q_proj          6422528    5.4%    1605632    5.4%      28672
+  k_proj           917504    0.8%     229376    0.8%      16384
+  v_proj           917504    0.8%     229376    0.8%      16384
+  qk^T              57344    0.0%          0    0.0%      30464
+  pv                57344    0.0%          0    0.0%      30464
+  o_proj          6422528    5.4%    1605632    5.4%      28672
+  gate_proj      34865152   29.2%    8716288   29.2%      92160
+  up_proj        34865152   29.2%    8716288   29.2%      92160
+  down_proj      34865152   29.2%    8716288   29.2%      92160
+  TOTAL         119390208  100.0%   29818880  100.0%
+
+== analytic grouping ==
+  MLP (gate/up/down)      104595456 MACs    87.6%
+  attn FC (q/o)            12845056 MACs    10.8%
+  attn FC (k/v)             1835008 MACs     1.5%
+  BMM (scores/pv)            114688 MACs     0.1%
+
+weights dominate the bytes: 28.4 MiB of fp16 weights for one layer.
+arithmetic intensity of the whole layer: 3.95 MAC/byte (weights only: 4.00)

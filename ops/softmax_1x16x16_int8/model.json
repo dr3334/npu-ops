@@ -1,0 +1,49 @@
+{
+  "op": "SOFTMAX",
+  "shape": {
+    "d0": 1,
+    "d1": 16,
+    "d2": 16
+  },
+  "op_shape": [
+    1,
+    16,
+    16
+  ],
+  "dtype": "int8",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      16,
+      16
+    ],
+    "type": "int8",
+    "bytes": 256
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      16,
+      16
+    ],
+    "type": "int8",
+    "bytes": 256
+  },
+  "quant": {
+    "input": 0.0625,
+    "output": 0.00390625,
+    "input_zp": 0,
+    "output_zp": -128
+  },
+  "reference": "int64_exact",
+  "seed": 20261112,
+  "prediction": "same lowering as [1,8,16]; needed as an asset for the attention chain",
+  "generator": "tools/build_actreduce.py",
+  "beta": 1.0,
+  "int8_tol": 2,
+  "tolerance_rationale": "fixed-point LUT vs exact transcendental: <=2 codes of 256",
+  "tflite": "model.tflite",
+  "tflite_bytes": 520
+}

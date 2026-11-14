@@ -1,0 +1,5 @@
+op        : AVERAGE_POOL_2D {'N': 1, 'H': 8, 'W': 8, 'C': 16, 'OH': 4, 'OW': 4, 'OC': 16, 'FH': 2, 'FW': 2, 'stride': 2, 'dilation': 1, 'mult': 1, 'padding': 'SAME', 'activation': 'NONE'}  dtype=int8
+expected  : 256 vals   device: 256 vals   logical shape=(1, 4, 4, 16)
+exact     : YES   mismatched=0/256
+contract  : int8_tol=0  max_abs_diff=0  fraction_off=0.0000%
+PASS

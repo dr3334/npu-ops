@@ -14,7 +14,9 @@ import sys
 
 import numpy as np
 
-DT = {"int8": np.int8, "int32": np.int32, "float32": np.float32, "float16": np.float16}
+DT = {"int8": np.int8, "int16": np.int16, "int32": np.int32,
+      "float32": np.float32, "float16": np.float16,
+      "i8": np.int8, "i16": np.int16, "i32": np.int32, "fp32": np.float32, "fp16": np.float16}
 
 
 def main():
@@ -66,10 +68,14 @@ def main():
     e = exp.astype(np.float64)
     a = dev.astype(np.float64)
     # default tolerances per storage type (register-before-test, see reports/)
+    # 与 int8_tol 同等待遇：model.json 里登记的 atol/rtol 优先于内置默认值，
+    # 这样"先登记容差再测"的契约对浮点算子也生效（act-agent 反馈）。
+    d_atol = 2e-2 if otype == "float16" else 1e-5
+    d_rtol = 2e-2 if otype == "float16" else 1e-4
     if args.atol is None:
-        args.atol = 2e-2 if otype == "float16" else 1e-5
+        args.atol = float(meta.get("atol", d_atol))
     if args.rtol is None:
-        args.rtol = 2e-2 if otype == "float16" else 1e-4
+        args.rtol = float(meta.get("rtol", d_rtol))
     diff = np.abs(e - a)
     denom = np.maximum(np.abs(e), 1e-12)
     max_abs = float(diff.max())

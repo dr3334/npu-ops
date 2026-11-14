@@ -1,0 +1,64 @@
+{
+  "op": "RMSNORM",
+  "shape": {
+    "d0": 8,
+    "d1": 8
+  },
+  "op_shape": [
+    8,
+    8
+  ],
+  "dtype": "fp16",
+  "input": {
+    "name": "input",
+    "shape": [
+      8,
+      8
+    ],
+    "type": "float16",
+    "bytes": 128
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      8,
+      8
+    ],
+    "type": "float16",
+    "bytes": 128
+  },
+  "quant": {},
+  "seed": 20261112,
+  "prediction": "POSITIVE CONTROL for the 16-byte rule: row = 8 elements * 2 B = 16 B -> predict EXIT=0. Also narrows the reduce axis to 8, which is the smallest useful hidden size and makes the [T,1] intermediate relatively more expensive.",
+  "generator": "tools/build_rmsnorm.py",
+  "spec": "rmsnorm_8x8_fp16",
+  "expect_compile_fail": false,
+  "eps": 1e-05,
+  "eps_stored": 1.0013580322265625e-05,
+  "gamma": [
+    1.17578125,
+    1.0,
+    1.0712890625,
+    1.2734375,
+    1.12890625,
+    0.978515625,
+    0.96923828125,
+    1.11328125
+  ],
+  "golden_dtype": "float32",
+  "golden_f32_vs_f64_max_abs": 0.0,
+  "graph": [
+    "MUL(x,x)",
+    "MEAN(axis=-1,keep_dims)",
+    "ADD(eps)",
+    "RSQRT",
+    "MUL(x)",
+    "MUL(gamma)"
+  ],
+  "atol": 0.01,
+  "rtol": 0.01,
+  "reference": "float32",
+  "tolerance_rationale": "registered before the run, per the branch brief: fp16 atol 1e-2 with rtol 1e-2 on a signal with |y| <= ~3 (>= 8 fp16 ULP at 1.0 = 4.9e-4; the budget covers a chained 6-op graph with a division-like rsqrt whose input is an accumulated mean).  The actual max_abs is reported alongside so the contract can be seen to be coarse rather than retro-fitted.",
+  "tflite": "model.tflite",
+  "tflite_bytes": 1216
+}

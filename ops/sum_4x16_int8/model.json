@@ -1,0 +1,48 @@
+{
+  "op": "SUM",
+  "shape": {
+    "d0": 4,
+    "d1": 16
+  },
+  "op_shape": [
+    4,
+    16
+  ],
+  "dtype": "int8",
+  "input": {
+    "name": "input",
+    "shape": [
+      4,
+      16
+    ],
+    "type": "int8",
+    "bytes": 64
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      4,
+      1
+    ],
+    "type": "int8",
+    "bytes": 4
+  },
+  "quant": {
+    "input": 0.007874015748031496,
+    "output": 0.007874015748031496,
+    "input_zp": 0,
+    "output_zp": 0
+  },
+  "reference": "int64_exact",
+  "seed": 20261112,
+  "prediction": "exact integer reduce, if the backend has a sum primitive",
+  "generator": "tools/build_actreduce.py",
+  "axis": [
+    1
+  ],
+  "keep_dims": true,
+  "int8_tol": 0,
+  "tolerance_rationale": "bit-exact contract: same scale in/out, zp 0, no requant rounding",
+  "tflite": "model.tflite",
+  "tflite_bytes": 608
+}

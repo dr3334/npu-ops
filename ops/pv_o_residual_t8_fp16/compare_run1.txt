@@ -1,0 +1,9 @@
+op        : PV_3D_BMM__O_PROJ__RESIDUAL {'T': 8, 'H': 14, 'KV': 2, 'HD': 64, 'D': 896, 'PV_rank': 3}  dtype=float16
+expected  : 7168 vals   device: 7168 vals   logical shape=(8, 896)
+max_abs   : 6.104e-05
+rmse      : 6.739e-06
+rel_l2    : 3.119e-04
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-0.08051,0.08014]  dev [-0.08051,0.08014]
+tol       : atol=0.000157245 rtol=0.000157245
+PASS

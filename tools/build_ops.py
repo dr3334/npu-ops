@@ -22,6 +22,7 @@ from tflite import (
     BuiltinOperator, BuiltinOptions, FullyConnectedOptions, Model, Operator,
     OperatorCode, QuantizationParameters, SubGraph, Tensor, TensorType,
 )
+import quant_contract as qc
 
 F32 = TensorType.FLOAT32
 F16 = TensorType.FLOAT16
@@ -128,8 +129,11 @@ def build_fc(m, k, n, dtype, codes="full"):
     """Return (tflite_bytes, model_json, input_array, expected_array).
 
     codes="full"  : full-range int8 activations/weights, int8 requant output
-                    (device requant rounding is NOT bit-identical to exact float
-                    division -> contract is |diff| <= int8_tol, see reports/S2-*.md)
+                    at the declared multiplier 1/32.  The golden follows the
+                    device's two-step contract (tools/quant_contract.py:
+                    round_half_up(acc*M0/2^31) then RoundingDivideByPOT), so it is
+                    bit-exact -> int8_tol = 0.  Verified on 35 FC/BMM device dumps
+                    in tools/verify_int8_bitexact -> reports/Q02-int8-bitexact.md.
     codes="small" : codes in {-1,0,1}, no bias, output scale == input*weight scale,
                     so out == exact INT64 accumulator with no rounding at all.
     """
@@ -193,7 +197,8 @@ def build_fc(m, k, n, dtype, codes="full"):
             w_q = rng.integers(-1, 2, size=(n, k)).astype(np.int8)
             b_q = np.zeros(n, dtype=np.int32)
             acc = a_q.astype(np.int64) @ w_q.astype(np.int64).T
-            expected = np.clip(acc, -128, 127).astype(np.int8)
+            # multiplier exactly 1 -> the contract is the identity, written out anyway
+            expected = qc.requant_int8_num_den(acc, 1, 1)
             int8_tol = 0
         else:
             o_scale = a_scale * w_scale * 32.0    # requant multiplier 1/32
@@ -201,9 +206,12 @@ def build_fc(m, k, n, dtype, codes="full"):
             w_q = np.clip(np.round(w_f32 / w_scale), -127, 127).astype(np.int8)
             b_q = np.round(b_f32 / b_scale).astype(np.int32)
             acc = a_q.astype(np.int64) @ w_q.astype(np.int64).T
-            y = np.round((acc + b_q[None, :].astype(np.int64)) * (b_scale / o_scale))
-            expected = np.clip(y, -128, 127).astype(np.int8)
-            int8_tol = 1                          # requant rounding boundary, see report
+            # INT64 accumulate -> the device's two integer roundings (contract);
+            # b_scale/o_scale is the declared multiplier 1/32, snapped to the exact
+            # rational so the M0 is 2^30 and not the float32 product 1073741840.
+            expected = qc.requant_int8(acc + b_q[None, :].astype(np.int64),
+                                       b_scale / o_scale)
+            int8_tol = 0
 
         t_in = tensor(b, "input", [m, k], I8, 0, quant_tensor(b, [a_scale], [0]))
         buffers.append(buf_data(b, w_q))          # buffer 1: weights

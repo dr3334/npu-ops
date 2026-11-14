@@ -1,0 +1,64 @@
+{
+  "op": "SILU(LOGISTIC+MUL)",
+  "graph": [
+    "LOGISTIC",
+    "MUL"
+  ],
+  "shape": {
+    "T": 1,
+    "W": 704
+  },
+  "op_shape": [
+    1,
+    704
+  ],
+  "dtype": "int8",
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      704
+    ],
+    "type": "int8",
+    "bytes": 704
+  },
+  "inputs": [
+    {
+      "name": "input",
+      "shape": [
+        1,
+        704
+      ],
+      "type": "int8"
+    }
+  ],
+  "output": {
+    "name": "output",
+    "shape": [
+      1,
+      704
+    ],
+    "type": "int8",
+    "bytes": 704
+  },
+  "quant": {
+    "input": 0.0625,
+    "input_zp": 0,
+    "sigmoid": 0.00390625,
+    "sigmoid_zp": -128,
+    "output": 0.0625,
+    "output_zp": 0,
+    "requant": {
+      "mul": "0.00390625 = 2^-8"
+    }
+  },
+  "reference": "float64_exact_then_encode",
+  "alt_reference": "tflite_reference_two_step_then_plain_shift",
+  "seed": 20261112,
+  "prediction": "704 % 16 == 0 -> the padded-width workaround should compile",
+  "generator": "tools/build_silu.py",
+  "tflite": "model.tflite",
+  "tflite_bytes": 664,
+  "int8_tol": 2,
+  "tolerance_rationale": "codes of the output tensor; bound registered before the run = sigmoid 8-bit quantisation (<=0.25 code) + one shift rounding per requant (0.5 each) + the golden's own rounding (0.5); the fused variant adds the FC 1/127 requant (>=1 code, OP-MATRIX \u00a73).  1 code = out_scale in absolute terms."
+}

@@ -1,6 +1,7 @@
 # generated / binary artifacts (regenerable via tools/)
 *.tflite
 *.dla
+*.dlb
 *.bin
 *.so
 *.ko
@@ -21,3 +22,36 @@ __pycache__/
 # keep these (they are small evidence):
 #   ops/*/model.json  ops/*/model.compile.log  ops/*/compare.txt  ops/*/e2e.json
 #   probe/io.log  probe/trace_*.txt  probe/mem_ioctl.dis
+
+# 编译出来的探针二进制（源码在，随时可用 NDK 重建）
+probe/npu_attn16_demo
+probe/npu_attn_demo
+probe/npu_sm_check
+probe/npu_fcc_demo
+probe/npu_fc_demo
+probe/npu_fc512_demo
+probe/npu_fc1024_demo
+probe/npu_binop_demo
+probe/npuadd_demo
+probe/npu_unop_demo
+probe/apusctl_run
+probe/assets/*_demo
+probe/npu_hold
+probe/apusctl
+
+# 冻结权重夹具的数组产物（可由 tools/gen_qwen25_weights.py 逐字节复现；manifest.json 入库）
+*.npz
+
+# kv1：aarch64 runner 的构建产物（tools/build_kv1.sh 可复现）
+out/
+
+# npu_lib 的运行产物（全部可由 tools/run_npu_lib_matrix.sh 重建；
+# 证据以 reports/npu-lib-matrix.{md,json} 入库）
+artifacts/
+probe/npu_run
+
+# 计划与票只留本地（ADR 0004）
+.scratch/
+
+# bbdiff：所有变体共用的固定编译路径（可重建；每次 attempt 的日志已另行留档）
+ops/_probe/*/_build/

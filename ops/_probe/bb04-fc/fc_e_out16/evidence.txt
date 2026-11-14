@@ -1,0 +1,25 @@
+# fc_e_out16
+note: FC-E1 只改声明 output scale：requant 倍率 1/32 -> 1/16（码值逐字节不变）
+flags: -
+model.tflite bytes=5104 sha256=0b22a4a063dbb2808619e9e45cbe3bc9cf4fcb8e615040699407dadb580e18d4
+weight_bytes=4096 bias_bytes=256
+attempts=9  classes={"class0": 7, "class1": 2}  dropped(off-class)=4
+kept runs: attempt1, attempt4, attempt5, attempt6, attempt7
+attempt1 [modal]: rc=0 bytes=7635 sha256=f3f37d29a436f6483fd9a6e581079d54dc6c9681d2ab68d624c4557282d920d7 seconds=0.36
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla
+attempt2 [off-class [off-class]]: rc=0 bytes=7635 sha256=c3ac90f20aa10339d0ede217ac48f1617d1e8221f568bf40d2cc80336c151057 seconds=0.40
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla
+attempt3 [off-class [off-class]]: rc=0 bytes=7635 sha256=7de61f1b663d851ed8e57c11c36ac11e4c9d886e7b68863908f40857713744e5 seconds=0.40
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla
+attempt4 [modal]: rc=0 bytes=7635 sha256=bceac4f25f339ba0c75ce3ef758ca561ecf7a8d4fc4e050bdc1d1a6af1814007 seconds=0.42
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla
+attempt5 [modal]: rc=0 bytes=7635 sha256=be72387cc9d77c07d7ac03312c2136ee37baa7b59af6e0d4f2f04c6fa115ea40 seconds=0.41
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla
+attempt6 [modal]: rc=0 bytes=7635 sha256=ee853c3a2ccb56d75eb93a6709879917924745d764cef16ebe59f8c94e54679f seconds=0.36
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla
+attempt7 [modal]: rc=0 bytes=7635 sha256=45d0140fd80ca286beb8cc3308a20ff298a331b0b7eee0e9822b5dd96fc411ef seconds=0.40
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla
+attempt8 [off-class [off-class]]: rc=0 bytes=7635 sha256=f10b68b7232a02a9865984d340f55f3edbeada93334ad2ac22dd217f6d8491c1 seconds=0.39
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla
+attempt9 [off-class [off-class]]: rc=0 bytes=7635 sha256=d601288e2c18fa228e4b4b6ef677ad810d585b6a21e9745bf8b0bbffb28d7ea9 seconds=0.39
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla

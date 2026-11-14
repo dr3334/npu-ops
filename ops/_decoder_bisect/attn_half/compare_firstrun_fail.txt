@@ -1,0 +1,9 @@
+op        : DECODER_LAYER_T8_FP16 {'T': 8, 'D': 896, 'Hq': 14, 'Hkv': 2, 'HD': 64, 'I': 4864, 'in': [8, 896], 'out': [8, 896]}  dtype=fp16
+expected  : 7168 vals   device: 7168 vals   logical shape=(8, 896)
+max_abs   : 4.571e-02
+rmse      : 1.180e-02
+rel_l2    : 5.773e-01
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-0.08209,0.07806]  dev [-0.07532,0.07666]
+tol       : atol=0.00088501 rtol=0.00088501
+FAIL

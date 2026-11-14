@@ -1,0 +1,30 @@
+{
+  "op": "RMSNORM_D896_A",
+  "shape": {
+    "T": 8,
+    "D": 896
+  },
+  "dtype": "float16",
+  "atol": 0.02,
+  "rtol": 0.02,
+  "inputs": [
+    {
+      "name": "x",
+      "shape": [
+        8,
+        896
+      ],
+      "type": "float16"
+    }
+  ],
+  "output": {
+    "name": "out",
+    "shape": [
+      8,
+      896
+    ],
+    "type": "float16"
+  },
+  "note": "variant A: A=MEAN, B=FC-tile+CONCAT, C=expansion FC (negative control)",
+  "tflite_bytes": 3000
+}

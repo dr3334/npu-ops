@@ -1,0 +1,33 @@
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  ops/w4a16_swiglu/model.tflite -d ops/w4a16_swiglu/model.dla
+# version: Version: 7.3.15
+# date: 2026-11-13T14:25:47+08:00
+
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0]
+ExecutionStep
+ ├ StepId: 0
+ ├ Target: MDLA_5_0
+ └ Subgraph:
+   ├ FullyConnectedLayer<0>{FULLY_CONNECTED}
+   ├ SigmoidLayer<2>{LOGISTIC}
+   ├ ElementWiseMulLayer<3>{MUL}
+   ├ FullyConnectedLayer<1>{FULLY_CONNECTED}
+   ├ ElementWiseMulLayer<4>{MUL}
+   ├ FullyConnectedLayer<5>{FULLY_CONNECTED}
+   └ Output: OpResult (external)
+
+===End of Graph[0]===
+
+DRAM Usage:
+       Target       Input  Output  Temp  Static  Code  Total
+ [ 0]: MDLA 5.0     28K    28K     0     6.3M    6.7K  6.4M
+
+Total Memory:
+  DRAM: 6.4M
+  L1:   912K
+TargetExecutionOrder: 
+ └ MDLA_5_0
+
+EXIT=0
+SIZE=6662051
+SHA256=860fd0adb7012402bf9bd12372ac7370c7c3a31d3ba811fadf53b19d9da33ae6

@@ -1,0 +1,122 @@
+{
+  "op": "QKV_Q_BIAS_ROPE_SPLIT_HALF",
+  "shape": {
+    "T": 8,
+    "D": 896,
+    "heads": 14,
+    "head_dim": 64,
+    "out_width": 896,
+    "in": [
+      8,
+      896
+    ],
+    "out": [
+      8,
+      14,
+      64
+    ]
+  },
+  "dtype": "fp16",
+  "inputs": [
+    {
+      "name": "input",
+      "shape": [
+        8,
+        896
+      ],
+      "type": "float16",
+      "bytes": 14336,
+      "what": "post-input_layernorm hidden n1 (see input_choice)"
+    }
+  ],
+  "output": {
+    "name": "output",
+    "shape": [
+      8,
+      14,
+      64
+    ],
+    "type": "float16",
+    "bytes": 14336
+  },
+  "quant": {},
+  "reference": "numpy_float64_from_stored_fp16",
+  "atol": 0.04962158,
+  "rtol": 0.00195312,
+  "tolerance_basis": "NOTES \u00a710.1 exception: max|out| = 25.41 >> 1, so a flat 2e-2 would be 7.87e-04 relative (tighter than 1 fp16 ULP = 6.15e-04 relative). Floor measured independently of the device (numpy per-op fp16 sim): 1.562e-02 abs = 1.00 ULP = 6.15e-04 relative. Registered atol = 4*2^-11*max|out| = 0.04962, rtol = 4*2^-11 = 0.00195312 (= 4x the measured floor).",
+  "tolerance_revision": "registered before the first board run of this op; derived from a device-independent fp16 floor + NOTES \u00a710.1 (no post-hoc adjustment).  see docs/OP-qkv.md \u00a75",
+  "fp16_floor": {
+    "abs": 0.015625,
+    "rel": 0.0006150061500615006,
+    "ulp_at_max": 0.015625,
+    "max_abs_out": 25.40625,
+    "sim_vs_golden_identical_codes": 5551,
+    "codes": 7168,
+    "note": "numpy per-op fp16 rounding simulation vs the exact golden; device-independent"
+  },
+  "threshold_at_max": 0.0992431640625,
+  "input_choice": {
+    "graph_input": "post-input_layernorm hidden [8,896] (RMSNorm NOT in the graph)",
+    "norm": "x / sqrt(mean(x^2) + eps) * gamma",
+    "eps": 1e-06,
+    "gamma": "layer0.input_layernorm.weight, applied in the pre-graph norm (NOT folded into the FC weights)",
+    "source": "embed.weight rows for fixed TOKEN_IDS, fp16-stored, float64 norm",
+    "token_ids": [
+      9707,
+      11,
+      1879,
+      828,
+      11780,
+      13,
+      220,
+      16
+    ],
+    "why": "RMSNorm has its own operator ticket + board evidence (docs/OP-rmsnorm.md); keeping it out keeps a failure single-cause.  Folding gamma into W was rejected because the numpy golden would then have to fold it too (one more way to be silently wrong)."
+  },
+  "weights": {
+    "fixture": "/mnt/d/deepseek_ workspace/mtk/npu-ops/weights/qwen25_frozen",
+    "weight_tensor": "layer0.attn.q_proj.weight",
+    "weight_shape": [
+      896,
+      896
+    ],
+    "weight_sha256": "2f44980c8aa70f2160efa2eeec90a26f66942e5414fa7b8612d9c43b46ea4db1",
+    "bias_tensor": "layer0.attn.q_proj.bias",
+    "bias_shape": [
+      896
+    ],
+    "bias_sha256": "74fdf6b1080d83f1340a3935ba412c2a52fdf5da7407cb91a92f408725abfa47",
+    "bias_in_graph": true,
+    "bias_note": "Qwen2.5 q/k/v all have biases and config.json has no key for them; measured std 7.8 (q) / 29.8 (k) / 0.015 (v) >> weight std, so dropping them shifts the output by >> tolerance (docs/OP-weights.md \u00a74)",
+    "kv_width_note": "k/v width is 128 = 2 KV heads x 64, NOT 896.  A 896-wide mis-wiring is a different op: see neg_width896/ (element count 7168 vs 7168)"
+  },
+  "rope": {
+    "convention": "qwen2_split_half",
+    "formula": "out_lo = a*cos - b*sin ; out_hi = b*cos + a*sin",
+    "theta": 1000000.0,
+    "head_dim": 64,
+    "half": 32,
+    "pos_start": 0,
+    "positions": "0..7",
+    "table": "const pre-computed sin/cos duplicated over heads [T,H,HD/2]; SIN/COS are rejected by the ncc importer",
+    "static_note": "T must be static because the tables are data",
+    "rotation_invariant_rel_err": 0.00043934705991188126,
+    "dyn_alternative": "a runtime input table costs +2 SliceLayers and a second input file (docs/OP-rope.md \u00a74); not built here"
+  },
+  "decomposition": {
+    "layers_expected": 11,
+    "ops": [
+      "FULLY_CONNECTED",
+      "RESHAPE",
+      "SPLIT(x2)",
+      "MUL(x4)",
+      "SUB",
+      "ADD",
+      "CONCATENATION"
+    ],
+    "rank_note": "output rank 3; rank > 4 is rejected by ncc and rank 4 costs ~4x layers for the same work (docs/OP-rope.md \u00a75.3)"
+  },
+  "generator": "tools/build_qkv_bias_rope.py",
+  "tflite": "model.tflite",
+  "tflite_bytes": 1623820
+}

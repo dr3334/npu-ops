@@ -1,0 +1,82 @@
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax_decode_t8_c64_24l/model.dla: 1 file pushed, 0 skipped. 43.7 MB/s (18118150 bytes in 0.396s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c64/live/x.bin: 1 file pushed, 0 skipped. 30.7 MB/s (14336 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c64/live/mask.bin: 1 file pushed, 0 skipped. 34.5 MB/s (16128 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c64/live/cos14.bin: 1 file pushed, 0 skipped. 20.2 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c64/live/sin14.bin: 1 file pushed, 0 skipped. 18.4 MB/s (7168 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c64/live/cos2.bin: 1 file pushed, 0 skipped. 2.2 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c64/live/sin2.bin: 1 file pushed, 0 skipped. 2.9 MB/s (1024 bytes in 0.000s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c64/live/k_in.bin: 1 file pushed, 0 skipped. 143.0 MB/s (393216 bytes in 0.003s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c64/live/v_in.bin: 1 file pushed, 0 skipped. 104.4 MB/s (393216 bytes in 0.004s)
+[push] C=64 ok
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax_decode_t8_c2048_24l/model.dla: 1 file pushed, 0 skipped. 43.3 MB/s (18141594 bytes in 0.399s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/x.bin: 1 file pushed, 0 skipped. 7.3 MB/s (14336 bytes in 0.002s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/mask.bin: 1 file pushed, 0 skipped. 11.0 MB/s (460544 bytes in 0.040s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/cos14.bin: 1 file pushed, 0 skipped. 0.2 MB/s (7168 bytes in 0.036s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/sin14.bin: 1 file pushed, 0 skipped. 0.2 MB/s (7168 bytes in 0.037s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/cos2.bin: 1 file pushed, 0 skipped. 0.0 MB/s (1024 bytes in 0.036s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/sin2.bin: 1 file pushed, 0 skipped. 0.1 MB/s (1024 bytes in 0.008s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/k_in.bin: 1 file pushed, 0 skipped. 170.9 MB/s (12582912 bytes in 0.070s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c2048/live/v_in.bin: 1 file pushed, 0 skipped. 119.6 MB/s (12582912 bytes in 0.100s)
+[push] C=2048 ok
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax_decode_t8_c4096_24l/model.dla: 1 file pushed, 0 skipped. 41.7 MB/s (18268200 bytes in 0.418s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/x.bin: 1 file pushed, 0 skipped. 0.4 MB/s (14336 bytes in 0.037s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/mask.bin: 1 file pushed, 0 skipped. 21.5 MB/s (919296 bytes in 0.041s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/cos14.bin: 1 file pushed, 0 skipped. 0.2 MB/s (7168 bytes in 0.041s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/sin14.bin: 1 file pushed, 0 skipped. 0.2 MB/s (7168 bytes in 0.037s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/cos2.bin: 1 file pushed, 0 skipped. 0.0 MB/s (1024 bytes in 0.036s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/sin2.bin: 1 file pushed, 0 skipped. 0.0 MB/s (1024 bytes in 0.037s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/k_in.bin: 1 file pushed, 0 skipped. 175.2 MB/s (25165824 bytes in 0.137s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c4096/live/v_in.bin: 1 file pushed, 0 skipped. 259.1 MB/s (25165824 bytes in 0.093s)
+[push] C=4096 ok
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax_decode_t8_c8192_24l/model.dla: 1 file pushed, 0 skipped. 48.9 MB/s (19806344 bytes in 0.387s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/x.bin: 1 file pushed, 0 skipped. 6.3 MB/s (14336 bytes in 0.002s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/mask.bin: 1 file pushed, 0 skipped. 41.8 MB/s (1836800 bytes in 0.042s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/cos14.bin: 1 file pushed, 0 skipped. 4.7 MB/s (7168 bytes in 0.001s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/sin14.bin: 1 file pushed, 0 skipped. 0.2 MB/s (7168 bytes in 0.037s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/cos2.bin: 1 file pushed, 0 skipped. 0.0 MB/s (1024 bytes in 0.036s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/sin2.bin: 1 file pushed, 0 skipped. 0.0 MB/s (1024 bytes in 0.037s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/k_in.bin: 1 file pushed, 0 skipped. 248.8 MB/s (50331648 bytes in 0.193s)
+D:/deepseek_ workspace/mtk/wt-kv2/ops/kvmax/chk_c8192/live/v_in.bin: 1 file pushed, 0 skipped. 392.6 MB/s (50331648 bytes in 0.122s)
+[push] C=8192 ok
+########## HEALTHCHECK BEFORE 2026-11-13T17:10:54+08:00
+device present                             OK
+device identity                            mt6897/16
+/dev/apusys node                           OK
+neuronrt present                           OK
+known-good op (fc_1x64x64_int8)            PASS
+[restore] cleaned ops/fc_1x64x64_int8
+
+HEALTHCHECK: PASS
+HC_BEFORE_RC=0
+[r1] C=64 t1=257ms tN=460ms(10) per_invoke=22.56ms  (host_ms=257 dev=rc=0 | host_ms=460 dev=rc=0)
+[r1] C=2048 t1=398ms tN=808ms(10) per_invoke=45.56ms  (host_ms=398 dev=rc=0 | host_ms=808 dev=rc=0)
+[r1] C=4096 t1=401ms tN=1174ms(10) per_invoke=85.89ms  (host_ms=401 dev=rc=0 | host_ms=1174 dev=rc=0)
+[r1] C=8192 t1=695ms tN=2381ms(10) per_invoke=187.33ms  (host_ms=695 dev=rc=0 | host_ms=2381 dev=rc=0)
+[r2] C=8192 t1=724ms tN=2465ms(10) per_invoke=193.44ms  (host_ms=724 dev=rc=0 | host_ms=2465 dev=rc=0)
+[r2] C=4096 t1=478ms tN=1183ms(10) per_invoke=78.33ms  (host_ms=478 dev=rc=0 | host_ms=1183 dev=rc=0)
+[r2] C=2048 t1=298ms tN=810ms(10) per_invoke=56.89ms  (host_ms=298 dev=rc=0 | host_ms=810 dev=rc=0)
+[r2] C=64 t1=284ms tN=432ms(10) per_invoke=16.44ms  (host_ms=284 dev=rc=0 | host_ms=432 dev=rc=0)
+[r3] C=64 t1=219ms tN=419ms(10) per_invoke=22.22ms  (host_ms=219 dev=rc=0 | host_ms=419 dev=rc=0)
+[r3] C=2048 t1=310ms tN=810ms(10) per_invoke=55.56ms  (host_ms=310 dev=rc=0 | host_ms=810 dev=rc=0)
+[r3] C=4096 t1=419ms tN=1145ms(10) per_invoke=80.67ms  (host_ms=419 dev=rc=0 | host_ms=1145 dev=rc=0)
+[r3] C=8192 t1=672ms tN=2396ms(10) per_invoke=191.56ms  (host_ms=672 dev=rc=0 | host_ms=2396 dev=rc=0)
+[r4] C=8192 t1=703ms tN=2440ms(10) per_invoke=193.00ms  (host_ms=703 dev=rc=0 | host_ms=2440 dev=rc=0)
+[r4] C=4096 t1=405ms tN=1185ms(10) per_invoke=86.67ms  (host_ms=405 dev=rc=0 | host_ms=1185 dev=rc=0)
+[r4] C=2048 t1=299ms tN=808ms(10) per_invoke=56.56ms  (host_ms=299 dev=rc=0 | host_ms=808 dev=rc=0)
+[r4] C=64 t1=224ms tN=520ms(10) per_invoke=32.89ms  (host_ms=224 dev=rc=0 | host_ms=520 dev=rc=0)
+[r5] C=64 t1=256ms tN=472ms(10) per_invoke=24.00ms  (host_ms=256 dev=rc=0 | host_ms=472 dev=rc=0)
+[r5] C=2048 t1=327ms tN=824ms(10) per_invoke=55.22ms  (host_ms=327 dev=rc=0 | host_ms=824 dev=rc=0)
+[r5] C=4096 t1=388ms tN=1168ms(10) per_invoke=86.67ms  (host_ms=388 dev=rc=0 | host_ms=1168 dev=rc=0)
+[r5] C=8192 t1=673ms tN=2415ms(10) per_invoke=193.56ms  (host_ms=673 dev=rc=0 | host_ms=2415 dev=rc=0)
+[bench2] wrote ops/kvmax/timing2.jsonl
+########## HEALTHCHECK AFTER 2026-11-13T17:11:32+08:00
+device present                             OK
+device identity                            mt6897/16
+/dev/apusys node                           OK
+neuronrt present                           OK
+known-good op (fc_1x64x64_int8)            PASS
+[restore] cleaned ops/fc_1x64x64_int8
+
+HEALTHCHECK: PASS
+HC_AFTER_RC=0
+SESSION3_DONE 2026-11-13T17:11:34+08:00

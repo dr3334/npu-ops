@@ -21,11 +21,14 @@
 2. `ops/<name>/model.compile.log`（`tools/compile.sh` 输出，含 exit / target / sha256）；
 3. 板端数值结果 `compare.txt`（跑 `tools/e2e.sh`，必须 PASS 或明确记录失败原因）；
 4. 一条实验记录（你自己的 `docs/OP-<范围>.md`，按"假设/预测/做法/结果/适用范围/剩余疑问"写）。
+5. （2026-11-14 起）走 `tools/npu_lib` 的算子**不产出 1–3**：它的等价物是 `artifacts/<name>/evidence.json`
+   （plan 全文 + 两道门 + 各文件 sha256 + 「运行期零厂商库」证据）。判据口径见
+   `docs/OWN-SUBMITTER-LIB.md` §6.3，**不要因为缺 `compare.txt` 就判无证据**。
 
 ## 4. 硬规则（来自 AGENTS.md）
 - `--disallow-bridge` 恒开；bridge = 没上 NPU = 失败。
 - 先写预测再跑；没有预测的观察不算实验。
-- 数值：整数档优先 `codes=small`（逐位），全量程 requant 允许 `int8_tol=1`；浮点先登记容差。
+- 数值：整数档优先 `codes=small`（逐位）；全量程 requant 自 2026-11-13 起按**量化契约**逐位（`round_half_up(acc·M0/2^31)` → `RoundingDivideByPOT(shift)`，M0 用整乘子），默认 `int8_tol=0`。仍保留 `int8_tol=1` 的只有：avgpool（另一条规则）、conv 的历史 rational 目录（已被 `*_devrule` 取代）、以及没有板端 dump 的少数 op —— 理由必须写在那张票或报告里。浮点先登记容差。
 - 失败保留，不许删；不猜寄存器、不 fuzz。
 - 每完成一个算子就 `git add -A && git commit`（消息前缀：`feat(<范围>):`）。
 

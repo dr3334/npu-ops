@@ -1,0 +1,51 @@
+{
+  "dla": "ops/_probe/bb06-dump/v0.dla",
+  "dla_bytes": 7561,
+  "constants": [
+    {
+      "tensor": "bias",
+      "bytes": 256,
+      "offset": 1671,
+      "end": 1926,
+      "how": "exact"
+    },
+    {
+      "tensor": "weights",
+      "bytes": 4096,
+      "offset": 1951,
+      "end": 6046,
+      "how": "multiset"
+    }
+  ],
+  "constants_total": 4352,
+  "memory_summary": {
+    "Input": {
+      "text": "64",
+      "bytes": 64
+    },
+    "Output": {
+      "text": "64",
+      "bytes": 64
+    },
+    "Temp": {
+      "text": "0",
+      "bytes": 0
+    },
+    "Static": {
+      "text": "4.2K",
+      "bytes": 4301
+    },
+    "Code": {
+      "text": "400",
+      "bytes": 400
+    },
+    "Total": {
+      "text": "4.8K",
+      "bytes": 4915
+    },
+    "L1": {
+      "text": "0",
+      "bytes": 0
+    }
+  }
+}

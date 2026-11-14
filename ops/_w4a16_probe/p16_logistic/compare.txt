@@ -1,0 +1,7 @@
+op        : LOGISTIC {'in': [16, 64], 'out': [16, 64]}  dtype=int16
+expected  : 1024 vals   device: 1024 vals   logical shape=(16, 64)
+exact     : NO   mismatched=863/1024
+contract  : int8_tol=1  max_abs_diff=21  fraction_off=84.2773%
+codes     : exact=161  <=1=326  <=2=418  <=3=480  <=5=606  <=10=822
+distribution: mean=5.44 median=4 p99=18 max=21
+FAIL

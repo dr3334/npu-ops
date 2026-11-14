@@ -1,0 +1,9 @@
+op        : SILU(LOGISTIC+MUL) {'T': 1, 'W': 704}  dtype=fp16
+expected  : 704 vals   device: 704 vals   logical shape=(1, 704)
+max_abs   : 3.906e-03
+rmse      : 7.104e-04
+rel_l2    : 2.208e-04
+nan/inf   : exp 0/0  dev 0/0
+range     : exp [-0.2786,7.996]  dev [-0.2786,7.996]
+tol       : atol=0.002 rtol=0.01
+PASS

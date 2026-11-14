@@ -1,0 +1,27 @@
+===== 1L C=49152 build 2026-11-13T16:54:32+08:00 =====
+1L C=49152 build_rc=0 build_s=8
+ops/kvmax_1l_t8_c49152             37306416 B  decode l=1 T=8 C=49152  in=['x', 'mask', 'cos14', 'sin14', 'cos2', 'sin2', 'k_in', 'v_in']
+  saturation: {'L00_down': 1, 'L00_gate': 1, 'L00_k_fc': 1, 'L00_masked': 194, 'L00_mlp_y': 1, 'L00_n1_mean': 1, 'L00_n1_norm': 1, 'L00_n2_mean': 1}
+1L C=49152 TFLITE=37306416
+1L C=49152 compile_rc=0 compile_s=123
+model.dla                                            exit=0  size=15397252  sha256=496aea5999c1facc
+EXIT=0
+SIZE=15397252
+===Graph[0] has 1 Execution Step(s)===
+ [ 0]: MDLA 5.0     34M    18K     293M  14M     198K  342M
+
+===== 1L C=49152 done 2026-11-13T16:56:45+08:00 =====
+===== 1L C=57344 build 2026-11-13T16:56:45+08:00 =====
+1L C=57344 build_rc=0 build_s=10
+ops/kvmax_1l_t8_c57344             40976432 B  decode l=1 T=8 C=57344  in=['x', 'mask', 'cos14', 'sin14', 'cos2', 'sin2', 'k_in', 'v_in']
+  saturation: {'L00_down': 1, 'L00_gate': 1, 'L00_k_fc': 1, 'L00_masked': 194, 'L00_mlp_y': 1, 'L00_n1_mean': 1, 'L00_n1_norm': 1, 'L00_n2_mean': 1}
+1L C=57344 TFLITE=40976432
+1L C=57344 compile_rc=0 compile_s=254
+model.dla                                            exit=0  size=15449164  sha256=3aa53d1ffa48226b
+EXIT=0
+SIZE=15449164
+===Graph[0] has 1 Execution Step(s)===
+ [ 0]: MDLA 5.0     40M    18K     348M  14M     224K  403M
+
+===== 1L C=57344 done 2026-11-13T17:01:10+08:00 =====
+PROBE1L_DONE 2026-11-13T17:01:10+08:00

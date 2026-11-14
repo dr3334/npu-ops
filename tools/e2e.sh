@@ -12,7 +12,10 @@ REPEAT=3
 [ "${2:-}" = "--repeat" ] && REPEAT="${3:-3}"
 NAME="$(basename "$OPDIR")"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-WSLROOT="/mnt/d/deepseek_ workspace/mtk/npu-ops"
+# WSL path must follow the *current* checkout (worktrees included), not a hardcoded root.
+_win="$(cd "$ROOT" && pwd -W 2>/dev/null || echo /d/x)"
+_drv="$(printf '%s' "${_win:0:1}" | tr 'A-Z' 'a-z')"
+WSLROOT="${WSLROOT:-/mnt/$_drv${_win:2}}"
 DEV=/data/local/tmp/npuops
 ADB="${ADB:-/d/adb/platform-tools/adb}"
 WSL="${WSL:-wsl.exe}"

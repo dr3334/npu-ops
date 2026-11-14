@@ -1,0 +1,725 @@
+=== BASELINE meminfo ===
+MemFree:          361112 kB
+MemAvailable:    7543684 kB
+=== PID 22094 ===
+=== SAMPLE 0 ===
+Rss:               25368 kB
+Pss:               21638 kB
+Pss_Anon:          19288 kB
+Pss_File:           2251 kB
+Pss_Shmem:            98 kB
+Private_Clean:      2100 kB
+Private_Dirty:     19288 kB
+rchar: 17169689
+read_bytes: 0
+--- dmabuf vmas ---
+781ff40000-7820f59000 rw-s 00000000 00:09 67715                          /dmabuf:APUBUF0:22094:MDLA
+782105d000-78210c0000 rw-s 00000000 00:09 67708                          /dmabuf:APUCB0:22094:MDLA
+78211a3000-78211ab000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211ab000-78211b7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211b7000-78211b8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211bb000-78211bc000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+7822e5f000-7822ecb000 rw-s 00000000 00:09 67707                          /dmabuf:APUCB0:22094:MDLA
+7ab39de000-7ab39e5000 rw-s 00000000 00:09 67716                          /dmabuf:APUBUF0:22094:MDLA
+7ab39f6000-7ab39fd000 rw-s 00000000 00:09 67714                          /dmabuf:APUBUF0:22094:MDLA
+7ab3b17000-7ab3b18000 rw-s 00000000 00:09 67713                          /dmabuf:APUCB0:22094:execInfo:sc(2)
+7ab3b25000-7ab3b26000 rw-s 00000000 00:09 67712                          /dmabuf:APUCB0:22094:MDLA
+7ab3b26000-7ab3b27000 rw-s 00000000 00:09 67711                          /dmabuf:APUCB0:22094:MDLA
+7ab4cfe000-7ab4cff000 rw-s 00000000 00:09 67710                          /dmabuf:APUCB0:22094:MDLA
+7ab4cff000-7ab4d00000 rw-s 00000000 00:09 67709                          /dmabuf:APUCB0:22094:MDLA
+--- dma heap (exporter totals) ---
+    Dmabuf Inode |     Size(bytes) |    Exporter Name                    |
+             230 |           53248 |  mtk_mm-uncached 
+           41599 |           24576 |  mtk_mm-uncached 
+           43161 |        16384000 |           mtk_mm 
+           67626 |       201326592 |  mtk_mm-uncached 
+           42271 |            4096 |  mtk_mm-uncached 
+           43246 |        16384000 |           mtk_mm 
+              17 |         1048576 |  mtk_mm-uncached 
+           67710 |            4096 |           apusys 
+             220 |           53248 |  mtk_mm-uncached 
+             249 |           53248 |  mtk_mm-uncached 
+           43236 |        16642048 |  mtk_mm-uncached 
+           38369 |           12288 |  mtk_mm-uncached 
+             210 |           53248 |  mtk_mm-uncached 
+             239 |           53248 |  mtk_mm-uncached 
+           33297 |           12288 |  mtk_mm-uncached 
+             182 |           61440 |  mtk_mm-uncached 
+           42072 |           28672 |  mtk_mm-uncached 
+           39635 |           53248 |  mtk_mm-uncached 
+           41691 |          315392 |  mtk_mm-uncached 
+             229 |           53248 |  mtk_mm-uncached 
+           38858 |           16384 |  mtk_mm-uncached 
+           43244 |        16642048 |  mtk_mm-uncached 
+              15 |            4096 |  mtk_mm-uncached 
+           67709 |            4096 |           apusys 
+=== SAMPLE 1 ===
+Rss:               25368 kB
+Pss:               21636 kB
+Pss_Anon:          19288 kB
+Pss_File:           2250 kB
+Pss_Shmem:            97 kB
+Private_Clean:      2100 kB
+Private_Dirty:     19288 kB
+rchar: 17169689
+read_bytes: 0
+--- dmabuf vmas ---
+781ff40000-7820f59000 rw-s 00000000 00:09 67715                          /dmabuf:APUBUF0:22094:MDLA
+782105d000-78210c0000 rw-s 00000000 00:09 67708                          /dmabuf:APUCB0:22094:MDLA
+78211a3000-78211ab000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211ab000-78211b7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211b7000-78211b8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211bb000-78211bc000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+7822e5f000-7822ecb000 rw-s 00000000 00:09 67707                          /dmabuf:APUCB0:22094:MDLA
+7ab39de000-7ab39e5000 rw-s 00000000 00:09 67716                          /dmabuf:APUBUF0:22094:MDLA
+7ab39f6000-7ab39fd000 rw-s 00000000 00:09 67714                          /dmabuf:APUBUF0:22094:MDLA
+7ab3b17000-7ab3b18000 rw-s 00000000 00:09 67713                          /dmabuf:APUCB0:22094:execInfo:sc(2)
+7ab3b25000-7ab3b26000 rw-s 00000000 00:09 67712                          /dmabuf:APUCB0:22094:MDLA
+7ab3b26000-7ab3b27000 rw-s 00000000 00:09 67711                          /dmabuf:APUCB0:22094:MDLA
+7ab4cfe000-7ab4cff000 rw-s 00000000 00:09 67710                          /dmabuf:APUCB0:22094:MDLA
+7ab4cff000-7ab4d00000 rw-s 00000000 00:09 67709                          /dmabuf:APUCB0:22094:MDLA
+--- dma heap (exporter totals) ---
+    Dmabuf Inode |     Size(bytes) |    Exporter Name                    |
+             230 |           53248 |  mtk_mm-uncached 
+           41599 |           24576 |  mtk_mm-uncached 
+           43161 |        16384000 |           mtk_mm 
+           67626 |       201326592 |  mtk_mm-uncached 
+           42271 |            4096 |  mtk_mm-uncached 
+           43246 |        16384000 |           mtk_mm 
+              17 |         1048576 |  mtk_mm-uncached 
+           67710 |            4096 |           apusys 
+             220 |           53248 |  mtk_mm-uncached 
+             249 |           53248 |  mtk_mm-uncached 
+           43236 |        16642048 |  mtk_mm-uncached 
+           38369 |           12288 |  mtk_mm-uncached 
+             210 |           53248 |  mtk_mm-uncached 
+             239 |           53248 |  mtk_mm-uncached 
+           33297 |           12288 |  mtk_mm-uncached 
+             182 |           61440 |  mtk_mm-uncached 
+           42072 |           28672 |  mtk_mm-uncached 
+           39635 |           53248 |  mtk_mm-uncached 
+           41691 |          315392 |  mtk_mm-uncached 
+             229 |           53248 |  mtk_mm-uncached 
+           38858 |           16384 |  mtk_mm-uncached 
+           43244 |        16642048 |  mtk_mm-uncached 
+              15 |            4096 |  mtk_mm-uncached 
+           67709 |            4096 |           apusys 
+=== SAMPLE 2 ===
+Rss:               25368 kB
+Pss:               21635 kB
+Pss_Anon:          19288 kB
+Pss_File:           2249 kB
+Pss_Shmem:            97 kB
+Private_Clean:      2100 kB
+Private_Dirty:     19288 kB
+rchar: 17169689
+read_bytes: 0
+--- dmabuf vmas ---
+781ff40000-7820f59000 rw-s 00000000 00:09 67715                          /dmabuf:APUBUF0:22094:MDLA
+782105d000-78210c0000 rw-s 00000000 00:09 67708                          /dmabuf:APUCB0:22094:MDLA
+78211a3000-78211ab000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211ab000-78211b7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211b7000-78211b8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211bb000-78211bc000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+7822e5f000-7822ecb000 rw-s 00000000 00:09 67707                          /dmabuf:APUCB0:22094:MDLA
+7ab39de000-7ab39e5000 rw-s 00000000 00:09 67716                          /dmabuf:APUBUF0:22094:MDLA
+7ab39f6000-7ab39fd000 rw-s 00000000 00:09 67714                          /dmabuf:APUBUF0:22094:MDLA
+7ab3b17000-7ab3b18000 rw-s 00000000 00:09 67713                          /dmabuf:APUCB0:22094:execInfo:sc(2)
+7ab3b25000-7ab3b26000 rw-s 00000000 00:09 67712                          /dmabuf:APUCB0:22094:MDLA
+7ab3b26000-7ab3b27000 rw-s 00000000 00:09 67711                          /dmabuf:APUCB0:22094:MDLA
+7ab4cfe000-7ab4cff000 rw-s 00000000 00:09 67710                          /dmabuf:APUCB0:22094:MDLA
+7ab4cff000-7ab4d00000 rw-s 00000000 00:09 67709                          /dmabuf:APUCB0:22094:MDLA
+--- dma heap (exporter totals) ---
+    Dmabuf Inode |     Size(bytes) |    Exporter Name                    |
+             230 |           53248 |  mtk_mm-uncached 
+           41599 |           24576 |  mtk_mm-uncached 
+           43161 |        16384000 |           mtk_mm 
+           67626 |       201326592 |  mtk_mm-uncached 
+           42271 |            4096 |  mtk_mm-uncached 
+           43246 |        16384000 |           mtk_mm 
+              17 |         1048576 |  mtk_mm-uncached 
+           67710 |            4096 |           apusys 
+             220 |           53248 |  mtk_mm-uncached 
+             249 |           53248 |  mtk_mm-uncached 
+           43236 |        16642048 |  mtk_mm-uncached 
+           38369 |           12288 |  mtk_mm-uncached 
+             210 |           53248 |  mtk_mm-uncached 
+             239 |           53248 |  mtk_mm-uncached 
+           33297 |           12288 |  mtk_mm-uncached 
+             182 |           61440 |  mtk_mm-uncached 
+           42072 |           28672 |  mtk_mm-uncached 
+           39635 |           53248 |  mtk_mm-uncached 
+           41691 |          315392 |  mtk_mm-uncached 
+             229 |           53248 |  mtk_mm-uncached 
+           38858 |           16384 |  mtk_mm-uncached 
+           43244 |        16642048 |  mtk_mm-uncached 
+              15 |            4096 |  mtk_mm-uncached 
+           67709 |            4096 |           apusys 
+=== SAMPLE 3 ===
+Rss:               25368 kB
+Pss:               21637 kB
+Pss_Anon:          19288 kB
+Pss_File:           2251 kB
+Pss_Shmem:            98 kB
+Private_Clean:      2100 kB
+Private_Dirty:     19288 kB
+rchar: 17169689
+read_bytes: 0
+--- dmabuf vmas ---
+781ff40000-7820f59000 rw-s 00000000 00:09 67715                          /dmabuf:APUBUF0:22094:MDLA
+782105d000-78210c0000 rw-s 00000000 00:09 67708                          /dmabuf:APUCB0:22094:MDLA
+78211a3000-78211ab000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211ab000-78211b7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211b7000-78211b8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211bb000-78211bc000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+7822e5f000-7822ecb000 rw-s 00000000 00:09 67707                          /dmabuf:APUCB0:22094:MDLA
+7ab39de000-7ab39e5000 rw-s 00000000 00:09 67716                          /dmabuf:APUBUF0:22094:MDLA
+7ab39f6000-7ab39fd000 rw-s 00000000 00:09 67714                          /dmabuf:APUBUF0:22094:MDLA
+7ab3b17000-7ab3b18000 rw-s 00000000 00:09 67713                          /dmabuf:APUCB0:22094:execInfo:sc(2)
+7ab3b25000-7ab3b26000 rw-s 00000000 00:09 67712                          /dmabuf:APUCB0:22094:MDLA
+7ab3b26000-7ab3b27000 rw-s 00000000 00:09 67711                          /dmabuf:APUCB0:22094:MDLA
+7ab4cfe000-7ab4cff000 rw-s 00000000 00:09 67710                          /dmabuf:APUCB0:22094:MDLA
+7ab4cff000-7ab4d00000 rw-s 00000000 00:09 67709                          /dmabuf:APUCB0:22094:MDLA
+--- dma heap (exporter totals) ---
+    Dmabuf Inode |     Size(bytes) |    Exporter Name                    |
+             230 |           53248 |  mtk_mm-uncached 
+           41599 |           24576 |  mtk_mm-uncached 
+           43161 |        16384000 |           mtk_mm 
+           67626 |       201326592 |  mtk_mm-uncached 
+           42271 |            4096 |  mtk_mm-uncached 
+           43246 |        16384000 |           mtk_mm 
+              17 |         1048576 |  mtk_mm-uncached 
+           67710 |            4096 |           apusys 
+             220 |           53248 |  mtk_mm-uncached 
+             249 |           53248 |  mtk_mm-uncached 
+           43236 |        16642048 |  mtk_mm-uncached 
+           38369 |           12288 |  mtk_mm-uncached 
+             210 |           53248 |  mtk_mm-uncached 
+             239 |           53248 |  mtk_mm-uncached 
+           33297 |           12288 |  mtk_mm-uncached 
+             182 |           61440 |  mtk_mm-uncached 
+           42072 |           28672 |  mtk_mm-uncached 
+           39635 |           53248 |  mtk_mm-uncached 
+           41691 |          315392 |  mtk_mm-uncached 
+             229 |           53248 |  mtk_mm-uncached 
+           38858 |           16384 |  mtk_mm-uncached 
+           43244 |        16642048 |  mtk_mm-uncached 
+              15 |            4096 |  mtk_mm-uncached 
+           67709 |            4096 |           apusys 
+=== SAMPLE 4 ===
+Rss:               25368 kB
+Pss:               21635 kB
+Pss_Anon:          19288 kB
+Pss_File:           2249 kB
+Pss_Shmem:            97 kB
+Private_Clean:      2100 kB
+Private_Dirty:     19288 kB
+rchar: 17169689
+read_bytes: 0
+--- dmabuf vmas ---
+781ff40000-7820f59000 rw-s 00000000 00:09 67715                          /dmabuf:APUBUF0:22094:MDLA
+782105d000-78210c0000 rw-s 00000000 00:09 67708                          /dmabuf:APUCB0:22094:MDLA
+78211a3000-78211ab000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211ab000-78211b7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211b7000-78211b8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211bb000-78211bc000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+7822e5f000-7822ecb000 rw-s 00000000 00:09 67707                          /dmabuf:APUCB0:22094:MDLA
+7ab39de000-7ab39e5000 rw-s 00000000 00:09 67716                          /dmabuf:APUBUF0:22094:MDLA
+7ab39f6000-7ab39fd000 rw-s 00000000 00:09 67714                          /dmabuf:APUBUF0:22094:MDLA
+7ab3b17000-7ab3b18000 rw-s 00000000 00:09 67713                          /dmabuf:APUCB0:22094:execInfo:sc(2)
+7ab3b25000-7ab3b26000 rw-s 00000000 00:09 67712                          /dmabuf:APUCB0:22094:MDLA
+7ab3b26000-7ab3b27000 rw-s 00000000 00:09 67711                          /dmabuf:APUCB0:22094:MDLA
+7ab4cfe000-7ab4cff000 rw-s 00000000 00:09 67710                          /dmabuf:APUCB0:22094:MDLA
+7ab4cff000-7ab4d00000 rw-s 00000000 00:09 67709                          /dmabuf:APUCB0:22094:MDLA
+--- dma heap (exporter totals) ---
+    Dmabuf Inode |     Size(bytes) |    Exporter Name                    |
+             230 |           53248 |  mtk_mm-uncached 
+           41599 |           24576 |  mtk_mm-uncached 
+           43161 |        16384000 |           mtk_mm 
+           67626 |       201326592 |  mtk_mm-uncached 
+           42271 |            4096 |  mtk_mm-uncached 
+           43246 |        16384000 |           mtk_mm 
+              17 |         1048576 |  mtk_mm-uncached 
+           67710 |            4096 |           apusys 
+             220 |           53248 |  mtk_mm-uncached 
+             249 |           53248 |  mtk_mm-uncached 
+           43236 |        16642048 |  mtk_mm-uncached 
+           38369 |           12288 |  mtk_mm-uncached 
+             210 |           53248 |  mtk_mm-uncached 
+             239 |           53248 |  mtk_mm-uncached 
+           33297 |           12288 |  mtk_mm-uncached 
+             182 |           61440 |  mtk_mm-uncached 
+           42072 |           28672 |  mtk_mm-uncached 
+           39635 |           53248 |  mtk_mm-uncached 
+           41691 |          315392 |  mtk_mm-uncached 
+             229 |           53248 |  mtk_mm-uncached 
+           38858 |           16384 |  mtk_mm-uncached 
+           43244 |        16642048 |  mtk_mm-uncached 
+              15 |            4096 |  mtk_mm-uncached 
+           67709 |            4096 |           apusys 
+=== SAMPLE 5 ===
+Rss:               25368 kB
+Pss:               21636 kB
+Pss_Anon:          19288 kB
+Pss_File:           2250 kB
+Pss_Shmem:            97 kB
+Private_Clean:      2100 kB
+Private_Dirty:     19288 kB
+rchar: 17169689
+read_bytes: 0
+--- dmabuf vmas ---
+781ff40000-7820f59000 rw-s 00000000 00:09 67715                          /dmabuf:APUBUF0:22094:MDLA
+782105d000-78210c0000 rw-s 00000000 00:09 67708                          /dmabuf:APUCB0:22094:MDLA
+78211a3000-78211ab000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211ab000-78211b7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211b7000-78211b8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211bb000-78211bc000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+7822e5f000-7822ecb000 rw-s 00000000 00:09 67707                          /dmabuf:APUCB0:22094:MDLA
+7ab39de000-7ab39e5000 rw-s 00000000 00:09 67716                          /dmabuf:APUBUF0:22094:MDLA
+7ab39f6000-7ab39fd000 rw-s 00000000 00:09 67714                          /dmabuf:APUBUF0:22094:MDLA
+7ab3b17000-7ab3b18000 rw-s 00000000 00:09 67713                          /dmabuf:APUCB0:22094:execInfo:sc(2)
+7ab3b25000-7ab3b26000 rw-s 00000000 00:09 67712                          /dmabuf:APUCB0:22094:MDLA
+7ab3b26000-7ab3b27000 rw-s 00000000 00:09 67711                          /dmabuf:APUCB0:22094:MDLA
+7ab4cfe000-7ab4cff000 rw-s 00000000 00:09 67710                          /dmabuf:APUCB0:22094:MDLA
+7ab4cff000-7ab4d00000 rw-s 00000000 00:09 67709                          /dmabuf:APUCB0:22094:MDLA
+--- dma heap (exporter totals) ---
+    Dmabuf Inode |     Size(bytes) |    Exporter Name                    |
+             230 |           53248 |  mtk_mm-uncached 
+           41599 |           24576 |  mtk_mm-uncached 
+           43161 |        16384000 |           mtk_mm 
+           67626 |       201326592 |  mtk_mm-uncached 
+           42271 |            4096 |  mtk_mm-uncached 
+           43246 |        16384000 |           mtk_mm 
+              17 |         1048576 |  mtk_mm-uncached 
+           67710 |            4096 |           apusys 
+             220 |           53248 |  mtk_mm-uncached 
+             249 |           53248 |  mtk_mm-uncached 
+           43236 |        16642048 |  mtk_mm-uncached 
+           38369 |           12288 |  mtk_mm-uncached 
+             210 |           53248 |  mtk_mm-uncached 
+             239 |           53248 |  mtk_mm-uncached 
+           33297 |           12288 |  mtk_mm-uncached 
+             182 |           61440 |  mtk_mm-uncached 
+           42072 |           28672 |  mtk_mm-uncached 
+           39635 |           53248 |  mtk_mm-uncached 
+           41691 |          315392 |  mtk_mm-uncached 
+             229 |           53248 |  mtk_mm-uncached 
+           38858 |           16384 |  mtk_mm-uncached 
+           43244 |        16642048 |  mtk_mm-uncached 
+              15 |            4096 |  mtk_mm-uncached 
+           67709 |            4096 |           apusys 
+=== SAMPLE 6 ===
+Rss:               25368 kB
+Pss:               21637 kB
+Pss_Anon:          19288 kB
+Pss_File:           2252 kB
+Pss_Shmem:            97 kB
+Private_Clean:      2100 kB
+Private_Dirty:     19288 kB
+rchar: 17169689
+read_bytes: 0
+--- dmabuf vmas ---
+781ff40000-7820f59000 rw-s 00000000 00:09 67715                          /dmabuf:APUBUF0:22094:MDLA
+782105d000-78210c0000 rw-s 00000000 00:09 67708                          /dmabuf:APUCB0:22094:MDLA
+78211a3000-78211ab000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211ab000-78211b7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211b7000-78211b8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211bb000-78211bc000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+7822e5f000-7822ecb000 rw-s 00000000 00:09 67707                          /dmabuf:APUCB0:22094:MDLA
+7ab39de000-7ab39e5000 rw-s 00000000 00:09 67716                          /dmabuf:APUBUF0:22094:MDLA
+7ab39f6000-7ab39fd000 rw-s 00000000 00:09 67714                          /dmabuf:APUBUF0:22094:MDLA
+7ab3b17000-7ab3b18000 rw-s 00000000 00:09 67713                          /dmabuf:APUCB0:22094:execInfo:sc(2)
+7ab3b25000-7ab3b26000 rw-s 00000000 00:09 67712                          /dmabuf:APUCB0:22094:MDLA
+7ab3b26000-7ab3b27000 rw-s 00000000 00:09 67711                          /dmabuf:APUCB0:22094:MDLA
+7ab4cfe000-7ab4cff000 rw-s 00000000 00:09 67710                          /dmabuf:APUCB0:22094:MDLA
+7ab4cff000-7ab4d00000 rw-s 00000000 00:09 67709                          /dmabuf:APUCB0:22094:MDLA
+--- dma heap (exporter totals) ---
+    Dmabuf Inode |     Size(bytes) |    Exporter Name                    |
+             230 |           53248 |  mtk_mm-uncached 
+           41599 |           24576 |  mtk_mm-uncached 
+           43161 |        16384000 |           mtk_mm 
+           67626 |       201326592 |  mtk_mm-uncached 
+           42271 |            4096 |  mtk_mm-uncached 
+           43246 |        16384000 |           mtk_mm 
+              17 |         1048576 |  mtk_mm-uncached 
+           67710 |            4096 |           apusys 
+             220 |           53248 |  mtk_mm-uncached 
+             249 |           53248 |  mtk_mm-uncached 
+           43236 |        16642048 |  mtk_mm-uncached 
+           38369 |           12288 |  mtk_mm-uncached 
+             210 |           53248 |  mtk_mm-uncached 
+             239 |           53248 |  mtk_mm-uncached 
+           33297 |           12288 |  mtk_mm-uncached 
+             182 |           61440 |  mtk_mm-uncached 
+           42072 |           28672 |  mtk_mm-uncached 
+           39635 |           53248 |  mtk_mm-uncached 
+           41691 |          315392 |  mtk_mm-uncached 
+             229 |           53248 |  mtk_mm-uncached 
+           38858 |           16384 |  mtk_mm-uncached 
+           43244 |        16642048 |  mtk_mm-uncached 
+              15 |            4096 |  mtk_mm-uncached 
+           67709 |            4096 |           apusys 
+=== SAMPLE 7 ===
+Rss:               25368 kB
+Pss:               21633 kB
+Pss_Anon:          19288 kB
+Pss_File:           2248 kB
+Pss_Shmem:            97 kB
+Private_Clean:      2100 kB
+Private_Dirty:     19288 kB
+rchar: 17169689
+read_bytes: 0
+--- dmabuf vmas ---
+781ff40000-7820f59000 rw-s 00000000 00:09 67715                          /dmabuf:APUBUF0:22094:MDLA
+782105d000-78210c0000 rw-s 00000000 00:09 67708                          /dmabuf:APUCB0:22094:MDLA
+78211a3000-78211ab000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211ab000-78211b7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211b7000-78211b8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211bb000-78211bc000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+7822e5f000-7822ecb000 rw-s 00000000 00:09 67707                          /dmabuf:APUCB0:22094:MDLA
+7ab39de000-7ab39e5000 rw-s 00000000 00:09 67716                          /dmabuf:APUBUF0:22094:MDLA
+7ab39f6000-7ab39fd000 rw-s 00000000 00:09 67714                          /dmabuf:APUBUF0:22094:MDLA
+7ab3b17000-7ab3b18000 rw-s 00000000 00:09 67713                          /dmabuf:APUCB0:22094:execInfo:sc(2)
+7ab3b25000-7ab3b26000 rw-s 00000000 00:09 67712                          /dmabuf:APUCB0:22094:MDLA
+7ab3b26000-7ab3b27000 rw-s 00000000 00:09 67711                          /dmabuf:APUCB0:22094:MDLA
+7ab4cfe000-7ab4cff000 rw-s 00000000 00:09 67710                          /dmabuf:APUCB0:22094:MDLA
+7ab4cff000-7ab4d00000 rw-s 00000000 00:09 67709                          /dmabuf:APUCB0:22094:MDLA
+--- dma heap (exporter totals) ---
+    Dmabuf Inode |     Size(bytes) |    Exporter Name                    |
+             230 |           53248 |  mtk_mm-uncached 
+           41599 |           24576 |  mtk_mm-uncached 
+           43161 |        16384000 |           mtk_mm 
+           67626 |       201326592 |  mtk_mm-uncached 
+           42271 |            4096 |  mtk_mm-uncached 
+           43246 |        16384000 |           mtk_mm 
+              17 |         1048576 |  mtk_mm-uncached 
+           67710 |            4096 |           apusys 
+             220 |           53248 |  mtk_mm-uncached 
+             249 |           53248 |  mtk_mm-uncached 
+           43236 |        16642048 |  mtk_mm-uncached 
+           38369 |           12288 |  mtk_mm-uncached 
+             210 |           53248 |  mtk_mm-uncached 
+             239 |           53248 |  mtk_mm-uncached 
+           33297 |           12288 |  mtk_mm-uncached 
+             182 |           61440 |  mtk_mm-uncached 
+           42072 |           28672 |  mtk_mm-uncached 
+           39635 |           53248 |  mtk_mm-uncached 
+           41691 |          315392 |  mtk_mm-uncached 
+             229 |           53248 |  mtk_mm-uncached 
+           38858 |           16384 |  mtk_mm-uncached 
+           43244 |        16642048 |  mtk_mm-uncached 
+              15 |            4096 |  mtk_mm-uncached 
+           67709 |            4096 |           apusys 
+=== SAMPLE 8 ===
+Rss:               25368 kB
+Pss:               21636 kB
+Pss_Anon:          19288 kB
+Pss_File:           2250 kB
+Pss_Shmem:            97 kB
+Private_Clean:      2100 kB
+Private_Dirty:     19288 kB
+rchar: 17169689
+read_bytes: 0
+--- dmabuf vmas ---
+781ff40000-7820f59000 rw-s 00000000 00:09 67715                          /dmabuf:APUBUF0:22094:MDLA
+782105d000-78210c0000 rw-s 00000000 00:09 67708                          /dmabuf:APUCB0:22094:MDLA
+78211a3000-78211ab000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211ab000-78211b7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211b7000-78211b8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211bb000-78211bc000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+7822e5f000-7822ecb000 rw-s 00000000 00:09 67707                          /dmabuf:APUCB0:22094:MDLA
+7ab39de000-7ab39e5000 rw-s 00000000 00:09 67716                          /dmabuf:APUBUF0:22094:MDLA
+7ab39f6000-7ab39fd000 rw-s 00000000 00:09 67714                          /dmabuf:APUBUF0:22094:MDLA
+7ab3b17000-7ab3b18000 rw-s 00000000 00:09 67713                          /dmabuf:APUCB0:22094:execInfo:sc(2)
+7ab3b25000-7ab3b26000 rw-s 00000000 00:09 67712                          /dmabuf:APUCB0:22094:MDLA
+7ab3b26000-7ab3b27000 rw-s 00000000 00:09 67711                          /dmabuf:APUCB0:22094:MDLA
+7ab4cfe000-7ab4cff000 rw-s 00000000 00:09 67710                          /dmabuf:APUCB0:22094:MDLA
+7ab4cff000-7ab4d00000 rw-s 00000000 00:09 67709                          /dmabuf:APUCB0:22094:MDLA
+--- dma heap (exporter totals) ---
+    Dmabuf Inode |     Size(bytes) |    Exporter Name                    |
+             230 |           53248 |  mtk_mm-uncached 
+           41599 |           24576 |  mtk_mm-uncached 
+           43161 |        16384000 |           mtk_mm 
+           67626 |       201326592 |  mtk_mm-uncached 
+           42271 |            4096 |  mtk_mm-uncached 
+           43246 |        16384000 |           mtk_mm 
+              17 |         1048576 |  mtk_mm-uncached 
+           67710 |            4096 |           apusys 
+             220 |           53248 |  mtk_mm-uncached 
+             249 |           53248 |  mtk_mm-uncached 
+           43236 |        16642048 |  mtk_mm-uncached 
+           38369 |           12288 |  mtk_mm-uncached 
+             210 |           53248 |  mtk_mm-uncached 
+             239 |           53248 |  mtk_mm-uncached 
+           33297 |           12288 |  mtk_mm-uncached 
+             182 |           61440 |  mtk_mm-uncached 
+           42072 |           28672 |  mtk_mm-uncached 
+           39635 |           53248 |  mtk_mm-uncached 
+           41691 |          315392 |  mtk_mm-uncached 
+             229 |           53248 |  mtk_mm-uncached 
+           38858 |           16384 |  mtk_mm-uncached 
+           43244 |        16642048 |  mtk_mm-uncached 
+              15 |            4096 |  mtk_mm-uncached 
+           67709 |            4096 |           apusys 
+=== SAMPLE 9 ===
+Rss:               25368 kB
+Pss:               21635 kB
+Pss_Anon:          19288 kB
+Pss_File:           2249 kB
+Pss_Shmem:            97 kB
+Private_Clean:      2100 kB
+Private_Dirty:     19288 kB
+rchar: 17169689
+read_bytes: 0
+--- dmabuf vmas ---
+781ff40000-7820f59000 rw-s 00000000 00:09 67715                          /dmabuf:APUBUF0:22094:MDLA
+782105d000-78210c0000 rw-s 00000000 00:09 67708                          /dmabuf:APUCB0:22094:MDLA
+78211a3000-78211ab000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211ab000-78211b7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211b7000-78211b8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211bb000-78211bc000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+7822e5f000-7822ecb000 rw-s 00000000 00:09 67707                          /dmabuf:APUCB0:22094:MDLA
+7ab39de000-7ab39e5000 rw-s 00000000 00:09 67716                          /dmabuf:APUBUF0:22094:MDLA
+7ab39f6000-7ab39fd000 rw-s 00000000 00:09 67714                          /dmabuf:APUBUF0:22094:MDLA
+7ab3b17000-7ab3b18000 rw-s 00000000 00:09 67713                          /dmabuf:APUCB0:22094:execInfo:sc(2)
+7ab3b25000-7ab3b26000 rw-s 00000000 00:09 67712                          /dmabuf:APUCB0:22094:MDLA
+7ab3b26000-7ab3b27000 rw-s 00000000 00:09 67711                          /dmabuf:APUCB0:22094:MDLA
+7ab4cfe000-7ab4cff000 rw-s 00000000 00:09 67710                          /dmabuf:APUCB0:22094:MDLA
+7ab4cff000-7ab4d00000 rw-s 00000000 00:09 67709                          /dmabuf:APUCB0:22094:MDLA
+--- dma heap (exporter totals) ---
+    Dmabuf Inode |     Size(bytes) |    Exporter Name                    |
+             230 |           53248 |  mtk_mm-uncached 
+           41599 |           24576 |  mtk_mm-uncached 
+           43161 |        16384000 |           mtk_mm 
+           67626 |       201326592 |  mtk_mm-uncached 
+           42271 |            4096 |  mtk_mm-uncached 
+           43246 |        16384000 |           mtk_mm 
+              17 |         1048576 |  mtk_mm-uncached 
+           67710 |            4096 |           apusys 
+             220 |           53248 |  mtk_mm-uncached 
+             249 |           53248 |  mtk_mm-uncached 
+           43236 |        16642048 |  mtk_mm-uncached 
+           38369 |           12288 |  mtk_mm-uncached 
+             210 |           53248 |  mtk_mm-uncached 
+             239 |           53248 |  mtk_mm-uncached 
+           33297 |           12288 |  mtk_mm-uncached 
+             182 |           61440 |  mtk_mm-uncached 
+           42072 |           28672 |  mtk_mm-uncached 
+           39635 |           53248 |  mtk_mm-uncached 
+           41691 |          315392 |  mtk_mm-uncached 
+             229 |           53248 |  mtk_mm-uncached 
+           38858 |           16384 |  mtk_mm-uncached 
+           43244 |        16642048 |  mtk_mm-uncached 
+              15 |            4096 |  mtk_mm-uncached 
+           67709 |            4096 |           apusys 
+=== SAMPLE 10 ===
+Rss:               25368 kB
+Pss:               21638 kB
+Pss_Anon:          19288 kB
+Pss_File:           2252 kB
+Pss_Shmem:            97 kB
+Private_Clean:      2100 kB
+Private_Dirty:     19288 kB
+rchar: 17169689
+read_bytes: 0
+--- dmabuf vmas ---
+781ff40000-7820f59000 rw-s 00000000 00:09 67715                          /dmabuf:APUBUF0:22094:MDLA
+782105d000-78210c0000 rw-s 00000000 00:09 67708                          /dmabuf:APUCB0:22094:MDLA
+78211a3000-78211ab000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211ab000-78211b7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211b7000-78211b8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211bb000-78211bc000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+7822e5f000-7822ecb000 rw-s 00000000 00:09 67707                          /dmabuf:APUCB0:22094:MDLA
+7ab39de000-7ab39e5000 rw-s 00000000 00:09 67716                          /dmabuf:APUBUF0:22094:MDLA
+7ab39f6000-7ab39fd000 rw-s 00000000 00:09 67714                          /dmabuf:APUBUF0:22094:MDLA
+7ab3b17000-7ab3b18000 rw-s 00000000 00:09 67713                          /dmabuf:APUCB0:22094:execInfo:sc(2)
+7ab3b25000-7ab3b26000 rw-s 00000000 00:09 67712                          /dmabuf:APUCB0:22094:MDLA
+7ab3b26000-7ab3b27000 rw-s 00000000 00:09 67711                          /dmabuf:APUCB0:22094:MDLA
+7ab4cfe000-7ab4cff000 rw-s 00000000 00:09 67710                          /dmabuf:APUCB0:22094:MDLA
+7ab4cff000-7ab4d00000 rw-s 00000000 00:09 67709                          /dmabuf:APUCB0:22094:MDLA
+--- dma heap (exporter totals) ---
+    Dmabuf Inode |     Size(bytes) |    Exporter Name                    |
+             230 |           53248 |  mtk_mm-uncached 
+           41599 |           24576 |  mtk_mm-uncached 
+           43161 |        16384000 |           mtk_mm 
+           67626 |       201326592 |  mtk_mm-uncached 
+           42271 |            4096 |  mtk_mm-uncached 
+           43246 |        16384000 |           mtk_mm 
+              17 |         1048576 |  mtk_mm-uncached 
+           67710 |            4096 |           apusys 
+             220 |           53248 |  mtk_mm-uncached 
+             249 |           53248 |  mtk_mm-uncached 
+           43236 |        16642048 |  mtk_mm-uncached 
+           38369 |           12288 |  mtk_mm-uncached 
+             210 |           53248 |  mtk_mm-uncached 
+             239 |           53248 |  mtk_mm-uncached 
+           33297 |           12288 |  mtk_mm-uncached 
+             182 |           61440 |  mtk_mm-uncached 
+           42072 |           28672 |  mtk_mm-uncached 
+           39635 |           53248 |  mtk_mm-uncached 
+           41691 |          315392 |  mtk_mm-uncached 
+             229 |           53248 |  mtk_mm-uncached 
+           38858 |           16384 |  mtk_mm-uncached 
+           43244 |        16642048 |  mtk_mm-uncached 
+              15 |            4096 |  mtk_mm-uncached 
+           67709 |            4096 |           apusys 
+=== SAMPLE 11 ===
+Rss:               25368 kB
+Pss:               21635 kB
+Pss_Anon:          19288 kB
+Pss_File:           2250 kB
+Pss_Shmem:            97 kB
+Private_Clean:      2100 kB
+Private_Dirty:     19288 kB
+rchar: 17169689
+read_bytes: 0
+--- dmabuf vmas ---
+781ff40000-7820f59000 rw-s 00000000 00:09 67715                          /dmabuf:APUBUF0:22094:MDLA
+782105d000-78210c0000 rw-s 00000000 00:09 67708                          /dmabuf:APUCB0:22094:MDLA
+78211a3000-78211ab000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211ab000-78211b7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211b7000-78211b8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211bb000-78211bc000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+7822e5f000-7822ecb000 rw-s 00000000 00:09 67707                          /dmabuf:APUCB0:22094:MDLA
+7ab39de000-7ab39e5000 rw-s 00000000 00:09 67716                          /dmabuf:APUBUF0:22094:MDLA
+7ab39f6000-7ab39fd000 rw-s 00000000 00:09 67714                          /dmabuf:APUBUF0:22094:MDLA
+7ab3b17000-7ab3b18000 rw-s 00000000 00:09 67713                          /dmabuf:APUCB0:22094:execInfo:sc(2)
+7ab3b25000-7ab3b26000 rw-s 00000000 00:09 67712                          /dmabuf:APUCB0:22094:MDLA
+7ab3b26000-7ab3b27000 rw-s 00000000 00:09 67711                          /dmabuf:APUCB0:22094:MDLA
+7ab4cfe000-7ab4cff000 rw-s 00000000 00:09 67710                          /dmabuf:APUCB0:22094:MDLA
+7ab4cff000-7ab4d00000 rw-s 00000000 00:09 67709                          /dmabuf:APUCB0:22094:MDLA
+--- dma heap (exporter totals) ---
+    Dmabuf Inode |     Size(bytes) |    Exporter Name                    |
+             230 |           53248 |  mtk_mm-uncached 
+           41599 |           24576 |  mtk_mm-uncached 
+           43161 |        16384000 |           mtk_mm 
+           67626 |       201326592 |  mtk_mm-uncached 
+           42271 |            4096 |  mtk_mm-uncached 
+           43246 |        16384000 |           mtk_mm 
+              17 |         1048576 |  mtk_mm-uncached 
+           67710 |            4096 |           apusys 
+             220 |           53248 |  mtk_mm-uncached 
+             249 |           53248 |  mtk_mm-uncached 
+           43236 |        16642048 |  mtk_mm-uncached 
+           38369 |           12288 |  mtk_mm-uncached 
+             210 |           53248 |  mtk_mm-uncached 
+             239 |           53248 |  mtk_mm-uncached 
+           33297 |           12288 |  mtk_mm-uncached 
+             182 |           61440 |  mtk_mm-uncached 
+           42072 |           28672 |  mtk_mm-uncached 
+           39635 |           53248 |  mtk_mm-uncached 
+           41691 |          315392 |  mtk_mm-uncached 
+             229 |           53248 |  mtk_mm-uncached 
+           38858 |           16384 |  mtk_mm-uncached 
+           43244 |        16642048 |  mtk_mm-uncached 
+              15 |            4096 |  mtk_mm-uncached 
+           67709 |            4096 |           apusys 
+=== SAMPLE 12 ===
+Rss:               25368 kB
+Pss:               21633 kB
+Pss_Anon:          19288 kB
+Pss_File:           2248 kB
+Pss_Shmem:            97 kB
+Private_Clean:      2100 kB
+Private_Dirty:     19288 kB
+rchar: 17169689
+read_bytes: 0
+--- dmabuf vmas ---
+781ff40000-7820f59000 rw-s 00000000 00:09 67715                          /dmabuf:APUBUF0:22094:MDLA
+782105d000-78210c0000 rw-s 00000000 00:09 67708                          /dmabuf:APUCB0:22094:MDLA
+78211a3000-78211ab000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211ab000-78211b7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211b7000-78211b8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211bb000-78211bc000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+7822e5f000-7822ecb000 rw-s 00000000 00:09 67707                          /dmabuf:APUCB0:22094:MDLA
+7ab39de000-7ab39e5000 rw-s 00000000 00:09 67716                          /dmabuf:APUBUF0:22094:MDLA
+7ab39f6000-7ab39fd000 rw-s 00000000 00:09 67714                          /dmabuf:APUBUF0:22094:MDLA
+7ab3b17000-7ab3b18000 rw-s 00000000 00:09 67713                          /dmabuf:APUCB0:22094:execInfo:sc(2)
+7ab3b25000-7ab3b26000 rw-s 00000000 00:09 67712                          /dmabuf:APUCB0:22094:MDLA
+7ab3b26000-7ab3b27000 rw-s 00000000 00:09 67711                          /dmabuf:APUCB0:22094:MDLA
+7ab4cfe000-7ab4cff000 rw-s 00000000 00:09 67710                          /dmabuf:APUCB0:22094:MDLA
+7ab4cff000-7ab4d00000 rw-s 00000000 00:09 67709                          /dmabuf:APUCB0:22094:MDLA
+--- dma heap (exporter totals) ---
+    Dmabuf Inode |     Size(bytes) |    Exporter Name                    |
+             230 |           53248 |  mtk_mm-uncached 
+           41599 |           24576 |  mtk_mm-uncached 
+           43161 |        16384000 |           mtk_mm 
+           67626 |       201326592 |  mtk_mm-uncached 
+           42271 |            4096 |  mtk_mm-uncached 
+           43246 |        16384000 |           mtk_mm 
+              17 |         1048576 |  mtk_mm-uncached 
+           67710 |            4096 |           apusys 
+             220 |           53248 |  mtk_mm-uncached 
+             249 |           53248 |  mtk_mm-uncached 
+           43236 |        16642048 |  mtk_mm-uncached 
+           38369 |           12288 |  mtk_mm-uncached 
+             210 |           53248 |  mtk_mm-uncached 
+             239 |           53248 |  mtk_mm-uncached 
+           33297 |           12288 |  mtk_mm-uncached 
+             182 |           61440 |  mtk_mm-uncached 
+           42072 |           28672 |  mtk_mm-uncached 
+           39635 |           53248 |  mtk_mm-uncached 
+           41691 |          315392 |  mtk_mm-uncached 
+             229 |           53248 |  mtk_mm-uncached 
+           38858 |           16384 |  mtk_mm-uncached 
+           43244 |        16642048 |  mtk_mm-uncached 
+              15 |            4096 |  mtk_mm-uncached 
+           67709 |            4096 |           apusys 
+=== SAMPLE 13 ===
+Rss:               25368 kB
+Pss:               21636 kB
+Pss_Anon:          19288 kB
+Pss_File:           2251 kB
+Pss_Shmem:            97 kB
+Private_Clean:      2100 kB
+Private_Dirty:     19288 kB
+rchar: 17169689
+read_bytes: 0
+--- dmabuf vmas ---
+781ff40000-7820f59000 rw-s 00000000 00:09 67715                          /dmabuf:APUBUF0:22094:MDLA
+782105d000-78210c0000 rw-s 00000000 00:09 67708                          /dmabuf:APUCB0:22094:MDLA
+78211a3000-78211ab000 r--p 00000000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211ab000-78211b7000 r-xp 00008000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211b7000-78211b8000 r--p 00014000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+78211bb000-78211bc000 rw-p 00018000 fe:08 28629738                       /system/lib64/libdmabufheap.so
+7822e5f000-7822ecb000 rw-s 00000000 00:09 67707                          /dmabuf:APUCB0:22094:MDLA
+7ab39de000-7ab39e5000 rw-s 00000000 00:09 67716                          /dmabuf:APUBUF0:22094:MDLA
+7ab39f6000-7ab39fd000 rw-s 00000000 00:09 67714                          /dmabuf:APUBUF0:22094:MDLA
+7ab3b17000-7ab3b18000 rw-s 00000000 00:09 67713                          /dmabuf:APUCB0:22094:execInfo:sc(2)
+7ab3b25000-7ab3b26000 rw-s 00000000 00:09 67712                          /dmabuf:APUCB0:22094:MDLA
+7ab3b26000-7ab3b27000 rw-s 00000000 00:09 67711                          /dmabuf:APUCB0:22094:MDLA
+7ab4cfe000-7ab4cff000 rw-s 00000000 00:09 67710                          /dmabuf:APUCB0:22094:MDLA
+7ab4cff000-7ab4d00000 rw-s 00000000 00:09 67709                          /dmabuf:APUCB0:22094:MDLA
+--- dma heap (exporter totals) ---
+    Dmabuf Inode |     Size(bytes) |    Exporter Name                    |
+             230 |           53248 |  mtk_mm-uncached 
+           41599 |           24576 |  mtk_mm-uncached 
+           43161 |        16384000 |           mtk_mm 
+           67626 |       201326592 |  mtk_mm-uncached 
+           42271 |            4096 |  mtk_mm-uncached 
+           43246 |        16384000 |           mtk_mm 
+              17 |         1048576 |  mtk_mm-uncached 
+           67710 |            4096 |           apusys 
+             220 |           53248 |  mtk_mm-uncached 
+             249 |           53248 |  mtk_mm-uncached 
+           43236 |        16642048 |  mtk_mm-uncached 
+           38369 |           12288 |  mtk_mm-uncached 
+             210 |           53248 |  mtk_mm-uncached 
+             239 |           53248 |  mtk_mm-uncached 
+           33297 |           12288 |  mtk_mm-uncached 
+             182 |           61440 |  mtk_mm-uncached 
+           42072 |           28672 |  mtk_mm-uncached 
+           39635 |           53248 |  mtk_mm-uncached 
+           41691 |          315392 |  mtk_mm-uncached 
+             229 |           53248 |  mtk_mm-uncached 
+           38858 |           16384 |  mtk_mm-uncached 
+           43244 |        16642048 |  mtk_mm-uncached 
+              15 |            4096 |  mtk_mm-uncached 
+           67709 |            4096 |           apusys 
+=== AFTER meminfo ===
+MemFree:          349616 kB
+MemAvailable:    7532604 kB
+=== RUNLOG tail ===
+Inference repeats for 400 times.
+Total inference time = 13843.2 ms (34.608 ms/inf)
+Avg. FPS : 28.83

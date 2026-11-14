@@ -1,0 +1,61 @@
+{
+  "op": "FULLY_CONNECTED",
+  "form": "w4a8_group",
+  "stage": "q_proj",
+  "shape": {
+    "T": 16,
+    "K": 896,
+    "N": 896,
+    "G": 8,
+    "group_size": 112
+  },
+  "dtype": "int8",
+  "weights_dtype": "int4",
+  "input": {
+    "name": "input",
+    "shape": [
+      16,
+      896
+    ],
+    "type": "int8"
+  },
+  "output": {
+    "name": "out",
+    "shape": [
+      16,
+      896
+    ],
+    "type": "int8"
+  },
+  "quant": {
+    "input": 0.008275823772916035,
+    "output": 0.20232054534798785,
+    "slabs": 8,
+    "scales_per_matrix": 7168,
+    "weight_rel_l2": 0.1155878331051692,
+    "weight_cosine": 0.9933898254547868,
+    "weights_bytes": 401408,
+    "layers_per_matrix": 15
+  },
+  "fp32_ref": "q_proj_pre_rope",
+  "int8_tol": 1,
+  "tolerance_rationale": "ADR 0005: the 4-bit tier does not promise bit-exactness; the operator criterion is |delta| <= 1 code and cosine >= 0.9999. Per-channel multipliers are outside reports/Q02-int8-bitexact.md (tensor-level only), so int8_tol=1.",
+  "tflite": "model.tflite",
+  "tflite_bytes": 607416,
+  "quality_criterion": {
+    "cosine_min": 0.9999,
+    "source": "ADR 0005 (operator level, 8-bit and wider)",
+    "code_criterion": "device vs quantised golden: |delta| <= int8_tol codes",
+    "four_bit_criterion": "device == golden (0/1 code) + cosine(device,golden) - cosine(golden,fp64) <= 0.003"
+  },
+  "accuracy_vs_fp32": {
+    "reference": "independent float64 chain (tools/build_w4a8.py chain_f32)",
+    "cosine": 0.9997977355048252,
+    "rel_l2": 0.0204005573269093,
+    "max_abs": 0.6491882471573182,
+    "max_abs_over_maxabs_out": 0.025404753437045517,
+    "out_scale": 0.20232054534798785,
+    "one_code_real": 0.20232054534798785,
+    "note": "quantisation error of the whole path, no device involved"
+  }
+}

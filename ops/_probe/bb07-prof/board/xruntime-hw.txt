@@ -1,0 +1,15 @@
+--- opt=[] ---
+There is a runtime error during inference
+Inference fail
+--- opt=[profiling-level:3] ---
+There is a runtime error during inference
+Inference fail
+--- opt=[profilingLevel=3] ---
+There is a runtime error during inference
+Inference fail
+--- opt=[garbage] ---
+There is a runtime error during inference
+Inference fail
+--- opt=[nbThreads:2] ---
+There is a runtime error during inference
+Inference fail

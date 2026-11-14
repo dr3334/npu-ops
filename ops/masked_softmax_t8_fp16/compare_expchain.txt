@@ -1,0 +1,15 @@
+/mnt/d/deepseek_ workspace/mtk/wt-t05/tools/compare.py:78: RuntimeWarning: invalid value encountered in subtract
+  diff = np.abs(e - a)
+/mnt/d/deepseek_ workspace/mtk/wt-t05/tools/compare.py:81: RuntimeWarning: invalid value encountered in subtract
+  rmse = float(np.sqrt(np.mean((e - a) ** 2)))
+/mnt/d/deepseek_ workspace/mtk/wt-t05/tools/compare.py:82: RuntimeWarning: invalid value encountered in subtract
+  rel_l2 = float(np.linalg.norm(e - a) / max(np.linalg.norm(e), 1e-12))
+op        : MUL+ADD+SOFTMAX (masked softmax) {'H': 14, 'T': 8, 'KVH': 2, 'HD': 64, 'D': 896}  dtype=float16
+expected  : 896 vals   device: 896 vals   logical shape=(14, 8, 8)
+max_abs   : nan
+rmse      : nan
+rel_l2    : nan
+nan/inf   : exp 0/640  dev 0/640
+range     : exp [0,inf]  dev [0,inf]
+tol       : atol=0.001 rtol=0.005
+FAIL
