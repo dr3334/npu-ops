@@ -1,6 +1,6 @@
-# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  /mnt/d/deepseek_ workspace/mtk/wt-bb04/ops/_probe/bb04-fc/_build/model.tflite -d /mnt/d/deepseek_ workspace/mtk/wt-bb04/ops/_probe/bb04-fc/_build/model.dla
+# cmd: ncc-tflite --arch=mdla5.0 --opt=3 --disallow-bridge --num-mdla=2 --l1-size-kb=3072  /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite -d /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla
 # version: Version: 7.3.15
-# date: 2026-11-14T12:17:34+08:00
+# date: 2026-11-14T14:01:47+08:00
 
 ===Graph[0] has 1 Execution Step(s)===
 Graph[0] Step[0]
@@ -25,4 +25,4 @@ TargetExecutionOrder:
 
 EXIT=0
 SIZE=11731
-SHA256=5cf43228ed1b0ab76ea3c002112e155dfb5c2af8da1181d5d602463f0d6bcadc
+SHA256=17b039107b8d78f42836bcf28b33def4676ddb0c08a517d1a16098ecf3de3530

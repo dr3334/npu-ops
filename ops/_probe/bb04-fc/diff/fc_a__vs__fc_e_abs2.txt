@@ -1,4 +1,4 @@
 # diff fc_a vs fc_e_abs2
 size: 7635 vs 7635 (delta +0)
-diff bytes=56   inside noise=56   outside noise=0
+diff bytes=101   inside noise=101   outside noise=0
 ranges (outside noise, top 40):

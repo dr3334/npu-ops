@@ -1,6 +1,6 @@
 # diff fc_a vs fc_e_fp16
 size: 7635 vs 11731 (delta +4096)
-diff bytes=10057   inside noise=149   outside noise=9908
+diff bytes=10040   inside noise=145   outside noise=9895
 ranges (outside noise, top 40):
        1..1       len=1
       21..21      len=1
@@ -12,6 +12,9 @@ ranges (outside noise, top 40):
      448..448     len=1
      497..497     len=1
      544..544     len=1
+     934..934     len=1
+     943..943     len=1
+    1272..1272    len=1
     1408..1408    len=1
     1417..1417    len=1
     1636..1636    len=1
@@ -39,6 +42,3 @@ ranges (outside noise, top 40):
     5666..6041    len=376
     6043..6162    len=120
     6167..6230    len=64
-    6235..6850    len=616
-    6852..6896    len=45
-    6898..7070    len=173

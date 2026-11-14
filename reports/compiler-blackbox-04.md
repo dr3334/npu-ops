@@ -221,6 +221,16 @@ flatbuffer 的创建顺序没动。
 `fc_e_out8` 的 holdout 有 1 B 落在噪声区外。噪声区是 251 B/134 段的**并集**，本身仍有抖动没被覆盖；
 `allow_outside_bytes: 8` 的余量就是给这个的（与 03 一致）。
 
+### 5.3b 06 补记（口径已换，数字见 06 §5.4）
+
+- 噪声判定已从「所有变体差分取并集」改成**每变体各自标定**（`tools/bbdiff.py` 的 `default_noise_scope`）；
+  本报告 §3/§4.2 的表格仍是旧口径的原始记录，**没有事后改数**；同一份产物在两种口径下的对照在 [`06`](./compiler-blackbox-06.md) §5.4。
+- §4.2 的「稳定字节」口径已经**并进工具**（`stable_diff` check kind），04 那个 1 B 现在由
+  `case-e1-stable-byte` / `case-e1b-stable-byte`（`expect_offsets: [6343]`）独立复现 —— §4.2 里说的「临时脚本」不再需要。
+- **§4.1 / H2 的「K 决定常量块顺序」要降级**：06 §5.3 实测同一个 K=64 的模型连编 6 次就能出现
+  `bias@1671/weights@1951` 与 `weights@1671/bias@5791` 两种落址（产物等长）。所以「顺序翻转」至少有一部分是
+  **编译间随机性**，不全是 K 的效果。
+
 ### 5.4 只覆盖单算子 FC
 
 所有结论都限于「单 FULLY_CONNECTED、int8/fp16 常量权重、mdla5.0 / --opt=3 / --num-mdla=2」。

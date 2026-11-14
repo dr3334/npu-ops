@@ -21,9 +21,21 @@
 | `dla-packer` | 把若干 `.dla` 打成 `.dlb` | `-o` / `--share-tmp-buf` / `--ext-static-data` / `-l 0..9` |
 | `readdlb` | 读 `.dlb`，打印结构信息 | `--share-tmp-buf-alignment` |
 | `extract-shared` | 抽取共享权重（ADR 0006 那条路） | 无 `--help`（`Option 'help' does not exist`） |
-| `mdla-bwhint` | 给 `.dla` 编码/解码带宽提示 | `-d`（dump）、`-o`、`-v`；**注意 `-d` 的用法是 `mdla-bwhint -d <hint> <dla>`（要两个位置参数），只给 `.dla` 会打印 usage —— 我们还没跑出有效 dump** |
+| `mdla-bwhint` | 给 `.dla` 编码/解码**带宽提示（JSON）** | `-d`（dump）、`-o`、`-v`（hint 格式版本，缺省 2）。位置参数永远是 `hint dla`：**`-d` 时第一个是输出**。**已跑通**，见 §4 |
 
 ## 2. `ncc-tflite` 的开关（按用途分组，全部来自 `--help`）
+
+### 2.1 三个「结构视图」开关到底给了什么（[`06`](../reports/compiler-blackbox-06.md) 实测）
+
+| 开关 | 写进产物 | 可读性 |
+|---|---|---|
+| `--show-exec-plan` | 0（只印日志） | 层序 / target；**产物里没有层名**（普通产物搜不到 `FULLY_CONNECTED`） |
+| `--show-memory-summary` | 0 | `Input/Output/Temp/Static/Code/Total` 六列；`=1/2/3/4` 四种 mode **输出逐字节相同**；`Static` = 常量块字节和、`Total` = 五列之和（一位小数 KiB 口径） |
+| `--show-l1-req` | **0**（+14 B 全是命令行回显） | help 原文：*Only effective when global buffer allocation is in effect* —— 单算子图没有，所以 `L1: 0` |
+| `--gen-debug-info` | **+539 B** | 结构化记录、含 ASCII `FULLY_CONNECTED`；**无官方 host 读取器**（`readdlb` 看不到、`neuronrt -d` 只印 I/O） |
+| `--gen-urate-info` | **+269 B** | 其中 177 B 是**明文 JSON**：`{"format_version": 1, ... "ideal_urate": [{"Conv": "100.00"}]}` |
+
+-> **dump 只给尺寸与层序，不给偏移**；偏移要从产物量（[`tools/bbmap.py`](../tools/bbmap.py)）。
 
 **结构 / 调试视图**
 
@@ -38,7 +50,8 @@
   --gen-debug-info --gen-urate-info --verbose
 ```
 实测（`fc_1x64x64_int8`，同一模型）：plain **7532 B** / `--gen-debug-info` **8088 B**（+556）/ `--gen-urate-info` **7818 B**（+286）/ `--show-l1-req` 7546 B。
--> 调试信息 / urate 信息确实**写进 `.dla`**（体积可见）；它们是否有可读结构**未验**（没有官方读取器）。
+-> 调试信息 / urate 信息确实**写进 `.dla`**（体积可见）。**06 起已判可读性**（§2.1）：
+`.dla` 尾部嵌了完整命令行，所以 `ΔB` 里有 `len(开关文本)+1` 是回显；扣掉后 debug 真写 **539 B**、urate 真写 **269 B**、`--show-l1-req` 真写 **0 B**。
 
 ```bash
 ./tools/compile.sh ops/fc_1x64x64_int8/model.tflite /tmp/x.dla --check-target-only   # 只判目标支持
@@ -95,10 +108,37 @@ DRAM temporary buffer (unit: byte):
 ```
 
 打包体积：level 0 = **7899 B**、level 9 = **5831 B**（源 `.dla` 7545 B）。
+另一组实测（`fc_a`，源 `.dla` 7635 B）：level 0 = **8003 B**、level 9 = **5858 B**（0.732×）；level 3 / 5 / 9 在 7561 B 的样本上给出**同一个大小**（5756 B）—— 这档压缩到 level 3 就饱和。
+打包入口统一走 `tools/pack.sh <level> <in.dla> <out.dlb>`（记录 cmd/rc/size/sha，并顺带把 `readdlb` 的原文留在 `.pack.log` 里）。
 
 注意：`readdlb` 打印完这些信息后**以 SIGABRT 退出**（rc = -6），输出本身是完整的 —— 记在这里，别当成自己失败。
 
-## 4. `neuronrt -d`：资产契约的第一手来源
+## 4. `mdla-bwhint -d`：`.dla` 里的 JSON 元数据（06 补）
+
+help 原文：`mdla-bwhint [OPTION...] hint dla` —— 位置参数**永远是两个**，`-d` 时第一个是**输出**的 hint 文件。
+
+```bash
+S=/mnt/d/deepseek_ workspace/mtk/neuropilot-sdk-basic-7.0.8-build20240807/neuron_sdk/host
+LD_LIBRARY_PATH=$S/lib $S/bin/mdla-bwhint -d /tmp/v0.hint ops/_probe/bb06-dump/v0.dla   # rc=0，115 B
+
+{"format_version": 2, "graphs": [{"subgraphs": [{"codes": [{"flows": [{"bw_index": 0}]}], "target": "MDLA_5_0"}]}]}
+```
+
+**encode → dump 往返**（证明这段是官方可读**可写**的）：
+
+```bash
+$ echo '{"format_version": 2, "graphs": [{"subgraphs": [{"codes": [{"flows": [{"bw_index": 7}]}], "target": "MDLA_5_0"}]}]}' > /tmp/hint.json
+$ $S/bin/mdla-bwhint /tmp/hint.json v0.dla -o /tmp/encoded.dla      # rc=0，仍 7561 B
+$ $S/bin/mdla-bwhint -d /tmp/back.json /tmp/encoded.dla            # rc=0
+{"format_version": 2, "graphs": [{"subgraphs": [{"codes": [{"flows": [{"bw_index": 7}]}], "target": "MDLA_5_0"}]}]}
+```
+
+- 基线 / `--gen-debug-info` / `--gen-urate-info` 三个产物 dump 出的内容**完全相同**（`bw_index: 0`）
+  —— `-d` 读的是**带宽提示段**，不是 debug/urate 段；
+- `readdlb` 对三种产物输出**逐字相同**（只有容器级三行状态），不看 debug/urate；它的退出码是 **134（SIGABRT）**，输出本身完整；
+- 证据：`ops/_probe/bb06-dump/readers.txt`。
+
+## 5. `neuronrt -d`：资产契约的第一手来源
 
 ```bash
 neuronrt -m hw -a <run>/f.dla -d
@@ -116,9 +156,11 @@ Output :
 
 这条命令把「有几个输入、什么形状、多少字节」直接印出来 —— 以后写 plan / 抓资产先跑它，比猜快得多。
 
-## 5. 适用范围与未解
+## 6. 适用范围与未解
 
 - 本文只覆盖 **host 侧工具**；芯片侧（`mt6897/bin`）是 aarch64，只能在设备上跑。
 - `extract-shared` 无 `--help`，行为未探。
 - `--extract-static-data` 生成的侧文件是 **262,178 B**（远大于 4096 B 权重），`neuronrt` 并不消费它（它要的是 4096 B 原始权重）—— **这个文件是什么，未知**。
-- `--resize` / `--runtime-dynamic-shape` 的结构副作用未测（02 票剩余项）。
+- `--resize` 的结构副作用已测（[`06`](../reports/compiler-blackbox-06.md) §4.4）：`.dla` 本体 −16 B、dump 的 `Input/Output` 变 128、`Code` 400→384；`--runtime-dynamic-shape` 仍只有 02 的行为结论。
+- `--gen-debug-info` 那 539 B 的**字段 schema** 未解（结构可辨认、无官方 host 读取器）；`neuronrt -d` 能正常读这份 `.dla`，但只印 I/O。
+- `--dla-metadata` 的段内布局未解（只知道本体 +90 B 且 note 原文在内）。

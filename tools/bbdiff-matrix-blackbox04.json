@@ -1,6 +1,6 @@
 {
   "experiment": "bb04-fc",
-  "description": "票 04 的 FC-A…FC-E 控制变量矩阵：FC(1,64,64) int8 常量权重为原点，每次只动一个维度（N / K / 权重内容 / 量化配置 / 精度档）。加变体只加一行 variants，加判定只加一行 checks；v1 新增两个只影响建模的可选字段 model.dtype / model.quant（见 report §1.3）。",
+  "description": "票 04 的 FC-A…FC-E 控制变量矩阵：FC(1,64,64) int8 常量权重为原点，每次只动一个维度（N / K / 权重内容 / 量化配置 / 精度档）。加变体只加一行 variants，加判定只加一行 checks；v1 新增两个只影响建模的可选字段 model.dtype / model.quant（见 report §1.3）。 v2（06 起）：新增 default_noise_scope/noise_scopes（每变体各自标定噪声，union 只留作对照）、pack（.dlb 压缩等级）、prewrite（给 --dla-metadata 喂 key:file）；新增 fc_f_gno_* / fc_g_meta / fc_h_resize 六个变体与 stable_diff / flag_payload / pack_size 三类判定。",
   "repeats": 5,
   "class_slack": 4,
   "class_threshold_share": 0.15,
@@ -22,6 +22,12 @@
         "k": 64,
         "n": 64,
         "dtype": "int8"
+      },
+      "pack": {
+        "levels": [
+          0,
+          9
+        ]
       }
     },
     {
@@ -129,6 +135,99 @@
         "n": 64,
         "dtype": "fp16"
       }
+    },
+    {
+      "id": "fc_f_gno_ndf",
+      "note": "只加 --gno NDF（graphite neuron optimization；dump 文本与产物大小都不该变，只多出命令行的 10 B 回显）",
+      "model": {
+        "op": "fc",
+        "m": 1,
+        "k": 64,
+        "n": 64,
+        "dtype": "int8"
+      },
+      "flags": [
+        "--gno",
+        "NDF"
+      ]
+    },
+    {
+      "id": "fc_f_gno_smp",
+      "note": "只加 --gno SMP",
+      "model": {
+        "op": "fc",
+        "m": 1,
+        "k": 64,
+        "n": 64,
+        "dtype": "int8"
+      },
+      "flags": [
+        "--gno",
+        "SMP"
+      ]
+    },
+    {
+      "id": "fc_f_gno_bmp",
+      "note": "只加 --gno BMP",
+      "model": {
+        "op": "fc",
+        "m": 1,
+        "k": 64,
+        "n": 64,
+        "dtype": "int8"
+      },
+      "flags": [
+        "--gno",
+        "BMP"
+      ]
+    },
+    {
+      "id": "fc_f_gno_all",
+      "note": "只加 --gno NDF,SMP,BMP（三个一起开）",
+      "model": {
+        "op": "fc",
+        "m": 1,
+        "k": 64,
+        "n": 64,
+        "dtype": "int8"
+      },
+      "flags": [
+        "--gno",
+        "NDF,SMP,BMP"
+      ]
+    },
+    {
+      "id": "fc_g_meta",
+      "note": "只加 --dla-metadata note:<file>：外部元数据是唯一「名字里就写着要写进产物」的开关，用它验 flag_payload 判据不是恒绿",
+      "model": {
+        "op": "fc",
+        "m": 1,
+        "k": 64,
+        "n": 64,
+        "dtype": "int8"
+      },
+      "flags": [
+        "--dla-metadata",
+        "note:{build}/note.txt"
+      ],
+      "prewrite": {
+        "note.txt": "bb06 metadata note\n"
+      }
+    },
+    {
+      "id": "fc_h_resize",
+      "note": "只加 --resize 2x64（编译期换输入形状，02 票已验行为；这里量它进不进产物）",
+      "model": {
+        "op": "fc",
+        "m": 1,
+        "k": 64,
+        "n": 64,
+        "dtype": "int8"
+      },
+      "flags": [
+        "--resize",
+        "2x64"
+      ]
     }
   ],
   "checks": [
@@ -309,6 +408,96 @@
       "zone": "weight",
       "expect": "fail",
       "note": "对照：换精度档的变化不可能全在权重区 —— 必须被判 FAIL"
+    },
+    {
+      "id": "case-e1-stable-byte",
+      "kind": "stable_diff",
+      "a": "fc_a",
+      "b": "fc_e_out16",
+      "min_bytes": 1,
+      "expect_offsets": [
+        6343
+      ],
+      "note": "稳定字节口径：只改 requant 倍率 1/32->1/16，真信号必须恰好是偏移 6343 那一个字节（04 §4.2 的 1 B，本工具现在能独立复现）"
+    },
+    {
+      "id": "case-e1b-stable-byte",
+      "kind": "stable_diff",
+      "a": "fc_a",
+      "b": "fc_e_out8",
+      "min_bytes": 1,
+      "expect_offsets": [
+        6343
+      ],
+      "note": "同上，倍率 1/32->1/8：仍只有 6343 一个字节"
+    },
+    {
+      "id": "case-e2-stable-none",
+      "kind": "stable_diff",
+      "a": "fc_a",
+      "b": "fc_e_abs2",
+      "min_bytes": 0,
+      "max_bytes": 0,
+      "note": "声明 scale 绝对值 ×2（比值不变）：稳定字节口径下必须是 0 B（H6 的独立复核）"
+    },
+    {
+      "id": "case-d-stable-weight-block",
+      "kind": "stable_diff",
+      "a": "fc_a",
+      "b": "fc_d_w_swap",
+      "min_bytes": 4000,
+      "max_bytes": 4300,
+      "note": "只换权重：稳定字节口径下信号必须仍是权重块量级（4096 B 上下），且被 split_reorder 标出的整块重排不计入"
+    },
+    {
+      "id": "case-f-gno-no-payload",
+      "kind": "flag_payload",
+      "a": "fc_a",
+      "b": "fc_f_gno_ndf",
+      "expected_extra_bytes": 10,
+      "allow_payload_bytes": 0,
+      "note": "--gno NDF：产物内容零变化，+10 B 全是命令行回显（len('--gno NDF')+2 个空格）"
+    },
+    {
+      "id": "case-f-gno-all-no-payload",
+      "kind": "flag_payload",
+      "a": "fc_a",
+      "b": "fc_f_gno_all",
+      "expected_extra_bytes": 18,
+      "allow_payload_bytes": 0,
+      "note": "--gno NDF,SMP,BMP：产物内容零变化，+18 B 全是命令行回显"
+    },
+    {
+      "id": "case-g-meta-payload",
+      "kind": "flag_payload",
+      "a": "fc_a",
+      "b": "fc_g_meta",
+      "allow_payload_bytes": 0,
+      "expect": "fail",
+      "note": "--dla-metadata：名字就写着要写进产物 => 内容必须变（这条按预期被判 FAIL，用来证明 flag_payload 不是恒绿）"
+    },
+    {
+      "id": "case-h-resize-changes-artifact",
+      "kind": "flag_payload",
+      "a": "fc_a",
+      "b": "fc_h_resize",
+      "allow_payload_bytes": 0,
+      "expect": "fail",
+      "note": "--resize 2x64：改的是输入形状 => 产物内容必须变（同样按预期被判 FAIL）"
+    },
+    {
+      "id": "case-p-dlb-levels",
+      "kind": "pack_size",
+      "variant": "fc_a",
+      "level_low": 0,
+      "level_high": 9,
+      "max_ratio": 0.85,
+      "note": ".dlb 压缩等级：level 9 必须明显小于 level 0（容器层变量，不进 .dla 差分）"
     }
+  ],
+  "default_noise_scope": "per-variant",
+  "noise_scopes": [
+    "union",
+    "per-variant"
   ]
 }

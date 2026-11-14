@@ -1,0 +1,56 @@
+{
+  "dla": "ops/_probe/bb04-fc/fc_b_n128/attempt1.dla",
+  "dla_bytes": 11987,
+  "constants": [
+    {
+      "tensor": "bias",
+      "bytes": 512,
+      "offset": 1671,
+      "end": 2182,
+      "how": "exact"
+    },
+    {
+      "tensor": "weights",
+      "bytes": 8192,
+      "offset": 2207,
+      "end": 10398,
+      "how": "multiset"
+    }
+  ],
+  "constants_total": 8704,
+  "verdicts": [
+    {
+      "item": "Static == 常量块合计",
+      "ok": true,
+      "detail": "实测常量 8704 B -> 8.5K；dump 印 8.5K"
+    },
+    {
+      "item": "Total == 五列之和",
+      "ok": true,
+      "detail": "Input+Output+Temp+Static+Code = 9.1K；dump 印 9.1K"
+    },
+    {
+      "item": "Code == 某个区段",
+      "ok": false,
+      "detail": "Code=400 B，产物里没有等长的常量区段可对应"
+    }
+  ],
+  "memory_summary": {
+    "Input": "64",
+    "Output": "128",
+    "Temp": "0",
+    "Static": "8.5K",
+    "Code": "400",
+    "Total": "9.1K",
+    "L1": "0",
+    "_header": [
+      "Target",
+      "Input",
+      "Output",
+      "Temp",
+      "Static",
+      "Code",
+      "Total"
+    ]
+  }
+}

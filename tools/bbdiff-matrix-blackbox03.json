@@ -1,6 +1,6 @@
 {
   "experiment": "bb03-fc",
-  "description": "票 03 的四个用例矩阵：FC(1,64,64) int8 常量权重为基准，只动一个维度（N / 权重 / 编译选项）。加变体只加一行 variants。",
+  "description": "票 03 的四个用例矩阵：FC(1,64,64) int8 常量权重为基准，只动一个维度（N / 权重 / 编译选项）。加变体只加一行 variants。 v2（06 起）：新增 default_noise_scope/noise_scopes（每变体各自标定噪声；union 只留作对照列），判定口径逐条不变。",
   "repeats": 5,
   "class_slack": 4,
   "class_threshold_share": 0.15,
@@ -161,5 +161,10 @@
       "max_share": 0.05,
       "note": "② 的第二个半边：噪声区本身不得超过产物的 5%（否则「除噪声区外相同」就没有信息量）"
     }
+  ],
+  "default_noise_scope": "per-variant",
+  "noise_scopes": [
+    "union",
+    "per-variant"
   ]
 }
