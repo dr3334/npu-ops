@@ -164,3 +164,14 @@ Output :
 - `--resize` 的结构副作用已测（[`06`](../reports/compiler-blackbox-06.md) §4.4）：`.dla` 本体 −16 B、dump 的 `Input/Output` 变 128、`Code` 400→384；`--runtime-dynamic-shape` 仍只有 02 的行为结论。
 - `--gen-debug-info` 那 539 B 的**字段 schema** 未解（结构可辨认、无官方 host 读取器）；`neuronrt -d` 能正常读这份 `.dla`，但只印 I/O。
 - `--dla-metadata` 的段内布局未解（只知道本体 +90 B 且 note 原文在内）。
+
+## 6.1 profiling 会让 APU 卡死（2026-11-14 实测）
+
+用 `MTKNN_PROFILING_LEVEL=3` 跑完一次剖面后，板子进入坏状态：dmesg 出现
+`[apusys&]MDLA timeout` 与 `mdw_cmd_complete ... ret(-5) time(25003555)`（25 s 超时）。
+
+症状：**连 known-good 的 fc_1x64x64_int8 都失败**（`There is a runtime error during inference`），`-c 1` 也一样，等 20 s 不恢复。
+恢复：`adb reboot` + 等设备回来 + `healthcheck --quick`（本次 reboot 后健康检查 PASS）。
+
+**纪律**：跑 profiling 的实验必须 ① 前后各一次 `healthcheck --quick`；② 全程持 `devlock`；
+③ 一旦出现上面的 dmesg 立刻 reboot，不要反复重试；④ 一次只跑一个级别，别并发。
