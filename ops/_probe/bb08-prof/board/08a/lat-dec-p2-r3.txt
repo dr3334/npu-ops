@@ -1,0 +1,3 @@
+Inference repeats for 50 times.
+Total inference time = 121.711 ms (2.43422 ms/inf)
+Avg. FPS : 404.3

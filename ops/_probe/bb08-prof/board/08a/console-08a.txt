@@ -1,0 +1,87 @@
+===== fc  -c 200  x 9 rounds (paired alternating) =====
+round1 fc_p0  total=112.116 ms  per_inf=0.56058 ms
+round1 fc_p1  total=141.289 ms  per_inf=0.706445 ms
+round1 fc_p2  total=132.999 ms  per_inf=0.664995 ms
+round1 fc_p3  total=143.433 ms  per_inf=0.717165 ms
+round2 fc_p0  total=140.631 ms  per_inf=0.703155 ms
+round2 fc_p1  total=131.188 ms  per_inf=0.65594 ms
+round2 fc_p2  total=147.013 ms  per_inf=0.735065 ms
+round2 fc_p3  total=144.147 ms  per_inf=0.720735 ms
+round3 fc_p0  total=131.333 ms  per_inf=0.656665 ms
+round3 fc_p1  total=128.295 ms  per_inf=0.641475 ms
+round3 fc_p2  total=136.815 ms  per_inf=0.684075 ms
+round3 fc_p3  total=122.125 ms  per_inf=0.610625 ms
+round4 fc_p0  total=119.999 ms  per_inf=0.599995 ms
+round4 fc_p1  total=130.679 ms  per_inf=0.653395 ms
+round4 fc_p2  total=128.5 ms  per_inf=0.6425 ms
+round4 fc_p3  total=130.581 ms  per_inf=0.652905 ms
+round5 fc_p0  total=129.824 ms  per_inf=0.64912 ms
+round5 fc_p1  total=127.842 ms  per_inf=0.63921 ms
+round5 fc_p2  total=134.226 ms  per_inf=0.67113 ms
+round5 fc_p3  total=157.288 ms  per_inf=0.78644 ms
+round6 fc_p0  total=125.896 ms  per_inf=0.62948 ms
+round6 fc_p1  total=133.468 ms  per_inf=0.66734 ms
+round6 fc_p2  total=125.279 ms  per_inf=0.626395 ms
+round6 fc_p3  total=134.156 ms  per_inf=0.67078 ms
+round7 fc_p0  total=136.191 ms  per_inf=0.680955 ms
+round7 fc_p1  total=146.803 ms  per_inf=0.734015 ms
+round7 fc_p2  total=138.012 ms  per_inf=0.69006 ms
+round7 fc_p3  total=123.336 ms  per_inf=0.61668 ms
+round8 fc_p0  total=148.444 ms  per_inf=0.74222 ms
+round8 fc_p1  total=139.677 ms  per_inf=0.698385 ms
+round8 fc_p2  total=152.83 ms  per_inf=0.76415 ms
+round8 fc_p3  total=132.52 ms  per_inf=0.6626 ms
+round9 fc_p0  total=134.002 ms  per_inf=0.67001 ms
+round9 fc_p1  total=136.445 ms  per_inf=0.682225 ms
+round9 fc_p2  total=124.376 ms  per_inf=0.62188 ms
+round9 fc_p3  total=135.916 ms  per_inf=0.67958 ms
+----- output equality across levels (fc) -----
+lat_fc_p0.bin 136ef2ffea9f3a00
+lat_fc_p1.bin 136ef2ffea9f3a00
+lat_fc_p2.bin 136ef2ffea9f3a00
+lat_fc_p3.bin 136ef2ffea9f3a00
+===== dec  -c 50  x 9 rounds (paired alternating) =====
+round1 dec_p0  total=125.12 ms  per_inf=2.5024 ms
+round1 dec_p1  total=139.14 ms  per_inf=2.7828 ms
+round1 dec_p2  total=131.539 ms  per_inf=2.63078 ms
+round1 dec_p3  total=132.77 ms  per_inf=2.6554 ms
+round2 dec_p0  total=141.347 ms  per_inf=2.82694 ms
+round2 dec_p1  total=128.726 ms  per_inf=2.57452 ms
+round2 dec_p2  total=145.595 ms  per_inf=2.9119 ms
+round2 dec_p3  total=126.562 ms  per_inf=2.53124 ms
+round3 dec_p0  total=124.122 ms  per_inf=2.48244 ms
+round3 dec_p1  total=134.67 ms  per_inf=2.6934 ms
+round3 dec_p2  total=121.711 ms  per_inf=2.43422 ms
+round3 dec_p3  total=142.986 ms  per_inf=2.85972 ms
+round4 dec_p0  total=128.092 ms  per_inf=2.56184 ms
+round4 dec_p1  total=137.464 ms  per_inf=2.74928 ms
+round4 dec_p2  total=151.807 ms  per_inf=3.03614 ms
+round4 dec_p3  total=138.213 ms  per_inf=2.76426 ms
+round5 dec_p0  total=138.913 ms  per_inf=2.77826 ms
+round5 dec_p1  total=128.966 ms  per_inf=2.57932 ms
+round5 dec_p2  total=146.834 ms  per_inf=2.93668 ms
+round5 dec_p3  total=125.579 ms  per_inf=2.51158 ms
+round6 dec_p0  total=132.018 ms  per_inf=2.64036 ms
+round6 dec_p1  total=133.561 ms  per_inf=2.67122 ms
+round6 dec_p2  total=120.076 ms  per_inf=2.40152 ms
+round6 dec_p3  total=131.041 ms  per_inf=2.62082 ms
+round7 dec_p0  total=129.848 ms  per_inf=2.59696 ms
+round7 dec_p1  total=123.584 ms  per_inf=2.47168 ms
+round7 dec_p2  total=128.703 ms  per_inf=2.57406 ms
+round7 dec_p3  total=132.081 ms  per_inf=2.64162 ms
+round8 dec_p0  total=148.885 ms  per_inf=2.9777 ms
+round8 dec_p1  total=125.736 ms  per_inf=2.51472 ms
+round8 dec_p2  total=127.263 ms  per_inf=2.54526 ms
+round8 dec_p3  total=132.012 ms  per_inf=2.64024 ms
+round9 dec_p0  total=126.024 ms  per_inf=2.52048 ms
+round9 dec_p1  total=128.388 ms  per_inf=2.56776 ms
+round9 dec_p2  total=127.564 ms  per_inf=2.55128 ms
+round9 dec_p3  total=122.88 ms  per_inf=2.4576 ms
+----- output equality across levels (dec) -----
+lat_dec_p0.bin 9a12490342226d27
+lat_dec_p1.bin 9a12490342226d27
+lat_dec_p2.bin 9a12490342226d27
+lat_dec_p3.bin 9a12490342226d27
+----- dmesg verdict -----
+BADMARKERS=0
+BOARD_STATE=dmesg-clean

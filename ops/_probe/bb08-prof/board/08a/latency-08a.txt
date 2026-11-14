@@ -1,0 +1,36 @@
+== ops/_probe/bb08-prof/board/08a/latency-fc.tsv (n=36) ==
+  product        n  median_ms      MAD      min      max
+  fc_p0          9     0.6567   0.0272   0.5606   0.7422
+  fc_p1          9     0.6673   0.0259   0.6392   0.7340
+  fc_p2          9     0.6711   0.0286   0.6219   0.7641
+  fc_p3          9     0.6708   0.0464   0.6106   0.7864
+  median ratios vs fc_p0: fc_p0=1.000  fc_p1=1.016  fc_p2=1.022  fc_p3=1.021
+  per-round ratio vs fc_p0:
+    round1 base=0.5606  fc_p1=1.260  fc_p2=1.186  fc_p3=1.279
+    round2 base=0.7032  fc_p1=0.933  fc_p2=1.045  fc_p3=1.025
+    round3 base=0.6567  fc_p1=0.977  fc_p2=1.042  fc_p3=0.930
+    round4 base=0.6000  fc_p1=1.089  fc_p2=1.071  fc_p3=1.088
+    round5 base=0.6491  fc_p1=0.985  fc_p2=1.034  fc_p3=1.212
+    round6 base=0.6295  fc_p1=1.060  fc_p2=0.995  fc_p3=1.066
+    round7 base=0.6810  fc_p1=1.078  fc_p2=1.013  fc_p3=0.906
+    round8 base=0.7422  fc_p1=0.941  fc_p2=1.030  fc_p3=0.893
+    round9 base=0.6700  fc_p1=1.018  fc_p2=0.928  fc_p3=1.014
+
+== ops/_probe/bb08-prof/board/08a/latency-dec.tsv (n=36) ==
+  product        n  median_ms      MAD      min      max
+  dec_p0         9     2.5970   0.0946   2.4824   2.9777
+  dec_p1         9     2.5793   0.0919   2.4717   2.7828
+  dec_p2         9     2.5741   0.1398   2.4015   3.0361
+  dec_p3         9     2.6402   0.1090   2.4576   2.8597
+  median ratios vs dec_p0: dec_p0=1.000  dec_p1=0.993  dec_p2=0.991  dec_p3=1.017
+  per-round ratio vs dec_p0:
+    round1 base=2.5024  dec_p1=1.112  dec_p2=1.051  dec_p3=1.061
+    round2 base=2.8269  dec_p1=0.911  dec_p2=1.030  dec_p3=0.895
+    round3 base=2.4824  dec_p1=1.085  dec_p2=0.981  dec_p3=1.152
+    round4 base=2.5618  dec_p1=1.073  dec_p2=1.185  dec_p3=1.079
+    round5 base=2.7783  dec_p1=0.928  dec_p2=1.057  dec_p3=0.904
+    round6 base=2.6404  dec_p1=1.012  dec_p2=0.910  dec_p3=0.993
+    round7 base=2.5970  dec_p1=0.952  dec_p2=0.991  dec_p3=1.017
+    round8 base=2.9777  dec_p1=0.845  dec_p2=0.855  dec_p3=0.887
+    round9 base=2.5205  dec_p1=1.019  dec_p2=1.012  dec_p3=0.975
+

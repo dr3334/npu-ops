@@ -16,7 +16,10 @@ Report: `reports/compiler-blackbox-08.md`
 | `30-host-levels.sh` | the same matrix on the **host** runtime (`-m null`), which prints the gating text and the LEVEL 1/2 summary tables |
 | `40-board-profqos.sh` | runtime's own `getProfiledQoSData` (`exec_us`) — clean and **with level 3 in the same run** (pins the cycle->us clock, 07 §9 left this open) |
 | `90-perop.py` | level-3 dump -> per-command table + by-op-class rollup + reconciliation vs the wall clock |
+| `23-c-sweep.sh` | control for 08a: same product, only `-c` changes, paired alternating (does `ms/inf` depend on N?) |
+| `24-latency-08a.sh` | 08a: `-c 200` (fc) / `-c 50` (dec) × 9 rounds, paired alternating, writes only into `board/08a/` |
 | `92-latency.py` | median / MAD + per-round paired ratios for `21-latency.sh` output |
+| `92b-paired.py` | 08a: median of the **per-round** ratios, its MAD, and the exact two-sided sign test |
 | `board/` | raw evidence pulled from the device |
 | `host/` | raw evidence from the host runtime (`-m null`) |
 

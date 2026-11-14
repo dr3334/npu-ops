@@ -1,0 +1,39 @@
+# 23-duration-fc.txt — fc_p0 only, one product, only -c changes (paired 2 rounds: 25,200,400,1600)
+# why: 08 measured -c 20 (0.3519 ms/inf) and 08a -c 200 (~0.65 ms/inf); this asks whether
+# ms/inf is a property of the product or of how long the run lasts.
+# host: 2026-11-14T16:43:05+08:00  device: mt6897  loadavg: 13.69 13.48 13.02 1/4641 11694
+## round1
+--- c=25
+Inference repeats for 25 times.
+Total inference time = 10.779 ms (0.43116 ms/inf)
+Avg. FPS : 2207
+--- c=200
+Inference repeats for 200 times.
+Total inference time = 142.781 ms (0.713905 ms/inf)
+Avg. FPS : 1267
+--- c=400
+Inference repeats for 400 times.
+Total inference time = 278.941 ms (0.697353 ms/inf)
+Avg. FPS : 1373
+--- c=1600
+Inference repeats for 1600 times.
+Total inference time = 1255.61 ms (0.784757 ms/inf)
+Avg. FPS : 1217
+## round2
+--- c=25
+Inference repeats for 25 times.
+Total inference time = 8.349 ms (0.33396 ms/inf)
+Avg. FPS : 2806
+--- c=200
+Inference repeats for 200 times.
+Total inference time = 124.146 ms (0.62073 ms/inf)
+Avg. FPS : 1554
+--- c=400
+Inference repeats for 400 times.
+Total inference time = 295.082 ms (0.737705 ms/inf)
+Avg. FPS : 1298
+--- c=1600
+Inference repeats for 1600 times.
+Total inference time = 1237.79 ms (0.773621 ms/inf)
+Avg. FPS : 1234
+## dmesg bad markers: 0

@@ -1,0 +1,12 @@
+== ops/_probe/bb08-prof/board/08a/latency-fc.tsv ¡ª paired inside each round vs fc_p0 (n=9 rounds) ==
+  product    rounds med_ratio      MAD      min slower  sign_p
+  fc_p1           9   1.0182   0.0597   0.9329     5   1.000
+  fc_p2           9   1.0339   0.0205   0.9282     7   0.180
+  fc_p3           9   1.0250   0.0951   0.8927     6   0.508
+
+== ops/_probe/bb08-prof/board/08a/latency-dec.tsv ¡ª paired inside each round vs dec_p0 (n=9 rounds) ==
+  product    rounds med_ratio      MAD      min slower  sign_p
+  dec_p1          9   1.0117   0.0733   0.8445     5   1.000
+  dec_p2          9   1.0122   0.0391   0.8548     5   1.000
+  dec_p3          9   0.9926   0.0864   0.8867     4   1.000
+

@@ -1,0 +1,26 @@
+== ops/_probe/bb08-prof/board/08a/latency-fc-c50.tsv (n=20) ==
+  product        n  median_ms      MAD      min      max
+  fc_p0          5     0.3664   0.0244   0.3333   0.4377
+  fc_p1          5     0.4140   0.0334   0.3328   0.5590
+  fc_p2          5     0.3926   0.0129   0.3705   0.4599
+  fc_p3          5     0.3931   0.0465   0.3466   0.5066
+  median ratios vs fc_p0: fc_p0=1.000  fc_p1=1.130  fc_p2=1.071  fc_p3=1.073
+  per-round ratio vs fc_p0:
+    round1 base=0.3420  fc_p1=1.634  fc_p2=1.083  fc_p3=1.321
+    round2 base=0.4377  fc_p1=0.874  fc_p2=0.897  fc_p3=1.158
+    round3 base=0.3333  fc_p1=1.342  fc_p2=1.139  fc_p3=1.040
+    round4 base=0.3664  fc_p1=1.130  fc_p2=1.081  fc_p3=1.073
+    round5 base=0.3731  fc_p1=0.892  fc_p2=1.233  fc_p3=1.046
+
+== ops/_probe/bb08-prof/board/08a/23-c-sweep-fc.tsv (n=12) ==
+  product        n  median_ms      MAD      min      max
+  100            3     0.5595   0.0274   0.5116   0.5869
+  50             3     0.4356   0.0618   0.3737   0.6686
+  20             3     0.4012   0.0217   0.3796   0.5869
+  200            3     0.6438   0.0036   0.6402   0.7341
+  median ratios vs 100: 100=1.000  50=0.779  20=0.717  200=1.151
+  per-round ratio vs 100:
+    round1 base=0.5116  50=0.730  20=1.147  200=1.251
+    round2 base=0.5595  50=1.195  20=0.717  200=1.151
+    round3 base=0.5869  50=0.742  20=0.647  200=1.251
+
