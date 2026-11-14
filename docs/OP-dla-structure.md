@@ -35,6 +35,27 @@
 - `bias` / `weights` 是**精确子串 / 多重集匹配**定位出来的（用生成码值反查），不是猜；
 - **FC-C（改 K）会翻转常量块顺序**：weights 跑到 1671、bias 跑到 9887 —— 块的**相对顺序不是固定的**。
 
+### 2.2 dump 文本 ⇄ 字节偏移（`fc_a` 实测，补规格里被反做的那条优先级）
+
+工具 [`tools/bbmap.py`](../tools/bbmap.py)：从 `.tflite` 取常量 buffer，在 `.dla` 里按**精确子串优先、否则字节多重集**定位；
+再把编译日志的 `DRAM Usage` 表按 ncc 的打印精度折回去比。证据：`ops/_probe/bb06-dump/dumpmap.txt`。
+
+| dump 里的项 | 产物里实测（`fc_a`，7635 B） | 判定 |
+|---|---|---|
+| `Input 64` / `Output 64` | tflite 张量 `1x64` int8 = 64 B；产物里是空 buffer | 尺寸对得上；**不给偏移** |
+| `Temp 0` | 无临时缓冲 | — |
+| `Static 4.2K` | bias 256 B @1671..1926 + weights 4096 B @1951..6046 = **4352 B** → `%.1f` → `4.2K` | **对得上**（五组形状全中） |
+| `Code 400` | 无 400 B 区段；`--resize 2x64` 后 dump 变 **384**，产物 7633 B | **对不上**（分配量，不是区段） |
+| `Total 4.8K` | Input+Output+Temp+Static+Code = **4880 B** → `4.8K` | **对得上**（五组全中） |
+| `L1: 0` | `--show-l1-req` 的 help：*Only effective when global buffer allocation is in effect* | **对不上**（无 L1 区段；该开关不改产物内容） |
+| 层名 `FullyConnectedLayer<0>{FULLY_CONNECTED}` | 普通产物里搜不到 `FULLY_CONNECTED`/`weights`/`input` | **对不上**（层名只有 `--gen-debug-info` 才写进产物） |
+
+换算口径：**必须按 ncc 的打印精度**（一位小数 KiB，round-half-even：4352 B → `4.2K`）。
+拿 `4.2K` 反算成 4301 B 去比 4352 B 是**假不一致** —— `bbmap.py` 初版就这么错过一次，改口径后五组全闭合。
+另外实测：`--show-memory-summary=1/2/3/4` 四种 mode 的输出**逐字节相同**，没有任何一种会印偏移。
+
+-> 结论：**「dump 优先」只到「区段尺寸」这一层，偏移只能从产物量**。对不上的三项（`Code` / `L1` / 层名）都写清了原因。
+
 ## 3. 分级表：区域/字段 ⇄ 语义
 
 | 区域 / 字段 | 结论 | 等级 | 推翻它的实验 |
@@ -51,22 +72,43 @@
 | 头部 1647 B | 含少量随编译变化的索引字节（噪声区里步长 48 的单字节 @152/200/248/296） | **推测** | 逐字节定点改 + 上板看是否影响执行 |
 | 24 B 小头 | 疑为常量块描述符（大小/偏移/类型） | **推测** | 改常量大小（N/K）看这 24 B 里哪几个字节动 |
 | 是否为 MDLA 原生指令 | **不能断言**；只知道它被驱动+固件消费 | **未知** | 需要驱动侧证据（本次没有，也不在范围内） |
+| 常量块落址在编译之间翻转（bias/weights 互换，产物等长） | 同一个 `fc_a` 连编 6 次出现两种落址（`weights@1671/bias@5791` 与 `bias@1671/weights@1951`） | **已验证** | 固定 `gno`/单核连编 20 次若恒定即推翻（见 [`06`](../reports/compiler-blackbox-06.md) §5.3） |
+| `Code` 是分配量、不是产物区段 | 400；`--resize` 后 384，产物里无等长区段 | **推测** | 找一份产物里存在恰好等长且可解释的区段 |
+| `--gen-debug-info` 的 +539 B（不含命令行 17 B） | 结构化记录、含 ASCII `FULLY_CONNECTED`；无官方 host 读取器 | 存在 **已验证**；字段语义 **未知** | 反出 schema 或拿到 `neuronrt` profiling 输出 |
+| `--gen-urate-info` 的 +269 B | 其中 177 B 是完整 JSON hint（`format_version: 1`，`ideal_urate`） | **已验证（明文可读）** | 用 `mdla-bwhint -v 1` 编码同一 JSON，产物不再变大即推翻 |
+| 产物里有一段官方可读写的 JSON 元数据（bw hint v2） | `mdla-bwhint` encode(bw_index 7)→dump 读回 7 | **已验证** | 往返读回别的值 |
+| `gno`（NDF/SMP/BMP）对单算子 FC 无内容效应 | 四个变体 `body_size_delta = 0`，+10/+18 B 全是命令行回显 | **已验证** | 多算子图重做 |
+| `--dla-metadata` 写进产物 | 本体 +90 B，note 原文在内 | **已验证** | 换更长的 note 看 90 是否线性增长 |
 
 ## 4. 噪声与可复现性（做任何差分前必须知道）
 
 - **同一模型连编 5 次，5 个 sha256 全不同**：尾嵌 UUID，另有少量头部索引字节；
-- 噪声区（`--repeats 5`、前 4 次两两取并集、第 5 次 holdout）：**251 B / 134 段 = 最大产物的 2.1%**；
-  三簇：偏移 152/200/248/296（步长 48 的单字节）、798..1106（步长 4 的散点）、尾部 7071..7106（36 B UUID）；
-- 偶发**整块换排布（≈4.4 KB）**：工具按差分距离分簇、只留主类别（机制未知）；
-- **换编译路径会改产物尺寸**（7526 / 7527 / 7635 B）—— 差分实验必须固定输出路径。
+- **噪声是每变体的属性**（06 起）：一张全局并集既会跨变体豁免真信号、也会兜底假绿，所以判定改成
+  **每变体各自标定**（跨变体差分只豁免参与差分的两个变体），并内置**稳定字节口径**
+  （只比「两侧都逐字节稳定」的偏移）。两口径的对照数字见 [`06`](../reports/compiler-blackbox-06.md) §5.4；
+- 实测规模（04 矩阵 15 变体 × 9 次编译）：并集 **217 B / 92 段 = 1.8%**，每变体自身 39…117 B；
+  三簇仍在：偏移 152/200/248/296（步长 48 的单字节）、798..1106（步长 4 的散点）、尾部 7071..7106（36 B UUID）；
+- **常量块落址会整块翻转**（06 §5.3）：同一份 `fc_a` 连编 6 次，`weights@1671/bias@5791` 与 `bias@1671/weights@1951` 两种，产物等长；
+  跨变体一旦跨了这两种排布，线性差分就被「同一组字节换位置」主导（实测 106 B → **4458 B**）。工具现在：同变体内按差分距离分簇、
+  跨变体比**常量块落址签名**，不同则把常量区从信号里剔出并记 `excluded_area_bytes`；
+- **换编译路径会改产物尺寸**（7526 / 7527 / 7635 B）—— 差分实验必须固定输出路径；
+- **产物尾部嵌了完整命令行**：任何开关都会让产物变大，`ΔB` 里含 `len(开关文本)+1`。判「这个开关有没有内容效应」必须扣掉它
+  （`flag_payload` 用 `body_size_delta`，见 [`06`](../reports/compiler-blackbox-06.md) §3.1）。
 
-## 5. 三个开关的行为（详见 [`02`](../reports/compiler-blackbox-02.md)、[`OP-toolchain`](OP-toolchain.md)）
+
+## 5. 开关的行为（详见 [`02`](../reports/compiler-blackbox-02.md) / [`06`](../reports/compiler-blackbox-06.md)、[`OP-toolchain`](OP-toolchain.md)）
 
 | 开关 | 结论 |
 |---|---|
 | `--extract-static-data` | 权重变成**输入张量**；`.dla` 7635→3813 B（缩 3822 = 0.933×权重）；喂回原始权重输出与参考**逐字节相同** |
-| `--resize a,b` | 编译期换形状（必须给**全部**输入尺寸）；产物只认那一个尺寸 |
+| `--resize a,b` | 编译期换形状（必须给**全部**输入尺寸）；产物只认那一个尺寸。`.dla` 7635→7633 B（**本体 −16 B**，不是纯开关）；dump 跟着变（`Input/Output 128`、`Code` 400→**384**） |
 | `--runtime-dynamic-shape` | 编得过但没有动态行为（I/O 表仍写死） |
+| `--show-l1-req` | **对本图无效**：help 明说只在「global buffer allocation 生效」时才有意义。产物 +14 B = 命令行回显，内容 **0** 变化；`L1: 0` 不变 |
+| `--gen-debug-info` | 写入 **+539 B**（另有 17 B 命令行回显）：结构化记录、含 ASCII 算子名，**无官方 host 读取器** |
+| `--gen-urate-info` | 写入 **+269 B**（另有 17 B 回显）：其中 177 B 是**明文 JSON hint**（`format_version: 1`，`ideal_urate`）|
+| `--gno NDF,SMP,BMP` | 单算子 FC 上**零内容效应**（+10 / +18 B 全是命令行回显）；要验它得换多算子图 |
+| `--dla-metadata key:file` | 元数据**写进产物**：本体 +90 B（19 B 的 note 原文 + 键名 + 定长头），段内布局未知 |
+| `.dlb`（`dla-packer -l`，容器层） | level 0 = 8003 B、level 9 = **5858 B**（0.732×；源 `.dla` 7635 B）；level 3 起饱和；`readdlb` 只报容器级三行状态 |
 
 ## 6. 独立 codegen 的可行性判断（有边界的结论）
 
@@ -84,13 +126,25 @@
 ## 7. 未解（不猜）
 
 - `--extract-static-data` 的侧文件 **262,178 B 不是权重**（`neuronrt` 要的是 4096 B 原始权重），用途未知；
-- 「整块换排布 ≈4.4 KB」的触发条件；
+- 常量块落址翻转（bias/weights 互换）的**触发条件**（现只知道「编译之间会翻转」，见 §4）；
 - 头部 1647 B 里那些随编译变化的索引字节的语义；
-- 常量块相对顺序翻转（FC-C）的条件。
+- `--gen-debug-info` 那 5 条记录各自对应什么（层？张量？step？），字段 schema 未解；
+- `--dla-metadata` 段内布局（键值/长度编码）；
+- `.dlb` 压缩的饱和点（只有 7561 / 7635 B 两个样本）；
+- `Code` 这个分配量的真实含义（400 / 384 两点）。
 
 ## 8. 复现
 
 ```bash
 wsl.exe -e bash -c "cd '<repo>' && /usr/bin/python3 tools/bbdiff.py --matrix tools/bbdiff-matrix-blackbox04.json"
 # 证据：ops/_probe/bb04-fc/{manifest.json,noise.txt,zone-weight.txt,diff/*.txt,<variant>/attempt*.compile.log}
+
+# dump 文本 ⇄ 偏移（§2.2）
+/usr/bin/python3 tools/bbmap.py --dla ops/_probe/bb06-dump/v0.dla \
+    --tflite ops/_probe/bb06-dump/_build/model.tflite --log ops/_probe/bb06-dump/v0.compile.log
+# 证据：ops/_probe/bb06-dump/{dumpmap.txt,regions-*.json}
+
+# .dlb 打包（§5，容器层）
+bash tools/pack.sh 9 ops/_probe/bb04-fc/fc_a/attempt2.dla /tmp/x.dlb
+# 证据：ops/_probe/bb04-fc/fc_a/level{0,9}.pack.log（含 readdlb 原文）
 ```

@@ -1,6 +1,7 @@
 # generated / binary artifacts (regenerable via tools/)
 *.tflite
 *.dla
+*.dlb
 *.bin
 *.so
 *.ko

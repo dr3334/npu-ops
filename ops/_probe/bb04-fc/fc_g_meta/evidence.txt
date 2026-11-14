@@ -1,0 +1,25 @@
+# fc_g_meta
+note: 只加 --dla-metadata note:<file>：外部元数据是唯一「名字里就写着要写进产物」的开关，用它验 flag_payload 判据不是恒绿
+flags: --dla-metadata note:{build}/note.txt
+model.tflite bytes=5104 sha256=85b1e4016a08737433192955c89cc240d30af1c124193b378bc20a7070f233d2
+weight_bytes=4096 bias_bytes=256
+attempts=9  classes={"class0": 5, "class1": 4}  dropped(off-class)=4
+kept runs: attempt1, attempt2, attempt3, attempt5, attempt7
+attempt1 [modal]: rc=0 bytes=7820 sha256=37ef41d82b1883b9266701162b7d72c8977484e771bf1f69284f3ab6210f20d2 seconds=0.40
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla --dla-metadata note:/mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/note.txt
+attempt2 [modal]: rc=0 bytes=7820 sha256=e2b92bf38634d773b679bb817e031d4da11aef04e47e469938ce2940d594cdef seconds=0.38
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla --dla-metadata note:/mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/note.txt
+attempt3 [modal]: rc=0 bytes=7820 sha256=dd4dee0331e5a54c2b6254561cac54718b4563b4e08807869a5b0bfe56f5ff2b seconds=0.43
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla --dla-metadata note:/mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/note.txt
+attempt4 [off-class [off-class]]: rc=0 bytes=7820 sha256=a3393f06fd47c4e736715dcd80e90310273812999aad5ab49c8ff0c42497cab4 seconds=0.41
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla --dla-metadata note:/mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/note.txt
+attempt5 [modal]: rc=0 bytes=7820 sha256=db6150e4e851dcb7efa99e8aa6e489961aa86887efd44903f1e51a15dcca3219 seconds=0.36
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla --dla-metadata note:/mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/note.txt
+attempt6 [off-class [off-class]]: rc=0 bytes=7820 sha256=4566c353c6840fc273c03ad7804fe5389247e10394be23ea46203ddb4e1ef1da seconds=0.39
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla --dla-metadata note:/mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/note.txt
+attempt7 [modal]: rc=0 bytes=7820 sha256=1ce4de6b4066ae2ce3904733ffc177fcee4ec253f2ef5e5006a58c92147b0bbe seconds=0.40
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla --dla-metadata note:/mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/note.txt
+attempt8 [off-class [off-class]]: rc=0 bytes=7820 sha256=0ae905f09081f23fd035fd01cf4ac73191cfc3cb149a1a8477b4020d7d161c58 seconds=0.42
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla --dla-metadata note:/mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/note.txt
+attempt9 [off-class [off-class]]: rc=0 bytes=7820 sha256=a7527f1fa95c94361bc15e220f00db5099d3c4fa58f9d7f000992618d23f6bb9 seconds=0.37
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/model.dla --dla-metadata note:/mnt/d/deepseek_ workspace/mtk/wt-bb06/ops/_probe/bb04-fc/_build/note.txt

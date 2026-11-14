@@ -1,6 +1,6 @@
 # diff fc_base vs fc_n128
 size: 7635 vs 11987 (delta +4352)
-diff bytes=10251   inside noise=130   outside noise=10121
+diff bytes=10315   inside noise=194   outside noise=10121
 ranges (outside noise, top 40):
        1..1       len=1
       21..21      len=1
