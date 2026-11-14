@@ -1,0 +1,21 @@
+== profqos full_p3 -c 20 (no profiler env) ==
+[rt] create rc=0
+[rt] loadNetworkFromFile rc=0
+[rt] inputs=1 outputs=1
+[rt] 20 inference(s) in 20144 us
+[rt] getProfiledQoSData rc=0 execBoostValue=100
+[subgraph 0] subcmds=1
+  cmd   0  exec_us=397        bandwidthMBps=0        boost=100 suggested_ms=0
+SUM_EXEC_US=397 CMDS=1 MEASURED_US=20144 LOOPS=20 PER_INF_US=1007
+== neuronrt full_p3 -c 20 x2 ==
+Total inference time = 19.547 ms (0.97735 ms/inf)
+Total inference time = 20.598 ms (1.0299 ms/inf)
+== profqos full_p0 -c 20 ==
+[rt] create rc=0
+[rt] loadNetworkFromFile rc=0
+[rt] inputs=1 outputs=1
+[rt] 20 inference(s) in 14847 us
+[rt] getProfiledQoSData rc=0 execBoostValue=100
+[subgraph 0] subcmds=1
+  cmd   0  exec_us=267        bandwidthMBps=0        boost=100 suggested_ms=0
+SUM_EXEC_US=267 CMDS=1 MEASURED_US=14847 LOOPS=20 PER_INF_US=742

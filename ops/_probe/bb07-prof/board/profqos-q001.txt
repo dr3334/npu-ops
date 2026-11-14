@@ -1,0 +1,8 @@
+[rt] create rc=0
+[rt] loadNetworkFromFile rc=0
+[rt] inputs=1 outputs=1
+[rt] 20 inference(s) in 5563 us
+[rt] getProfiledQoSData rc=0 execBoostValue=100
+[subgraph 0] subcmds=1
+  cmd   0  exec_us=7          bandwidthMBps=0        boost=100 suggested_ms=0
+SUM_EXEC_US=7 CMDS=1 MEASURED_US=5563 LOOPS=20 PER_INF_US=278

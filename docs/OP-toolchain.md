@@ -32,7 +32,7 @@
 | `--show-exec-plan` | 0（只印日志） | 层序 / target；**产物里没有层名**（普通产物搜不到 `FULLY_CONNECTED`） |
 | `--show-memory-summary` | 0 | `Input/Output/Temp/Static/Code/Total` 六列；`=1/2/3/4` 四种 mode **输出逐字节相同**；`Static` = 常量块字节和、`Total` = 五列之和（一位小数 KiB 口径） |
 | `--show-l1-req` | **0**（+14 B 全是命令行回显） | help 原文：*Only effective when global buffer allocation is in effect* —— 单算子图没有，所以 `L1: 0` |
-| `--gen-debug-info` | **+539 B** | 结构化记录、含 ASCII `FULLY_CONNECTED`；**无官方 host 读取器**（`readdlb` 看不到、`neuronrt -d` 只印 I/O） |
+| `--gen-debug-info` | **+539 B** | 结构化记录、含 ASCII `FULLY_CONNECTED`；**无官方 host 读取器**（`readdlb` 看不到、`neuronrt -d` 只印 I/O）；**且它不是运行时 profiling 认的段**——认的是 `-P<n>`（[`07`](../reports/compiler-blackbox-07.md) §7.1） |
 | `--gen-urate-info` | **+269 B** | 其中 177 B 是**明文 JSON**：`{"format_version": 1, ... "ideal_urate": [{"Conv": "100.00"}]}` |
 
 -> **dump 只给尺寸与层序，不给偏移**；偏移要从产物量（[`tools/bbmap.py`](../tools/bbmap.py)）。
@@ -175,3 +175,75 @@ Output :
 
 **纪律**：跑 profiling 的实验必须 ① 前后各一次 `healthcheck --quick`；② 全程持 `devlock`；
 ③ 一旦出现上面的 dmesg 立刻 reboot，不要反复重试；④ 一次只跑一个级别，别并发。
+
+## 7. profiling：真正的出口是 `-P<n>` + `MTKNN_*`（07 补）
+
+> 结论来源与全部实测：[`07`](../reports/compiler-blackbox-07.md)。这一节只放**能直接抄的命令**。
+
+### 7.1 `-P<n>` / `--profiling-level=<n>`：编译期打等级（`--help` 里没有）
+
+```bash
+./tools/compile.sh ops/_probe/bb07-prof/build/fc.tflite /mnt/d/bb07-tmp/x.dla -P3
+# 等价： --profiling-level=3        （等级 1..3；-P1/-P2 只多 ~16 B，-P3 才是全量）
+```
+
+- 产物尾部仍然嵌命令行，所以 `ΔB` 里有回显；扣掉后 `fc_1x64x64_int8` 的 **-P3 真写 +707 B**（`--gen-debug-info` 是 +539 B，两者不是一回事）；
+- **-P3 的写入量随层数走**：Qwen2.5 decoder layer（48 层）`3,754,640 → 3,809,342 B`（**+54,702**）；
+- **`--gen-debug-info` 不满足任何 profiling 等级**（运行时仍报 `DLA only supports 0`）——06 那句 help 有误导性。
+
+### 7.2 运行期：`MTKNN_ENABLE_PROFILER` + `MTKNN_PROFILING_LEVEL`
+
+```bash
+adb shell "cd /data/local/tmp/npuops && \
+  MTKNN_ENABLE_PROFILER=1 MTKNN_PROFILING_LEVEL=3 \
+  ./bin/neuronrt -m hw -a bb07/full_p3.dla -i bb07/din.bin -o bb07/o.bin -c 5"
+```
+
+等级门槛（实测原文）：
+
+```text
+DLA 无 -P, ask=3 -> WARNING: To enable profiling level 3, please use -P3 option to re-compile the model
+DLA -P1,   ask=3 -> WARNING: The runtime profiling level is 3, but DLA only supports 1   (随后自动降到 1)
+DLA -P3,   ask=3 -> INFO: The profiling level is now set to 3
+```
+
+产出：
+
+| 等级 | 控制台 | 文件（CWD 或 `MTKNN_PROFILER_LOG_PATH=<dir>`） |
+|---|---|---|
+| 1 / 2 | 阶段级摘要表（`Runtime Status (LEVEL 1)`、`Detail of 'Inference' (LEVEL 2)`） | 无 |
+| **3** | 同上（**板端只写文件、不打印表**） | `dla_info.json`（21 KB）+ `execution_result.json`（**272 KB**） |
+
+`execution_result.json` 的形状：`inference -> codes[每核一个] -> flows[每条命令一条]`，每条 flow 带 `endCycle` 与 14 个 PMU event；
+`dla_info.json` 把同样的 flow id 映射到 `opIndices[]` 与 `bufferAccesses[{buffer_id, offset, size}]`——**这就是每层的耗时与带宽来源**。
+
+### 7.3 每命令的耗时/带宽怎么算（07 实测，`full_p3`）
+
+```text
+最慢核 endCycle 263906，另一核 189009；运行时 exec_us = 264 µs  ->  263906/264µs = 999.6 MHz ≈ 1.0 GHz
+us = cycles / 1000；带宽 = 该 flow 的 bufferAccesses 字节和 / us
+# 注意：exec_us 跨运行会波动（同图另一样本 397 µs -> 665 MHz），时钟的诚实区间是 0.67–1.0 GHz；
+#       占比/相对大小不受影响。要把时钟钉死，需在同一次 level-3 运行里同时取 exec_us。
+```
+
+| 核 | 命令 | 算子 | µs | 占该核 | 带宽 |
+|---|---|---|---|---|---|
+| 1 | 2 | FULLY_CONNECTED（q_proj） | 90.8 | **34.4%** | 18.0 GB/s |
+| 1 | 71 | FULLY_CONNECTED（o_proj） | 69.3 | **26.3%** | 23.6 GB/s |
+| 0 | 13..19 | SPLIT+CONCAT（14 头 KV 复制） | 各 ~1.5 | 各 1.5% | 0.18 GB/s |
+
+- **每核 sum = 运行时 `exec_us`**（判据达成）；但 **≠ `neuronrt -c N` 的墙钟**：`full_p3` 墙钟 692–1066 µs，设备侧只占 **25–38%**；
+- 观测开销：level 1 = 1.35、level 2 = 1.73、**level 3 = 9.74 ms/inf（7.2×）**；
+- ⚠️ **level 3 跑完板子会进 `MDLA timeout` 坏态**（`ret=-5`、`time=25s`，连 known-good 算子都失败，需 reboot）。跑前后各一次 `tools/healthcheck.sh --quick`。
+
+### 7.4 自建 harness：拿 `getProfiledQoSData`（每 sub-command，非每层）
+
+```bash
+bash ops/_probe/bb07-prof/build-profqos.sh host          # x86 冒烟（-m null 会除零，harness 已兜底）
+bash ops/_probe/bb07-prof/build-profqos.sh device-vendor  # aarch64，链板子自带的 /vendor/lib64 运行时
+# 板上： ./bin/profqos_v <dla> -i in.bin -o out.bin -c 20
+#    -> [subgraph 0] subcmds=1 / cmd 0 exec_us=264 bandwidthMBps=0
+```
+
+**粒度警告**：这颗 MDLA 上整图就是**一条命令**（`subcmds=1`），所以公开 API 只给 1 个数；每层必须走 §7.2 的 level-3 JSON。
+

@@ -1,0 +1,20 @@
+--- opt=[] ---
+Inference repeats for 5 times.
+Total inference time = 4.473 ms (0.8946 ms/inf)
+Avg. FPS : 1015
+--- opt=[garbage] ---
+Inference repeats for 5 times.
+Total inference time = 5.259 ms (1.0518 ms/inf)
+Avg. FPS : 856.5
+--- opt=[profiling-level:3] ---
+Inference repeats for 5 times.
+Total inference time = 4.951 ms (0.9902 ms/inf)
+Avg. FPS : 919.5
+--- opt=[nbThreads:2] ---
+Inference repeats for 5 times.
+Total inference time = 3.961 ms (0.7922 ms/inf)
+Avg. FPS : 973.7
+--- opt=[{"parallelismOption":"single"}] ---
+Inference repeats for 5 times.
+Total inference time = 3.811 ms (0.7622 ms/inf)
+Avg. FPS : 1215
