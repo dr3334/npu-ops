@@ -56,6 +56,19 @@ def _sha256_bytes(b):
     return hashlib.sha256(b).hexdigest()
 
 
+ALLOC_ALIGN = 4096   # 抓取时 runtime 对数据缓冲就是 4 KiB；大张量（FC 权重）按 4 KiB 向上取整
+
+
+def _alloc_for(nbytes):
+    """一块数据缓冲的分配大小：至少 4 KiB、按 4 KiB 向上取整。
+
+    逐元素算子的张量只有几十~几千字节，所以以前写死 4096 够用；Qwen 的 FC 权重
+    （4864x896 int8 = 4.36 MB）必须真的给够，否则 npu_run 会在尺寸检查处退出。
+    """
+    n = max(int(nbytes), ALLOC_ALIGN)
+    return (n + ALLOC_ALIGN - 1) // ALLOC_ALIGN * ALLOC_ALIGN
+
+
 def _row_bytes(shape, itemsize):
     """最后一维的字节数（逐元素算子按行成组，行规则作用在它上面）。"""
     return (shape[-1] if shape else 1) * itemsize
@@ -199,10 +212,13 @@ class Graph:
     def mul(self, a, b):
         return self._binop("mul", a, b)
 
-    def fc(self, x, w):
+    def fc(self, x, w, out_scale=None):
         """FULLY_CONNECTED，**权重是运行时输入**（不是常量）。
 
-        x [M,K] int8，w [N,K] int8（TFLite 的权重布局）-> out [M,N] int8，s_out = s_a*s_w*32。
+        x [M,K] int8，w [N,K] int8（TFLite 的权重布局）-> out [M,N] int8。
+        s_out 缺省是 s_a*s_w*32（ops/fc_dynb_* 那条已上板的老约定）；K 一大就不够 —— 例如
+        K=896 时满量程码的累加能到 1e7 量级，输出会 97.8% 饱和（见 reports/npu-lib-fc-qwen.md），
+        所以真实维度上必须按数据显式给 out_scale = max|acc|/127 之类的值。
         权重为什么必须动态：常量权重在自建提交器上只有落在抓取那次的 IOVA 才对
         （docs/ISSUE-const-fc.md，3/11）；动态权重有板端证据（docs/OWN-SUBMITTER.md §6）。
         """
@@ -220,7 +236,9 @@ class Graph:
             raise UnsupportedError(
                 "graph %r already has an op: one op per graph (3-buffer submitter). "
                 "Compile each op as its own Graph for now." % self.name)
-        out_dtype = DType.int8(x.dtype.scale * w.dtype.scale * FC_OUT_SCALE_FACTOR, 0)
+        if out_scale is None:
+            out_scale = x.dtype.scale * w.dtype.scale * FC_OUT_SCALE_FACTOR
+        out_dtype = DType.int8(out_scale, 0)
         out = Tensor("fc_0", (m, n), out_dtype, producer=None)
         self._ops.append({"kind": "fc", "a": x, "b": w, "out": out, "index": 0})
         out._producer = self._ops[-1]
@@ -258,6 +276,15 @@ class Graph:
             # FC 的两个输入与输出是三个不同形状：binop 的单 "shape" 不够用
             spec["shapes"] = {"a": list(op["a"].shape), "b": list(op["b"].shape),
                               "out": list(op["out"].shape)}
+        # 同一个名字 + 不同 spec（形状/scale）= 拿旧命令流套新量化参数 —— 这类错会被
+        # golden 悄悄吸收，必须当场失败而不是复用（教训：Qwen 维度的 gate_proj 分块实验）。
+        if spec_path.exists() and not rebuild:
+            old = json.loads(spec_path.read_text())
+            diff = {k: (old.get(k), spec.get(k)) for k in spec if old.get(k) != spec.get(k)}
+            if diff:
+                raise NpuLibError(
+                    "graph %r: artifacts already exist with a different spec %r; "
+                    "use another name or compile(rebuild=True)" % (self.name, diff))
         spec_path.write_text(json.dumps(spec, indent=2))
 
         # ① TFLite
@@ -285,7 +312,8 @@ class Graph:
         run_dev_dir = cap["device_run_dir"]
         plan = Plan.from_asset(
             asset_dir=cap["asset_dir"], iova_txt=art / "asset" / "iova.txt",
-            alloc_a=4096, alloc_b=4096, alloc_c=4096,
+            alloc_a=_alloc_for(op["a"].nbytes), alloc_b=_alloc_for(op["b"].nbytes),
+            alloc_c=_alloc_for(op["out"].nbytes),
             dir0=1, dir1=2, dir2=1, patch_idx=2, expect_patches=3,
             bytes_a=op["a"].nbytes, bytes_b=op["b"].nbytes, bytes_out=op["out"].nbytes,
             n_inputs=2,

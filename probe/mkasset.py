@@ -77,8 +77,29 @@ def find_by_fd(bufdir, handle, size):
     return None
 
 
-def find_output_by_vendor(bufdir, vendor, nbytes):
-    """有的算子会多分配几个 4 KiB 缓冲（scratch/输出）；用抓取时的厂商输出反查真正的输出缓冲。"""
+def iova_of_path(maps, path):
+    """(fd, 文件大小) 一起匹配 MAP 表 -> 抓取那次的 IOVA；匹配不上返回 0。
+
+    fd 会重复（.dla 代码缓冲和输入缓冲可能同 fd），所以不能只用 fd。
+    """
+    m = re.search(r"_fd(\d+)_len([0-9a-f]+)", os.path.basename(path))
+    if not m:
+        return 0
+    fd = int(m.group(1))
+    fsz = int(m.group(2), 16)
+    for h, sz, va in maps:
+        if h == fd and sz == fsz:
+            return va
+    return 0
+
+
+def find_output_by_vendor(bufdir, vendor, nbytes, maps=None):
+    """有的算子会多分配几个 4 KiB 缓冲（scratch/输出）；用抓取时的厂商输出反查真正的输出缓冲。
+
+    注意：fd 会被复用，同一 fd 的几个 mmap 在 dump 里可能拿到**同一份内容**，于是 .dla 代码缓冲
+    的后半段也可能"等于"输出。判据因此加一条：候选必须能在 MAP 表里解析出 IOVA —— 解析不出来的
+    是假候选（代码缓冲不是我们 ALLOC/MAP 出来的数据缓冲）。
+    """
     if not vendor or not os.path.exists(vendor):
         return None
     want = open(vendor, "rb").read(nbytes)
@@ -92,8 +113,11 @@ def find_output_by_vendor(bufdir, vendor, nbytes):
                 cand = os.path.join(bufdir, base)
                 # 只接受 4 KiB 的数据缓冲：抓取目录里还有 .dla 代码缓冲（几千字节），
                 # 它的前 256 字节可能与输出偶然相同，选错会把地址写进代码区。
-                if os.path.exists(cand):
-                    return cand
+                if not os.path.exists(cand):
+                    continue
+                if maps is not None and not iova_of_path(maps, cand):
+                    continue
+                return cand
         except OSError:
             pass
     return None
@@ -150,7 +174,9 @@ def main(log, bufdir, abin, bbin, outdir):
         C = find_by_size(bufdir, 512)
     vendor = os.path.join(outdir, "vendor_out.bin")   # 抓取输出就在资产目录里
     nbytes = 256 if os.path.exists(vendor) and os.path.getsize(vendor) <= 4096 else 4096
-    by_vendor = find_output_by_vendor(bufdir, vendor, os.path.getsize(vendor) if os.path.exists(vendor) else 0)
+    by_vendor = find_output_by_vendor(bufdir, vendor,
+                                      os.path.getsize(vendor) if os.path.exists(vendor) else 0,
+                                      maps)
     if by_vendor is not None:
         C = by_vendor
     if not (A and C) or (not unary and not B):
