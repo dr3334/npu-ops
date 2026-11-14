@@ -39,6 +39,21 @@ for b in $DIR_BUILDERS; do
 done
 [ "$LIST_ONLY" = "1" ] || echo "---- built=$total regenerated=$made already=$exists failed=$failed"
 
+# --- fc_<m>x<k>x<n>_<dtype>: shape comes from the directory name, not from any builder's SPECS list ---
+# 这些 op 是用 build_ops.py 的显式参数建的，rebuild 的 SPECS 循环覆盖不到；删掉 model.tflite 后
+# 它们会静默保持「无 tflite + 旧 golden」，一旦 golden 规则变了就会悄悄不一致（2026-11-13 踩过）。
+for d in ops/fc_*/; do
+  n=$(basename "$d"); [ -f "$d/model.json" ] || continue; [ -f "$d/model.tflite" ] && continue
+  case "$n" in
+    fc_dynb_*|fc_bmm_*|fc_const_*) continue ;;   # 由各自的 builder 负责
+  esac
+  shp=${n#fc_}; m=${shp%%x*}; rest=${shp#*x}; k=${rest%%x*}; nn=${rest#*x}
+  case "$nn" in *_int8) dtype=int8 ;; *_fp16) dtype=fp16 ;; *_fp32) dtype=fp32 ;; *) continue ;; esac
+  nn=${nn%_*}
+  case "$m$k$nn" in *[!0-9]*) continue ;; esac
+  if WL "/usr/bin/python3 tools/build_ops.py fc --m $m --k $k --n $nn --dtype $dtype --out ops/$n/model.tflite" >/dev/null 2>&1; then
+    echo "  rebuilt(fc-name) $n"; else echo "  BUILD FAIL fc-name -> $n"; fi
+done
 # --- build_binop.py: no spec list; regenerate from each op's model.json (op + shape) ---
 for d in ops/*/; do
   n=$(basename "$d"); [ -f "$d/model.json" ] || continue; [ -f "$d/model.tflite" ] && continue

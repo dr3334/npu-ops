@@ -351,6 +351,10 @@ fp16 的 `1e-2` 是当前唯一可用的浮点契约，实测误差 2 ULP（≈2
 | **B（他们的 tiled statistics）** | `FC[32,896]`(W=1/896) → `[T,32]` → **CONCAT ×28** → SLICE 裁剪 → RSQRT | ✅ EXIT=0 | **6** | ✅ |
 | **C（他们报告会出错的扩张 FC）** | `FC[32,896]` → `[T,32]` → **FC[896,32] 扩张** → RSQRT | ✅ EXIT=0 | 6 | ❌ 数值错（`rel_l2 0.82`，输出被压到 ±0.78，参考 ±4.4） |
 
+> **注（2026-11-13 订正）**：A / A0 两行的失败**不是**宽度边界、也不是编译器限制，是 `tools/build_rms896.py`
+> 自己的 idx 错位（`RSQRT` / `ADD` 的输入被指成了 int32 的 axis 张量）。修好后 A 在 D=896 **EXIT=0 且板端 PASS**，
+> 见文末 §「订正：D=896 的 MEAN 可用性」。A / A0 的失败档保留为历史证据（未删）。
+
 **B 的数值（独立 numpy 参考，fp16）**：
 
 | T | 编译 | 板端 | rel_l2 |
@@ -365,8 +369,10 @@ fp16 的 `1e-2` 是当前唯一可用的浮点契约，实测误差 2 ULP（≈2
    **FC-tile + CONCAT 能编、能跑、逐层数值正确** —— 这条 workaround 在我们的栈上同样成立；
 2. **扩张 FC 在 D=896 就已经数值错误**（他们把现象描述为 D2048 的 I/O 错误，
    我们在 D896 看到的是"能跑但结果被压缩"），所以**不能用**；
-3. `MEAN` 在小宽度（D=64/128）可用、在大宽度不可用 —— 这是一个**宽度依赖的 bridge/形状问题**，
-   与 `docs/CAPABILITY.md` 的 16 字节行规则不是同一条（这里行宽 1792 B 早就满足）。
+3. ~~`MEAN` 在小宽度（D=64/128）可用、在大宽度不可用 —— 这是一个**宽度依赖的 bridge/形状问题**~~
+   → **已被文末 §「订正：D=896 的 MEAN 可用性」推翻**：D=896 的 `MEAN → ADD eps → RSQRT` 能编、能跑，
+   板上 `rel_l2 5.8e-4` **PASS**；原来的失败是 `tools/build_rms896.py` 的 idx bug，与宽度无关。
+   当时仍然成立的只有一句：**B（FC-tile+CONCAT）是唯一有板端数值证据的变体**（现在 A 也有了）。
 
 ### 复现
 
@@ -374,4 +380,148 @@ fp16 的 `1e-2` 是当前唯一可用的浮点契约，实测误差 2 ULP（≈2
 /usr/bin/python3 tools/build_rms896.py --variant B --T 8 --out ops/rms896_d896_T8_vB
 ./tools/compile.sh ops/rms896_d896_T8_vB/model.tflite ops/rms896_d896_T8_vB/model.dla
 ./tools/e2e.sh ops/rms896_d896_T8_vB
+```
+
+---
+
+## 订正：D=896 的 MEAN 可用性（2026-11-13）
+
+### 起因为什么要订正
+
+上面 §「D=896 三变体」把 **A（MEAN）编不过** 记成“宽度依赖的形状问题”，而 `docs/OP-block.md` §10.4.2
+发现同一个 ncc 上 14 头块图的 `--norm mean` 能编（EXIT=0）。两者的差别在构造器，不在宽度。
+本节的唯一任务是：**把那条结论判定清楚**，并留下可复跑的板端证据。
+
+### 假设 / 预测（写在板端执行之前）
+
+- **H-bug（主假设）**：A/A0 的失败是 `tools/build_rms896.py` 的 idx 错位，不是编译器边界。
+  机制：`act("mean", …)` 之后又 `const(…)` 追加了 axis 张量，随后手写
+  `idx["mean"] = len(tensors) - 1` 把名字指到了那个 int32 张量上。
+  - 预测 1（编译）：修好后 A 在 D=896 **EXIT=0**，层清单 6 层
+    （`MUL → MEAN → ADD → RSQRT → MUL → MUL`）、**单个** `MDLA_5_0` 执行步、无 bridge。
+  - 预测 2（板端）：在**已经登记**的 `atol=rtol=2e-2`（未改）下 **PASS**；
+    `max_abs` 落在 1–2 个 fp16 ULP（`|out|` ≈ 4.4 ⇒ ULP ≈ 3.9e-3）即 ~1e-2 量级或更好，
+    `rel_l2` ~5e-4（与 B 同档）；两次连跑的噪声底预测为 **0**（本仓库 fp16 链的历史现象都是逐字节相同）。
+- **H-width（竞争假设）**：修好索引后仍然编不过。若如此，要把**报错原文 + 阶段**（加载期 /
+  逐层校验期 / 后端期）照抄进“结果”，并保留“MEAN 在大宽度不可用”的结论（只是换个根因）。
+- **层数预测**：单独 RMSNorm 图里 A 与 B **都是 6 层**（A 用 `ADD` 花掉 1 层、B 用 `FC+CONCAT`
+  花掉 2 层但**根本不带 eps**）⇒ 这一对图上“MEAN 少层”**不成立**；
+  “每个 RMSNorm 少 1 层”只在**块图**里成立（块图两侧都没有 eps 的 ADD：MEAN 4 层 vs FC+CONCAT 5 层）。
+
+### 做法
+
+1. 修 `tools/build_rms896.py`：`push_t()` 收敛唯一一处 `len(tensors) - 1`，
+   `const()/act()` 返回自己的索引（常量不进 `idx`；`act()` 遇重名直接 `KeyError`），
+   新增 `op(kind, ins, outs, …)` 让 operator 只认**张量名或那个返回值**。对外 CLI 与 golden 语义不变。
+2. 字节回归：B / C / B0 的 `model.tflite` sha256 **改前=改后**（`375c19c9…` / `65948e5f…` / `326dd1ee…`）
+   ⇒ 已有证据（含 `ops/rms896_d896_T8_vB` 的板端 PASS）不受这次修改影响；只有 A/A0 的接线变了。
+3. 重建 `ops/rms896_d896_T8_vA` → `./tools/compile.sh` → 持锁 `./tools/e2e.sh`（前后各一次
+   `healthcheck.sh --quick`），并连跑两次存 `out_r1.bin/out_r2.bin` 量噪声底。
+
+### 结果（编译）
+
+```
+EXIT=0   SIZE=7407   SHA256=3c3ec6a566d73b3e8175dcb3ee607c0f75b9ec9f3462cc0f14345c0e95a758db
+===Graph[0] has 1 Execution Step(s)===
+Graph[0] Step[0] / Target: MDLA_5_0
+ ├ ElementWiseMulLayer<0>{MUL}
+ ├ MeanLayer<1>{MEAN}
+ ├ ElementWiseAddLayer<2>{ADD}
+ ├ RSqrtLayer<3>{RSQRT}
+ ├ ElementWiseMulLayer<4>{MUL}
+ ├ ElementWiseMulLayer<5>{MUL}
+DRAM: Input 14K  Output 14K  Temp 0  Static 1.8K  Code 1.6K  Total 31K   L1: 16K
+```
+
+没有 `Bridging is disallowed` / `Cannot find an execution plan` 行。**预测 1 成立**（6 层、单执行步、无 bridge）。
+
+### 结果（板端，持同一把设备锁，前后各一次 `healthcheck.sh --quick`）
+
+| 项 | A（MEAN，`ops/rms896_d896_T8_vA`） |
+|---|---|
+| `max_abs` | **7.812e-03** |
+| `rmse` / `rel_l2` | 5.799e-04 / 5.782e-04 |
+| 相对口径 `max_abs / max\|exp\|` | **1.77e-03** |
+| 登记契约 | `atol=rtol=2e-2`（**跑之前就是这样，未改**） |
+| 契约用量 | 7.812e-03 / 2e-2 = **39%** |
+| NaN / Inf | exp 0/0，dev 0/0 |
+| range | exp [-4.418, 3.650] / dev [-4.426, 3.650] |
+| 逐元素逐位相等 | 3493 / 7168（48.7%） |
+| **噪声底** | **0**（两次 e2e 的 `out_device.bin` 逐字节相同，`max\|r1-r2\| = 0.0`） |
+| 判定 | **PASS** |
+
+`max_abs = 7.812e-03` 恰好是 `max|out| = 4.418` 处的 **2 个 fp16 ULP**（ULP@4 = 3.906e-03）。
+前后 healthcheck 均 `HEALTHCHECK: PASS`；批后扫 `dmesg`（`apusys.*(timeout|fail|error)|mdw.*(timeout|fail)`）**0 条**。
+`e2e.json`：`repeat=3`、`compare_exit=0`。**预测 2 成立**。
+
+### 与变体 B 的对比（B 的日志/compare.txt 是既有产物，本次**没有**重跑 B）
+
+| 项 | A（MEAN） | B（FC-tile+CONCAT） |
+|---|---|---|
+| 编译 | EXIT=0 | EXIT=0 |
+| 执行步 | **1**（`MDLA_5_0`） | **1**（`MDLA_5_0`） |
+| bridge | 无 | 无 |
+| **层数** | **6** | **6** |
+| 层清单 | `MUL→MEAN→ADD→RSQRT→MUL→MUL` | `MUL→FC→CONCAT→RSQRT→MUL→MUL` |
+| `max_abs` | 7.812e-03 | 7.812e-03 |
+| `rmse` | 5.799e-04 | 5.779e-04 |
+| `rel_l2` | 5.782e-04 | 5.762e-04 |
+| Static DRAM | **1.8K**（只有 gamma） | 57K（gamma + 32×896 的 1/D 权重） |
+| Total DRAM | **31K** | 92K |
+| `.dla` | **7,407 B** | 72,621 B |
+| 板端 | PASS | PASS |
+
+数值上 A 与 B 同档（`rmse` 差 3.4e-7、`rel_l2` 差 2e-6），差别在 fp16 末位量级；
+**A 用更小的图（.dla 1/10、静态内存 1/32）拿到同样的数值**。
+
+#### 「MEAN 少 2 层（每个 RMSNorm 少 1 层）」这条收益是否成立
+
+从两份 `model.compile.log` 的层清单数：
+
+- **块图上成立**：`ops/block_qwen25_multhead_h14_fp16`（`--norm fctile`）**33 层**，每个 RMSNorm 是
+  `MUL,FC,CONCAT,RSQRT,MUL`（5 层）；`ops/_block_qwen25_multhead_h14_meannorm_control`（`--norm mean`）
+  **31 层**，每个 RMSNorm 是 `MUL,MEAN,RSQRT,MUL`（4 层）⇒ **每块少 2 层 / 每个 RMSNorm 少 1 层**，
+  差的正是 `FC+CONCAT`(2 层) 对 `MEAN`(1 层)。
+- **但这两个块图都是 eps=0**（`tools/build_block2.py` 第 237 行：mean 变体刻意不发 ADD）。所以那 2 层是
+  “MEAN vs FC+CONCAT”的差，**不是**“MEAN 省掉 eps”的差。
+- **在独立图这一对上不成立**：A 6 层、B 6 层。A 用 `ADD` 花掉 1 层 eps，B 用 2 层做均值但**根本没有 eps**。
+  若把 eps 折进 B 的 `FC` bias（`B_tile` 从 0 改成 eps 常数），B 仍是 6 层**且数学上补齐了 eps** ——
+  这时“MEAN 比 FC-tile 少层”在**带 eps 的正确口径**下是 **0 层**。
+- 由此：**层数收益只能在“两侧同样不含 eps”或“B 的 eps 走 bias”这两种口径下取 0–1 层/每个 RMSNorm**；
+  无条件成立的收益是**静态内存与 .dla 体积**（1.8K vs 57K；7.4 KB vs 72.6 KB），不是层数。
+
+### 适用范围
+
+- `ncc-tflite 7.3.15` / `mdla5.0` / `--disallow-bridge` / `--num-mdla=2` / `--l1-size-kb=3072`；
+- fp16、`[T=8, D=896]`、单执行步；eps=`1e-5`（fp16 存成 `1.0014e-05`）、gamma 为 `[896]` 常量、输入 N(0,0.6)；
+- **只覆盖独立 RMSNorm 图**（`ops/rms896_d896_T8_vA`）。整块里的 `--norm mean` + eps **板端仍未测**；
+- 不覆盖 T=1 / T=128 的 MEAN 版，也不覆盖 int8；
+- 本文无性能结论。
+
+### 剩余疑问（明说）
+
+1. **B 的图其实没有 eps，但 B 的 golden 带 eps**：`build_rms896.py` 的参考对**所有非 A0 变体**都加 `+EPS`，
+   而 B 的 `FC` bias 是全零。数值上不可观测（`mean(x²)≈0.36`，1e-5 相当于相对 2.8e-5，远小于 fp16 在
+   0.36 处的 4.9e-4 分辨率），但“B 是有 eps 的 RMSNorm”这句话在文档里**是错的**：
+   要么把 `B_tile` 的 bias 填成 eps，要么在 `model.json` 里写明“B 无 eps”。**留给 Lead 定**。
+2. **A 与 B 的板端输出没有直接逐元素 diff**：两份分别对独立 golden，`rmse` 差 3.4e-7；要钉死“两条路径数值
+   等价”，需在同一批里重跑 B 再 `cmp out_device.bin`（本次没做，避免改 B 那份已提交的证据目录）。
+3. **块图里 `--norm mean` 加回 eps（ADD）能否编、数值如何** 未测：`build_block2.py` 现在恒 eps=0，
+   本节的 eps 证据只有独立图这一份。
+4. **T=1 / T=128 的 MEAN 版**未测（B 在这两个 T 上都有板端 PASS）。
+5. **性能**：同一 `.dla` 两次跑出 `0.578 ms/inf` 与 `0.963 ms/inf`（差 1.7 倍）⇒ 仍是抖动，不作结论。
+6. **int8** 的 MEAN 在 D=896 未测（本批全 fp16）。
+
+### 复现（订正版）
+
+```bash
+# 1) 生成（修好的 builder）
+/usr/bin/python3 tools/build_rms896.py --variant A --T 8 --out ops/rms896_d896_T8_vA
+# 2) 编译
+./tools/compile.sh ops/rms896_d896_T8_vA/model.tflite ops/rms896_d896_T8_vA/model.dla
+# 3) 板端（持锁，前后各一次 healthcheck）
+export NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock"
+./tools/devlock.sh run -- ./tools/healthcheck.sh --quick
+./tools/devlock.sh run -- ./tools/e2e.sh ops/rms896_d896_T8_vA
+./tools/devlock.sh run -- ./tools/healthcheck.sh --quick
 ```

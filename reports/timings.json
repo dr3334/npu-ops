@@ -1,0 +1,1426 @@
+[
+ {
+  "name": "block_1l_fp16/ours_host_wall",
+  "ts": "2026-11-14T11:37:29+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   294.9228,
+   291.739,
+   288.6025,
+   300.9101,
+   314.698
+  ],
+  "summary": {
+   "n": 5,
+   "min": 288.6024639956304,
+   "p10": 289.85707279789494,
+   "median": 294.92280799604487,
+   "mean": 298.1744713993976,
+   "p90": 309.18284940125886,
+   "max": 314.6980489982525,
+   "mad": 5.987242009723559,
+   "stdev": 9.21003930407166,
+   "jitter_pct": 2.030104775688916
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6bcf\u6b21\u4e00\u4e2a\u65b0\u8fdb\u7a0b + adb shell\uff1b\u542b usleep(200ms) \u76f2\u7b49"
+  }
+ },
+ {
+  "name": "adb_rtt_floor",
+  "ts": "2026-11-14T11:37:30+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   71.6607,
+   67.1685,
+   76.712,
+   62.2265,
+   77.411
+  ],
+  "summary": {
+   "n": 5,
+   "min": 62.226545000157785,
+   "p10": 64.20331899862504,
+   "median": 71.66071199753787,
+   "mean": 71.0357475996716,
+   "p90": 77.13139100233093,
+   "max": 77.41095300298184,
+   "mad": 5.051336003816687,
+   "stdev": 5.758680748892243,
+   "jitter_pct": 7.0489615062577675
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "adb shell true \u7684\u5f80\u8fd4\u65f6\u95f4\uff08\u4e00\u5207 adb \u64cd\u4f5c\u7684\u5730\u677f\uff09"
+  }
+ },
+ {
+  "name": "block_1l_fp16/device_submit_once",
+  "ts": "2026-11-14T11:37:30+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   201.171
+  ],
+  "summary": {
+   "n": 1,
+   "min": 201.171,
+   "p10": 201.171,
+   "median": 201.171,
+   "mean": 201.171,
+   "p90": 201.171,
+   "max": 201.171,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "device",
+   "note": "npu_run \u81ea\u62a5\uff1a\u63d0\u4ea4+200ms \u7b49\u5f85+\u8bfb\u56de\uff08\u4e0d\u542b adb\uff09"
+  }
+ },
+ {
+  "name": "block_qwen25_1l_fp16/vendor_ms_per_inf",
+  "ts": "2026-11-14T11:37:30+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1.039
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1.039,
+   "p10": 1.039,
+   "median": 1.039,
+   "mean": 1.039,
+   "p90": 1.039,
+   "max": 1.039,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "vendor_runtime",
+   "note": "e2e --repeat 5, \u5382\u5546 runtime \u81ea\u62a5"
+  }
+ },
+ {
+  "name": "decoder_layer_t8_fp16/vendor_ms_per_inf",
+  "ts": "2026-11-14T11:37:30+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   2.3925
+  ],
+  "summary": {
+   "n": 1,
+   "min": 2.3925,
+   "p10": 2.3925,
+   "median": 2.3925,
+   "mean": 2.3925,
+   "p90": 2.3925,
+   "max": 2.3925,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "vendor_runtime",
+   "note": "e2e --repeat 2 \u5382\u5546 runtime \u81ea\u62a5\uff1b61 \u4e2a\u539f\u751f\u5c42 = \u4e00\u6574\u5c42 decoder\uff08D=896, T=8\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x64_int8/run_captured",
+  "ts": "2026-11-14T11:37:49+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   855.7134
+  ],
+  "summary": {
+   "n": 1,
+   "min": 855.7133674621582,
+   "p10": 855.7133674621582,
+   "median": 855.7133674621582,
+   "mean": 855.7133674621582,
+   "p90": 855.7133674621582,
+   "max": 855.7133674621582,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x64_int8/run_alt",
+  "ts": "2026-11-14T11:37:49+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   725.8294
+  ],
+  "summary": {
+   "n": 1,
+   "min": 725.8293628692627,
+   "p10": 725.8293628692627,
+   "median": 725.8293628692627,
+   "mean": 725.8293628692627,
+   "p90": 725.8293628692627,
+   "max": 725.8293628692627,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x64_int8/total_cold",
+  "ts": "2026-11-14T11:37:49+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1731.9977
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1731.9977283477783,
+   "p10": 1731.9977283477783,
+   "median": 1731.9977283477783,
+   "mean": 1731.9977283477783,
+   "p90": 1731.9977283477783,
+   "max": 1731.9977283477783,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x896_int8/run_captured",
+  "ts": "2026-11-14T11:37:50+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   679.9736
+  ],
+  "summary": {
+   "n": 1,
+   "min": 679.9736022949219,
+   "p10": 679.9736022949219,
+   "median": 679.9736022949219,
+   "mean": 679.9736022949219,
+   "p90": 679.9736022949219,
+   "max": 679.9736022949219,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x896_int8/run_alt",
+  "ts": "2026-11-14T11:37:50+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   707.5961
+  ],
+  "summary": {
+   "n": 1,
+   "min": 707.5960636138916,
+   "p10": 707.5960636138916,
+   "median": 707.5960636138916,
+   "mean": 707.5960636138916,
+   "p90": 707.5960636138916,
+   "max": 707.5960636138916,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x896_int8/total_cold",
+  "ts": "2026-11-14T11:37:50+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1492.0683
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1492.0682907104492,
+   "p10": 1492.0682907104492,
+   "median": 1492.0682907104492,
+   "mean": 1492.0682907104492,
+   "p90": 1492.0682907104492,
+   "max": 1492.0682907104492,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x96_int8/run_captured",
+  "ts": "2026-11-14T11:37:52+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   703.3567
+  ],
+  "summary": {
+   "n": 1,
+   "min": 703.3567428588867,
+   "p10": 703.3567428588867,
+   "median": 703.3567428588867,
+   "mean": 703.3567428588867,
+   "p90": 703.3567428588867,
+   "max": 703.3567428588867,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x96_int8/run_alt",
+  "ts": "2026-11-14T11:37:52+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   662.8599
+  ],
+  "summary": {
+   "n": 1,
+   "min": 662.8599166870117,
+   "p10": 662.8599166870117,
+   "median": 662.8599166870117,
+   "mean": 662.8599166870117,
+   "p90": 662.8599166870117,
+   "max": 662.8599166870117,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x96_int8/total_cold",
+  "ts": "2026-11-14T11:37:52+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1480.0382
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1480.0381660461426,
+   "p10": 1480.0381660461426,
+   "median": 1480.0381660461426,
+   "mean": 1480.0381660461426,
+   "p90": 1480.0381660461426,
+   "max": 1480.0381660461426,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x64_int8/run_captured",
+  "ts": "2026-11-14T11:37:53+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   694.6805
+  ],
+  "summary": {
+   "n": 1,
+   "min": 694.6804523468018,
+   "p10": 694.6804523468018,
+   "median": 694.6804523468018,
+   "mean": 694.6804523468018,
+   "p90": 694.6804523468018,
+   "max": 694.6804523468018,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x64_int8/run_alt",
+  "ts": "2026-11-14T11:37:53+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   802.0113
+  ],
+  "summary": {
+   "n": 1,
+   "min": 802.011251449585,
+   "p10": 802.011251449585,
+   "median": 802.011251449585,
+   "mean": 802.011251449585,
+   "p90": 802.011251449585,
+   "max": 802.011251449585,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x64_int8/total_cold",
+  "ts": "2026-11-14T11:37:53+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1594.3575
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1594.3574905395508,
+   "p10": 1594.3574905395508,
+   "median": 1594.3574905395508,
+   "mean": 1594.3574905395508,
+   "p90": 1594.3574905395508,
+   "max": 1594.3574905395508,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x896_int8/run_captured",
+  "ts": "2026-11-14T11:37:55+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   692.2135
+  ],
+  "summary": {
+   "n": 1,
+   "min": 692.2135353088379,
+   "p10": 692.2135353088379,
+   "median": 692.2135353088379,
+   "mean": 692.2135353088379,
+   "p90": 692.2135353088379,
+   "max": 692.2135353088379,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x896_int8/run_alt",
+  "ts": "2026-11-14T11:37:55+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   690.33
+  ],
+  "summary": {
+   "n": 1,
+   "min": 690.3300285339355,
+   "p10": 690.3300285339355,
+   "median": 690.3300285339355,
+   "mean": 690.3300285339355,
+   "p90": 690.3300285339355,
+   "max": 690.3300285339355,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x896_int8/total_cold",
+  "ts": "2026-11-14T11:37:55+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1493.8118
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1493.811845779419,
+   "p10": 1493.811845779419,
+   "median": 1493.811845779419,
+   "mean": 1493.811845779419,
+   "p90": 1493.811845779419,
+   "max": 1493.811845779419,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x96_int8/run_captured",
+  "ts": "2026-11-14T11:37:57+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   698.1196
+  ],
+  "summary": {
+   "n": 1,
+   "min": 698.1196403503418,
+   "p10": 698.1196403503418,
+   "median": 698.1196403503418,
+   "mean": 698.1196403503418,
+   "p90": 698.1196403503418,
+   "max": 698.1196403503418,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x96_int8/run_alt",
+  "ts": "2026-11-14T11:37:57+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   790.8075
+  ],
+  "summary": {
+   "n": 1,
+   "min": 790.8074855804443,
+   "p10": 790.8074855804443,
+   "median": 790.8074855804443,
+   "mean": 790.8074855804443,
+   "p90": 790.8074855804443,
+   "max": 790.8074855804443,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x96_int8/total_cold",
+  "ts": "2026-11-14T11:37:57+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1581.2263
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1581.2263488769531,
+   "p10": 1581.2263488769531,
+   "median": 1581.2263488769531,
+   "mean": 1581.2263488769531,
+   "p90": 1581.2263488769531,
+   "max": 1581.2263488769531,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x64_int8/run_captured",
+  "ts": "2026-11-14T11:37:58+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   696.5151
+  ],
+  "summary": {
+   "n": 1,
+   "min": 696.5150833129883,
+   "p10": 696.5150833129883,
+   "median": 696.5150833129883,
+   "mean": 696.5150833129883,
+   "p90": 696.5150833129883,
+   "max": 696.5150833129883,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x64_int8/run_alt",
+  "ts": "2026-11-14T11:37:58+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   731.612
+  ],
+  "summary": {
+   "n": 1,
+   "min": 731.611967086792,
+   "p10": 731.611967086792,
+   "median": 731.611967086792,
+   "mean": 731.611967086792,
+   "p90": 731.611967086792,
+   "max": 731.611967086792,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x64_int8/total_cold",
+  "ts": "2026-11-14T11:37:58+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1515.3894
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1515.3894424438477,
+   "p10": 1515.3894424438477,
+   "median": 1515.3894424438477,
+   "mean": 1515.3894424438477,
+   "p90": 1515.3894424438477,
+   "max": 1515.3894424438477,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x896_int8/run_captured",
+  "ts": "2026-11-14T11:38:00+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   775.5339
+  ],
+  "summary": {
+   "n": 1,
+   "min": 775.53391456604,
+   "p10": 775.53391456604,
+   "median": 775.53391456604,
+   "mean": 775.53391456604,
+   "p90": 775.53391456604,
+   "max": 775.53391456604,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x896_int8/run_alt",
+  "ts": "2026-11-14T11:38:00+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   766.0425
+  ],
+  "summary": {
+   "n": 1,
+   "min": 766.0424709320068,
+   "p10": 766.0424709320068,
+   "median": 766.0424709320068,
+   "mean": 766.0424709320068,
+   "p90": 766.0424709320068,
+   "max": 766.0424709320068,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x896_int8/total_cold",
+  "ts": "2026-11-14T11:38:00+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1638.9136
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1638.913631439209,
+   "p10": 1638.913631439209,
+   "median": 1638.913631439209,
+   "mean": 1638.913631439209,
+   "p90": 1638.913631439209,
+   "max": 1638.913631439209,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x96_int8/run_captured",
+  "ts": "2026-11-14T11:38:01+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   710.0906
+  ],
+  "summary": {
+   "n": 1,
+   "min": 710.0906372070312,
+   "p10": 710.0906372070312,
+   "median": 710.0906372070312,
+   "mean": 710.0906372070312,
+   "p90": 710.0906372070312,
+   "max": 710.0906372070312,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x96_int8/run_alt",
+  "ts": "2026-11-14T11:38:01+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   721.6356
+  ],
+  "summary": {
+   "n": 1,
+   "min": 721.6355800628662,
+   "p10": 721.6355800628662,
+   "median": 721.6355800628662,
+   "mean": 721.6355800628662,
+   "p90": 721.6355800628662,
+   "max": 721.6355800628662,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x96_int8/total_cold",
+  "ts": "2026-11-14T11:38:01+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1531.8494
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1531.8493843078613,
+   "p10": 1531.8493843078613,
+   "median": 1531.8493843078613,
+   "mean": 1531.8493843078613,
+   "p90": 1531.8493843078613,
+   "max": 1531.8493843078613,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x64_int8/run_captured",
+  "ts": "2026-11-14T11:52:27+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   749.5651
+  ],
+  "summary": {
+   "n": 1,
+   "min": 749.5651245117188,
+   "p10": 749.5651245117188,
+   "median": 749.5651245117188,
+   "mean": 749.5651245117188,
+   "p90": 749.5651245117188,
+   "max": 749.5651245117188,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x64_int8/run_alt",
+  "ts": "2026-11-14T11:52:27+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   940.2766
+  ],
+  "summary": {
+   "n": 1,
+   "min": 940.2766227722168,
+   "p10": 940.2766227722168,
+   "median": 940.2766227722168,
+   "mean": 940.2766227722168,
+   "p90": 940.2766227722168,
+   "max": 940.2766227722168,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x64_int8/total_cold",
+  "ts": "2026-11-14T11:52:27+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1837.945
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1837.9449844360352,
+   "p10": 1837.9449844360352,
+   "median": 1837.9449844360352,
+   "mean": 1837.9449844360352,
+   "p90": 1837.9449844360352,
+   "max": 1837.9449844360352,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x896_int8/run_captured",
+  "ts": "2026-11-14T11:52:29+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   725.3604
+  ],
+  "summary": {
+   "n": 1,
+   "min": 725.3603935241699,
+   "p10": 725.3603935241699,
+   "median": 725.3603935241699,
+   "mean": 725.3603935241699,
+   "p90": 725.3603935241699,
+   "max": 725.3603935241699,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x896_int8/run_alt",
+  "ts": "2026-11-14T11:52:29+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   694.5114
+  ],
+  "summary": {
+   "n": 1,
+   "min": 694.5114135742188,
+   "p10": 694.5114135742188,
+   "median": 694.5114135742188,
+   "mean": 694.5114135742188,
+   "p90": 694.5114135742188,
+   "max": 694.5114135742188,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x896_int8/total_cold",
+  "ts": "2026-11-14T11:52:29+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1528.9214
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1528.921365737915,
+   "p10": 1528.921365737915,
+   "median": 1528.921365737915,
+   "mean": 1528.921365737915,
+   "p90": 1528.921365737915,
+   "max": 1528.921365737915,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x96_int8/run_captured",
+  "ts": "2026-11-14T11:52:30+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   716.7246
+  ],
+  "summary": {
+   "n": 1,
+   "min": 716.7246341705322,
+   "p10": 716.7246341705322,
+   "median": 716.7246341705322,
+   "mean": 716.7246341705322,
+   "p90": 716.7246341705322,
+   "max": 716.7246341705322,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x96_int8/run_alt",
+  "ts": "2026-11-14T11:52:30+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   735.5063
+  ],
+  "summary": {
+   "n": 1,
+   "min": 735.5062961578369,
+   "p10": 735.5062961578369,
+   "median": 735.5062961578369,
+   "mean": 735.5062961578369,
+   "p90": 735.5062961578369,
+   "max": 735.5062961578369,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x96_int8/total_cold",
+  "ts": "2026-11-14T11:52:30+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1549.8869
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1549.88694190979,
+   "p10": 1549.88694190979,
+   "median": 1549.88694190979,
+   "mean": 1549.88694190979,
+   "p90": 1549.88694190979,
+   "max": 1549.88694190979,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x64_int8/run_captured",
+  "ts": "2026-11-14T11:52:32+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   747.3755
+  ],
+  "summary": {
+   "n": 1,
+   "min": 747.37548828125,
+   "p10": 747.37548828125,
+   "median": 747.37548828125,
+   "mean": 747.37548828125,
+   "p90": 747.37548828125,
+   "max": 747.37548828125,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x64_int8/run_alt",
+  "ts": "2026-11-14T11:52:32+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   735.1253
+  ],
+  "summary": {
+   "n": 1,
+   "min": 735.1253032684326,
+   "p10": 735.1253032684326,
+   "median": 735.1253032684326,
+   "mean": 735.1253032684326,
+   "p90": 735.1253032684326,
+   "max": 735.1253032684326,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x64_int8/total_cold",
+  "ts": "2026-11-14T11:52:32+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1581.8167
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1581.8166732788086,
+   "p10": 1581.8166732788086,
+   "median": 1581.8166732788086,
+   "mean": 1581.8166732788086,
+   "p90": 1581.8166732788086,
+   "max": 1581.8166732788086,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x896_int8/run_captured",
+  "ts": "2026-11-14T11:52:34+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   723.7816
+  ],
+  "summary": {
+   "n": 1,
+   "min": 723.7815856933594,
+   "p10": 723.7815856933594,
+   "median": 723.7815856933594,
+   "mean": 723.7815856933594,
+   "p90": 723.7815856933594,
+   "max": 723.7815856933594,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x896_int8/run_alt",
+  "ts": "2026-11-14T11:52:34+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   741.9198
+  ],
+  "summary": {
+   "n": 1,
+   "min": 741.919755935669,
+   "p10": 741.919755935669,
+   "median": 741.919755935669,
+   "mean": 741.919755935669,
+   "p90": 741.919755935669,
+   "max": 741.919755935669,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x896_int8/total_cold",
+  "ts": "2026-11-14T11:52:34+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1570.5774
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1570.5773830413818,
+   "p10": 1570.5773830413818,
+   "median": 1570.5773830413818,
+   "mean": 1570.5773830413818,
+   "p90": 1570.5773830413818,
+   "max": 1570.5773830413818,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x96_int8/run_captured",
+  "ts": "2026-11-14T11:52:35+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   713.7642
+  ],
+  "summary": {
+   "n": 1,
+   "min": 713.7641906738281,
+   "p10": 713.7641906738281,
+   "median": 713.7641906738281,
+   "mean": 713.7641906738281,
+   "p90": 713.7641906738281,
+   "max": 713.7641906738281,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x96_int8/run_alt",
+  "ts": "2026-11-14T11:52:35+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   722.5621
+  ],
+  "summary": {
+   "n": 1,
+   "min": 722.5620746612549,
+   "p10": 722.5620746612549,
+   "median": 722.5620746612549,
+   "mean": 722.5620746612549,
+   "p90": 722.5620746612549,
+   "max": 722.5620746612549,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x96_int8/total_cold",
+  "ts": "2026-11-14T11:52:35+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1530.9539
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1530.9538841247559,
+   "p10": 1530.9538841247559,
+   "median": 1530.9538841247559,
+   "mean": 1530.9538841247559,
+   "p90": 1530.9538841247559,
+   "max": 1530.9538841247559,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x64_int8/run_captured",
+  "ts": "2026-11-14T11:52:37+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   752.4683
+  ],
+  "summary": {
+   "n": 1,
+   "min": 752.4683475494385,
+   "p10": 752.4683475494385,
+   "median": 752.4683475494385,
+   "mean": 752.4683475494385,
+   "p90": 752.4683475494385,
+   "max": 752.4683475494385,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x64_int8/run_alt",
+  "ts": "2026-11-14T11:52:37+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   710.1018
+  ],
+  "summary": {
+   "n": 1,
+   "min": 710.101842880249,
+   "p10": 710.101842880249,
+   "median": 710.101842880249,
+   "mean": 710.101842880249,
+   "p90": 710.101842880249,
+   "max": 710.101842880249,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x64_int8/total_cold",
+  "ts": "2026-11-14T11:52:37+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1564.8103
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1564.8102760314941,
+   "p10": 1564.8102760314941,
+   "median": 1564.8102760314941,
+   "mean": 1564.8102760314941,
+   "p90": 1564.8102760314941,
+   "max": 1564.8102760314941,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x896_int8/run_captured",
+  "ts": "2026-11-14T11:52:38+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   694.0136
+  ],
+  "summary": {
+   "n": 1,
+   "min": 694.0135955810547,
+   "p10": 694.0135955810547,
+   "median": 694.0135955810547,
+   "mean": 694.0135955810547,
+   "p90": 694.0135955810547,
+   "max": 694.0135955810547,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x896_int8/run_alt",
+  "ts": "2026-11-14T11:52:38+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   689.4801
+  ],
+  "summary": {
+   "n": 1,
+   "min": 689.4800662994385,
+   "p10": 689.4800662994385,
+   "median": 689.4800662994385,
+   "mean": 689.4800662994385,
+   "p90": 689.4800662994385,
+   "max": 689.4800662994385,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x896_int8/total_cold",
+  "ts": "2026-11-14T11:52:38+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1502.1498
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1502.1498203277588,
+   "p10": 1502.1498203277588,
+   "median": 1502.1498203277588,
+   "mean": 1502.1498203277588,
+   "p90": 1502.1498203277588,
+   "max": 1502.1498203277588,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x96_int8/run_captured",
+  "ts": "2026-11-14T11:52:40+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   869.9162
+  ],
+  "summary": {
+   "n": 1,
+   "min": 869.9162006378174,
+   "p10": 869.9162006378174,
+   "median": 869.9162006378174,
+   "mean": 869.9162006378174,
+   "p90": 869.9162006378174,
+   "max": 869.9162006378174,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() \u4e00\u6b21\uff08\u542b adb \u63a8\u62c9 + npu_run 200ms \u7b49\u5f85\uff09"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x96_int8/run_alt",
+  "ts": "2026-11-14T11:52:40+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   775.2237
+  ],
+  "summary": {
+   "n": 1,
+   "min": 775.2237319946289,
+   "p10": 775.2237319946289,
+   "median": 775.2237319946289,
+   "mean": 775.2237319946289,
+   "p90": 775.2237319946289,
+   "max": 775.2237319946289,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "\u6362\u4e00\u5bf9\u8f93\u5165\u7684\u7b2c\u4e8c\u6b21 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x96_int8/total_cold",
+  "ts": "2026-11-14T11:52:40+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1748.2629
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1748.262882232666,
+   "p10": 1748.262882232666,
+   "median": 1748.262882232666,
+   "mean": 1748.262882232666,
+   "p90": 1748.262882232666,
+   "max": 1748.262882232666,
+   "mad": 0.0,
+   "stdev": 0.0,
+   "jitter_pct": 0.0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + \u6355\u83b7 + \u4e24\u6b21 run + \u4e24\u9053\u95e8"
+  }
+ }
+]

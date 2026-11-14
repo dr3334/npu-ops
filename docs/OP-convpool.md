@@ -298,6 +298,20 @@ explained. For a chain of N int8 ops the expected worst case is N LSB and not a 
 if a future op must be bit-exact, the golden should use the two-step rule (§5 formula), not
 `round-half-away`.
 
+**Status after ticket 02 (2026-11-13, `impl/q02-int8-bitexact`).** The rule now lives in
+`tools/quant_contract.py` and is what the FC / BMM / dynB builders ship, so those tiers are
+`int8_tol = 0` (35 ops, 145 296 recorded device values, 0 mismatches —
+`reports/Q02-int8-bitexact.md`). Two things this page should be read with:
+
+- the residual "conv golden still uses the old rational rule" cases are exactly three op dirs —
+  `conv_1x8x8x4_f3_full_int8`, `_relu6_int8`, `_div3_int8` — kept as the *historical*
+  FAIL records of the falsified prediction; their `*_devrule_int8` twins are the authoritative
+  0/512 versions (`div3`'s 167/512 in the §3 table is that record, not a live contract).
+- the "exact M0 normalisation when the ratio is not representable" UNKNOWN gets one more data
+  point: when the ratio **is** exactly 1/32 the device's M0 is the ideal 2^30, **not** the value
+  reverse-engineered from the float32 scale product (1073741840 — 69 mismatches on the same dump).
+  So ncc normalises ideally when it can; the non-representable case stays open.
+
 ## 6. Device-state hygiene (R7 / §3.4)
 
 `./tools/healthcheck.sh` was run after the 21-op batch (device lock held):
@@ -402,3 +416,15 @@ NPU_LOCK="/d/deepseek_ workspace/mtk/.npu-board.lock" ./tools/devlock.sh run -- 
    two candidate formulas in §3.4; (b) fp16 conv/pool to see whether the int8-only limits in
    §4 are dtype-dependent; (c) per-channel weight scales (the common case in real models);
    (d) an `[1,H,W,K]` matmul-as-conv with W>1 to see whether the C≥32 split disappears.
+---
+
+## 订正（2026-11-13）：三份历史 rational 目录不重建
+
+`ops/conv_1x8x8x4_f3_{full,relu6,div3}_int8` 的 golden 用的是 **旧 rational 规则（float64 单次取整）**，与设备的两次舍入契约差 1 码（`div3` 的 `compare.txt` 里 167/512 就是这个）。
+
+处理：**保留为历史证据，不重建、不删除**；权威结果看同名的 `*_devrule` 目录（那批生来就用设备规则，0/512）。理由：
+1. 仓库规则是「失败与旧结论都保留」，删掉会丢掉「当时我们以为规则是什么」的记录；
+2. 重建这三份要 3 次板端运行，而 `*_devrule` 已经覆盖了同样的形状与结论；
+3. 它们的 `int8_tol` 仍是 1，不会被误读成「逐位通过」。
+
+同一批订正见 `reports/Q02-int8-bitexact.md`（FC/BMM 的 requant 契约修复，35 个 op / 145,296 值，新 golden 0 失配）。

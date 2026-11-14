@@ -14,8 +14,9 @@ import sys
 
 import numpy as np
 
-DT = {"int8": np.int8, "int32": np.int32, "float32": np.float32, "float16": np.float16,
-      "i8": np.int8, "i32": np.int32, "fp32": np.float32, "fp16": np.float16}
+DT = {"int8": np.int8, "int16": np.int16, "int32": np.int32,
+      "float32": np.float32, "float16": np.float16,
+      "i8": np.int8, "i16": np.int16, "i32": np.int32, "fp32": np.float32, "fp16": np.float16}
 
 
 def main():
