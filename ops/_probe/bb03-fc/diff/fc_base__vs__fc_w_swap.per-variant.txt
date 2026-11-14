@@ -1,6 +1,6 @@
 # diff fc_base vs fc_w_swap
 size: 7635 vs 7635 (delta +0)
-diff bytes=4137   inside noise=57   outside noise=4080
+diff bytes=4124   inside noise=44   outside noise=4080
 ranges (outside noise, top 40):
     1951..1993    len=43
     1995..2196    len=202
