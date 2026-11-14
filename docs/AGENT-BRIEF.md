@@ -21,6 +21,9 @@
 2. `ops/<name>/model.compile.log`（`tools/compile.sh` 输出，含 exit / target / sha256）；
 3. 板端数值结果 `compare.txt`（跑 `tools/e2e.sh`，必须 PASS 或明确记录失败原因）；
 4. 一条实验记录（你自己的 `docs/OP-<范围>.md`，按"假设/预测/做法/结果/适用范围/剩余疑问"写）。
+5. （2026-11-14 起）走 `tools/npu_lib` 的算子**不产出 1–3**：它的等价物是 `artifacts/<name>/evidence.json`
+   （plan 全文 + 两道门 + 各文件 sha256 + 「运行期零厂商库」证据）。判据口径见
+   `docs/OWN-SUBMITTER-LIB.md` §6.3，**不要因为缺 `compare.txt` 就判无证据**。
 
 ## 4. 硬规则（来自 AGENTS.md）
 - `--disallow-bridge` 恒开；bridge = 没上 NPU = 失败。

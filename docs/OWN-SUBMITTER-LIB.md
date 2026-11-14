@@ -277,6 +277,16 @@ requant 口径（为什么这一票的 `int8_tol = 0`）：本库把输出 scale
 
 ---
 
+### 6.3 改动边界与证据体系（2026-11-14 补记）
+
+- **`probe/` 由本库改，且只由 Lead 改。** 提交器本体就在 `probe/`（`npu_run.c` / `iolog2.c` / `mkasset.py`），
+  本库不可能不改它们。按 [`docs/AGENT-BRIEF.md`](AGENT-BRIEF.md) §2「公共工具的行为变化由 Lead 统一改」，
+  这些改动一律由 Lead 在本分支完成，并在对应 commit 与 `reports/npu-lib-*.md` 里留证据。
+  **并行 agent 仍然不要碰 `probe/`。**
+- **证据体系有两套，等价。** `ops/<name>/compare.txt` 是「一算子一目录」体系的板端判据；
+  本库路径下的等价物是 `artifacts/<name>/evidence.json`（plan 全文 + 两道门 + 各文件 sha256 + no_vendor_lib 证据）。
+  两者等价 —— 不要因为某算子没有 `compare.txt` 就判「无证据」。
+
 ## 7. 复现
 
 ```bash

@@ -71,16 +71,18 @@ def reference(op, a_codes, b_codes, s_a, s_b, s_out, zp_out=0, axis=None):
     FC 的 a 是 [M,K]、b 是 [N,K]（TFLite 的权重布局），输出按行展平是 [M,N]。
     """
     if op == "mean":
-        # 整数归约 + 仓库的两步舍入契约（与 ops/mean_4x16_int8 那条已上板的约定一致：
-        # 输出 scale == 输入 scale，于是 multiplier = 1/K，码值 = round(sum/K)）
+        # MEAN 不走 gemmlowp 两步舍入：设备是 **round-half-up（.5 朝 +∞）**。
+        # 证据：K=16/32/64 × 8 行 = 24 个点全中（.scratch/self-built-runtime/issues/09-mean-k32-golden.md）。
+        # 旧写法用 quant_contract，只在「恰好 .5」时不同 —— K=16 的样本没踩到 .5，所以当时"通过"是运气。
+        # 目前证据只覆盖 ratio = s_a/(K*s_out) == 1/K 的情形（输出 scale == 输入 scale）。
         a = np.asarray(a_codes, dtype=np.int64)
         ax = -1 if axis is None else int(axis)
         acc = a.sum(axis=ax, keepdims=True)
         k = a.shape[ax]
         ratio = s_a / (k * s_out)
-        codes = qc.requant_int8(acc, ratio)
+        codes = np.floor(acc.astype(np.float64) * ratio + 0.5).astype(np.int64)
         if int(zp_out):
-            codes = np.clip(codes.astype(np.int64) + int(zp_out), -128, 127)
+            codes = np.clip(codes + int(zp_out), -128, 127)
         return codes.astype(np.int8), acc, ratio
     if op == "rsqrt":
         x = np.asarray(a_codes, dtype=np.float64) * s_a
