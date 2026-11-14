@@ -204,12 +204,18 @@ static ssize_t guarded_copy(void *dst, uintptr_t src, size_t n) {
   return done;
 }
 
+struct allocrec { uint64_t handle; uint32_t size; };
+#define MAXALLOC 64
+static struct allocrec g_allocs[MAXALLOC];
+static int g_nallocs = 0;
+static uint32_t g_pending_alloc_size = 0;   /* MEM ALLOC 请求里的 size（POST 时被响应覆盖） */
+
 static void dump_buffers(void) {
   const char *dir = getenv("IODIR");
   if (!dir) dir = "/data/local/tmp/npuops/probe/buf";
   char path[256];
   for (int i = 0; i < nmaps; i++) {
-    if (maps[i].len < 8 || maps[i].len > (4u << 20)) continue;   /* 放宽到 4 MiB：大 FC 的常量权重缓冲要能抓 */
+    if (maps[i].len < 8 || maps[i].len > (64u << 20)) continue;  /* 64 MiB：真维度的常量区是 28 MB，4 MiB 上限会跳过它 */
     snprintf(path, sizeof(path), "%s/map%02d_fd%d_len%zx%s.bin", dir, i, maps[i].fd,
              maps[i].len, getenv("BUFSUFFIX") ? getenv("BUFSUFFIX") : "");
     int f = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -226,6 +232,41 @@ static void dump_buffers(void) {
     }
     close(f);
     dprintf(logfd, "BUFDUMP %s wrote=0x%zx/0x%zx\n", path, done, maps[i].len);
+  }
+  /* ALLOC 过但进程没 mmap 的缓冲（整块的 28 MB 常量区就是这样：厂商 runtime 把 .dla 的
+     内容直接写进这块 dma-buf，不经过 mmap，所以以前抓不到）。这里自己 mmap 一次再 dump。 */
+  dprintf(logfd, "ALLOCS n=%d (dumping unmapped allocations)\n", g_nallocs);
+  for (int a = 0; a < g_nallocs; a++) {
+    if (g_allocs[a].size < 8 || g_allocs[a].size > (64u << 20)) continue;
+    int seen = 0;
+    for (int i = 0; i < nmaps; i++)
+      if (maps[i].fd == (int)g_allocs[a].handle && maps[i].len == g_allocs[a].size) { seen = 1; break; }
+    if (seen) continue;
+    void *mp = real_mmap(NULL, g_allocs[a].size, PROT_READ | PROT_WRITE, MAP_SHARED,
+                         (int)g_allocs[a].handle, 0);
+    if (mp == MAP_FAILED) {
+      dprintf(logfd, "BUFDUMP-ALLOC skip fd=%d size=%u (mmap failed errno=%d)\n",
+              (int)g_allocs[a].handle, g_allocs[a].size, errno);
+      continue;
+    }
+    snprintf(path, sizeof(path), "%s/map%02d_fd%d_len%zx%s.bin", dir, 100 + a,
+             (int)g_allocs[a].handle, (size_t)g_allocs[a].size,
+             getenv("BUFSUFFIX") ? getenv("BUFSUFFIX") : "");
+    int f = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (f >= 0) {
+      size_t done = 0;
+      while (done < g_allocs[a].size) {
+        size_t chunk = g_allocs[a].size - done;
+        if (chunk > 4096) chunk = 4096;
+        ssize_t w = write(f, (const char *)mp + done, chunk);
+        if (w <= 0) break;
+        done += (size_t)w;
+      }
+      close(f);
+      dprintf(logfd, "BUFDUMP-ALLOC %s wrote=0x%zx/0x%zx\n", path, done,
+              (size_t)g_allocs[a].size);
+    }
+    munmap(mp, g_allocs[a].size);
   }
 }
 
@@ -267,6 +308,8 @@ int ioctl(int fd, int req_, ...) {
   if (apusys) {
     dprintf(logfd, "PRE  fd=%d nr=%u size=%u\n", fd, nr, size);
     if (arg && size >= 8 && size <= 256) hexdump("in ", arg, size, 2);
+    if (nr == 33 && arg && size >= 24 && *(const uint32_t *)arg == 0)
+      memcpy(&g_pending_alloc_size, (const char *)arg + 20, 4);
     if (nr == 34 && arg && size >= 8 && ((unsigned char *)arg)[0] == 0 /* RUN */) {
       static int patch_loaded = 0;
       if (!patch_loaded) { patch_loaded = 1; load_patch(); }
@@ -306,6 +349,16 @@ int ioctl(int fd, int req_, ...) {
   if (apusys) {
     dprintf(logfd, "POST fd=%d nr=%u size=%u ret=%d errno=%d\n", fd, nr, size, ret, err);
     if (arg && size >= 8 && size <= 256) hexdump("out", arg, size, 2);
+    /* 记下每次 ALLOC 的 (handle,size)，供 dump_buffers 补抓"没被 mmap 过"的缓冲 */
+    if (nr == 33 && arg && size >= 24 && ret == 0 && g_nallocs < MAXALLOC) {
+      uint64_t h = 0; memcpy(&h, arg, 8);
+      if (h && g_pending_alloc_size) {
+        g_allocs[g_nallocs].handle = h;
+        g_allocs[g_nallocs].size = g_pending_alloc_size;
+        g_nallocs++;
+      }
+      g_pending_alloc_size = 0;
+    }
   }  errno = err;
   return ret;
 }
