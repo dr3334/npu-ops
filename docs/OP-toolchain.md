@@ -211,6 +211,8 @@ DLA -P3,   ask=3 -> INFO: The profiling level is now set to 3
 ```text
 最慢核 endCycle 263906，另一核 189009；运行时 exec_us = 264 µs  ->  263906/264µs = 999.6 MHz ≈ 1.0 GHz
 us = cycles / 1000；带宽 = 该 flow 的 bufferAccesses 字节和 / us
+# 注意：exec_us 跨运行会波动（同图另一样本 397 µs -> 665 MHz），时钟的诚实区间是 0.67–1.0 GHz；
+#       占比/相对大小不受影响。要把时钟钉死，需在同一次 level-3 运行里同时取 exec_us。
 ```
 
 | 核 | 命令 | 算子 | µs | 占该核 | 带宽 |

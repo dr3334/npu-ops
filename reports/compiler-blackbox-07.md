@@ -7,9 +7,10 @@
 
 **出口存在，而且不是 `--Xruntime`，是 `ncc-tflite -P<level>` 编译器开关 + `MTKNN_ENABLE_PROFILER/MTKNN_PROFILING_LEVEL` 运行时环境变量**：
 level 3 会把每一次推理的**每一条命令**（per-command）的 PMU 记录 dump 成两个 JSON，含 `endCycle` 与逐命令的 `opIndices` / `bufferAccesses`；
-用最慢核的 `endCycle` 对运行时的 `exec_us` 定标得到 **999.6 MHz ≈ 1.0 GHz**，于是每命令的 µs 与带宽都能算出来，
-**sum（最慢核）= 264 µs = 运行时 `exec_us`**（判据达成），但 **≠ `neuronrt -c N` 的 692…1066 µs**——差额是运行时自身的提交/同步开销，
-这本身是「找瓶颈」环节最该知道的一条。
+用最慢核的 `endCycle` 对运行时的 `exec_us` 定标，得到 **999.6 MHz ≈ 1.0 GHz**（跨运行定标，另一样本是 665 MHz，
+所以时钟的诚实区间是 **0.67–1.0 GHz**），于是每命令的 µs 与带宽都能算出来，
+**sum（最慢核）= 264 µs = 运行时 `exec_us`**（判据达成，**占比不受时钟影响**），但 **≠ `neuronrt -c N` 的 692…1066 µs**——
+设备侧计算只占墙钟 **25–39%**，差额是运行时自身的提交/同步开销，这本身是「找瓶颈」环节最该知道的一条。
 
 **代价与雷**：level 3 的观测开销是 7.2×（1.35 → 9.7 ms/inf），并且**跑完 level 3 之后板子进入 `MDLA timeout` 坏态**
 （连 known-good `fc_1x64x64_int8` 也 `Inference fail`，需 reboot）——详见 §8。
@@ -176,7 +177,11 @@ dla_info.json        : 同一批 flow id -> {opIndices[], bufferAccesses[{buffer
 ### 6.3 定标：999.6 MHz（两个核互相印证）
 
 - 最慢核最后一条 `endCycle` = **263,906**，另一核 = **189,009**；
-- 运行时 `exec_us`（同一份 DLA）= **264 µs**；263,906 / 264 µs = **999.6 MHz** —— 正好 1.0 GHz；
+- 运行时 `exec_us`（同一份 DLA，**另一次运行**）= **264 µs**；263,906 / 264 µs = **999.6 MHz** —— 正好 1.0 GHz；
+- ⚠️ **这个定标是跨运行的**：同图同板第二次量 `exec_us` 是 **397 µs**（见 §6.5 的第二样本），
+  照 397 µs 反推就只有 **665 MHz**。所以「1.0 GHz」是这个读法**最自洽的那个点**，不是硬结论：
+  时钟的合理区间是 **0.67–1.0 GHz**，每命令的 µs 也带同样的 ±50% 尺度（**比例/占比不受影响**，因为它是线性的）；
+  要钉死时钟，必须在**同一次 level-3 运行里**同时取 `exec_us`（见 §9）。
 - 于是 `us = cycles / 1000`，另一核 = **189 µs**（比最慢核早 75 µs 收工、之后空转）；
 - **两个核用同一个时钟都自洽**，这是「`endCycle` 就是完成时刻」这个读法的交叉验证；
   另一个候选读法（event 6914 − 6912）求和是最慢核 `endCycle` 的 ~30 倍，**不自洽，未采用**（事件语义仍未知）。
@@ -207,6 +212,7 @@ dla_info.json        : 同一批 flow id -> {opIndices[], bufferAccesses[{buffer
 | 设备侧计算占墙钟 | **25–38%** | 其余是运行时提交/同步/IO 开销 |
 | 同图 `full_p0`（不打 -P） | exec_us **178 µs** / 墙钟 788–1066 µs | -P3 的 exec_us 更高（264），但墙钟无显著差异 |
 | 观测开销 | level1 1.35 → level2 1.73 → **level3 9.74 ms/inf** | **7.2×**（`-c 5`，同图同机） |
+| **第二样本**（重启后、健康板、无 profiler 环境） | `full_p3` exec_us **397** / 墙钟 977–1030；`full_p0` exec_us **267** / 墙钟 742 | 计算占墙钟 **36–39%**；`exec_us` 本身跑间波动 **+50%**（264→397） |
 
 **判据结论**：**拿到每命令耗时与带宽，且「每核 sum = 运行时 exec_us」成立**；但 **≠ `neuronrt -c N` 的墙钟**，
 差额是运行时开销——这不是我们漏了一层，而是两个量本来就不同（一个是设备侧命令时间，一个是含提交/同步的端到端时间）。
@@ -221,7 +227,8 @@ dla_info.json        : 同一批 flow id -> {opIndices[], bufferAccesses[{buffer
 | 3 | DLA 自带 profiling 等级，运行时只能降到该等级 | §3.2 的 8 组消息 | **已验证** | 用 `-P3` 产物被降级即推翻 |
 | 4 | `--gen-debug-info` ≠ profiling 等级（不满足任何等级） | q100 ask=3 → "only supports 0" | **已验证** | 用 `--gen-debug-info` 产物通过 level 3 即推翻 |
 | 5 | level 3 把每命令 PMU dump 成 `execution_result.json`+`dla_info.json` | 板端 272 KB / 21 KB | **已验证** | 换图跑不到 flow 级数据即推翻 |
-| 6 | 每命令时长 = `endCycle` 差；时钟 ≈ 1.0 GHz（两核自洽） | §6.3 | **已验证（交叉印证）** | 用另一个已知时长的图复算，若两核推出的时钟不一致即推翻 |
+| 6 | 每命令时长 = `endCycle` 差（单调、求和 = 该核末值） | §6.3 | **已验证** | 换图后 `endCycle` 序列非单调即推翻 |
+| 6b | 时钟 ≈ 1.0 GHz（由跨运行的 `exec_us=264` 定标；第二样本给出 665 MHz） | §6.3 | **推测**（区间 0.67–1.0 GHz） | 在同一次 level-3 运行里取 `exec_us`，即可钉死 |
 | 7 | PMU 的 14 个 event id 的语义 | —— | **未知** | 官方文档/更多对照实验 |
 | 8 | `opIndices` → 层名的映射可以直接做（本报告用 tflite opcode 表反查） | §6.4 | **已验证** | —— |
 | 9 | `MTKNN_PER_OP_PROFILE` 没有额外效果 | 宿主 + 板端都无 Per-OP Report | **推测**（可能是板端/hw 版本不支持，或要更高 level） | 在别的芯片/运行时版本上出现 Per-OP Report |
@@ -262,7 +269,11 @@ dmesg（`ops/_probe/bb07-prof/board/dmesg-apu.txt`）：
 - **运行时开销的分解**：`neuronrt -c N` 的墙钟里 62–75% 不在设备侧，这需要单独量（SetInput/SetOutput/wait 各占多少），
   §3.3 的 LEVEL 1/2 表正好是为此准备的，但板端只在 level≤2 时便宜可用。
 - **`getProfiledQoSData` 只给 1 个 sub-command**（整图一条命令），拿不到每层；每层必须走 level 3 的 JSON。
-- 板子坏态未修（等 reboot），本票的板端实验到此为止。
+- **时钟没钉死**：现在的 1.0 GHz 是「level-3 的 `endCycle`」对「另一次运行的 `exec_us`」定出来的，
+  而 `exec_us` 两次相差 50%（264 / 397）。下一步只要在**同一次 level-3 运行**里同时取 `exec_us`
+  （给 `profqos` 开着 `MTKNN_PROFILING_LEVEL=3` 跑一次，读它自己的 JSON + 自己的 `exec_us`）就能把时钟锁死——
+  本票没做，因为 level 3 会把板子跑坏（§8），留作下次单独一轮。
+- 板子坏态已由**设备自动重启**恢复，重启后需 `adb root`（§8）；本票的板端实验到此为止。
 
 ## 10. 验收口径
 
