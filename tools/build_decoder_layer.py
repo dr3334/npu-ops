@@ -402,6 +402,9 @@ class G:
         self.b = flatbuffers.Builder(1 << 20)
         self.buffers = [bo.buf_empty(self.b)]
         self.tensors, self.opcodes, self.ops = [], [], []
+        self.dyn = False          # True: 权重/偏置声明为图输入（不编进产物）
+        self.dyn_names = []       # 动态输入的张量名，顺序即运行期 -i 顺序（x 之后）
+        self.dyn_arrays = []      # 与 dyn_names 对应的 fp16 数据（写盘用）
         self.idx = {}
 
     def _t(self, name, shape, ttype, buf):
@@ -417,6 +420,13 @@ class G:
         self.buffers.append(bo.buf_data(self.b, a))
         return self._t(name, a.shape, ttype, len(self.buffers) - 1)
 
+    def dinput(self, name, arr):
+        """把张量声明为**图输入**：buffer 0（无数据），数据在运行期喂。"""
+        a = np.ascontiguousarray(np.asarray(arr, np.float16))
+        self.dyn_names.append(name)
+        self.dyn_arrays.append(a)
+        return self._t(name, a.shape, bo.F16, 0)
+
     def act(self, name, shape):
         return self._t(name, shape, bo.F16, 0)
 
@@ -426,13 +436,22 @@ class G:
         return self.ops[-1]
 
     def finish(self, inputs, outputs, desc):
+        globals()["LAST_DYN_NAMES"] = list(self.dyn_names)
+        globals()["LAST_DYN_ARRAYS"] = list(self.dyn_arrays)
+        ins = [self.idx[n] for n in self.dyn_names] + list(inputs)
         return bo.finish(self.b, self.buffers, self.opcodes, self.tensors, self.ops,
-                         inputs, outputs, desc)
+                         ins, outputs, desc)
 
     # ---- helpers (each returns the index of its output tensor) -------------------
     def fc(self, inp, name, w, bias, n):
-        tw = self.const(name + "_W", np.asarray(w, np.float16))
-        tb = self.const(name + "_b", np.asarray(bias, np.float16))
+        if self.dyn:
+            # MDLA 硬约束：权重可以是动态输入，**bias 必须常量**
+            # （ncc 报 "MDLA: bias should be constant"，见 .scratch/self-built-runtime/issues/07）
+            tw = self.dinput(name + "_W", np.asarray(w, np.float16))
+            tb = self.const(name + "_b", np.asarray(bias, np.float16))
+        else:
+            tw = self.const(name + "_W", np.asarray(w, np.float16))
+            tb = self.const(name + "_b", np.asarray(bias, np.float16))
         t = self.act(name, (T, n))
         S = bo.S
         S.FullyConnectedOptionsStart(self.b)
@@ -561,9 +580,10 @@ def rmsnorm_nodes(g, x, name, gamma):
     return g.mul(sc, name + "_norm", b=g.const(name + "_gamma", np.asarray(gamma, np.float16)))
 
 
-def build_graph(P, first="full", stage="out"):
+def build_graph(P, first="full", stage="out", dyn=False):
     """first='full'|'attn_half'|'ffn_half'; stage = the full-chain tensor to stop at."""
     g = G()
+    g.dyn = dyn
     x = g.act("x", (T, D))
     desc = "decoder layer qwen2.5-0.5b T=%d fp16 14Q/2KV" % T
 
@@ -728,6 +748,8 @@ def main():
                     help="sequence length (static shape; RoPE cos/sin tables are data)")
     ap.add_argument("--variant", choices=["full", "attn_half", "ffn_half"], default="full")
     ap.add_argument("--stage", choices=STAGES, default="out")
+    ap.add_argument("--dynamic-weights", action="store_true",
+                    help="把 FC 的权重/偏置声明为图输入（Static 应为 0）；数据写到 <out>/dyn/")
     ap.add_argument("--diag", action="store_true")
     ap.add_argument("--analyze", action="store_true")
     ap.add_argument("--execcheck", action="store_true",
@@ -784,7 +806,7 @@ def main():
         sim = np.asarray(forward(x16, P, np.float32, True, stage)[stage], np.float16)
         g64 = forward(x16, P, np.float64, False, stage)[stage]
 
-    blob = build_graph(P, first=a.variant, stage=stage)
+    blob = build_graph(P, first=a.variant, stage=stage, dyn=a.dynamic_weights)
 
     mx = float(np.abs(exp.astype(np.float64)).max())
     ulp = float(np.spacing(np.float16(mx)))
@@ -819,6 +841,21 @@ def main():
     mask_ok = S_scaled
 
     os.makedirs(os.path.join(a.out, "golden"), exist_ok=True)
+    dyn_meta = []
+    if getattr(a, "dynamic_weights", False):
+        ddir = os.path.join(a.out, "dyn")
+        os.makedirs(ddir, exist_ok=True)
+        names = globals().get("LAST_DYN_NAMES") or []
+        arrays = globals().get("LAST_DYN_ARRAYS") or []
+        for nm, arr in zip(names, arrays):
+            fn = "%s.bin" % nm
+            np.ascontiguousarray(arr, np.float16).tofile(os.path.join(ddir, fn))
+            dyn_meta.append({"name": nm, "file": "dyn/" + fn,
+                             "shape": list(arr.shape), "dtype": "float16",
+                             "bytes": int(arr.nbytes)})
+        print("dynamic weights: %d inputs, %.2f MiB -> %s"
+              % (len(dyn_meta), sum(d["bytes"] for d in dyn_meta) / 1048576.0, ddir))
+
     with open(os.path.join(a.out, "model.tflite"), "wb") as f:
         f.write(blob)
     np.ascontiguousarray(x_in, np.float16).tofile(os.path.join(a.out, "golden", "input.bin"))
