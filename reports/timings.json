@@ -1,0 +1,778 @@
+[
+ {
+  "name": "block_1l_fp16/ours_host_wall",
+  "ts": "2026-11-14T11:37:29+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   294.9228,
+   291.739,
+   288.6025,
+   300.9101,
+   314.698
+  ],
+  "summary": {
+   "n": 5,
+   "min": 288.6024639956304,
+   "p10": 289.85707279789494,
+   "median": 294.92280799604487,
+   "mean": 298.1744713993976,
+   "p90": 309.18284940125886,
+   "max": 314.6980489982525,
+   "mad": 5.987242009723559,
+   "stdev": 9.21003930407166,
+   "jitter_pct": 2.030104775688916
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "每次一个新进程 + adb shell；含 usleep(200ms) 盲等"
+  }
+ },
+ {
+  "name": "adb_rtt_floor",
+  "ts": "2026-11-14T11:37:30+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   71.6607,
+   67.1685,
+   76.712,
+   62.2265,
+   77.411
+  ],
+  "summary": {
+   "n": 5,
+   "min": 62.226545000157785,
+   "p10": 64.20331899862504,
+   "median": 71.66071199753787,
+   "mean": 71.0357475996716,
+   "p90": 77.13139100233093,
+   "max": 77.41095300298184,
+   "mad": 5.051336003816687,
+   "stdev": 5.758680748892243,
+   "jitter_pct": 7.0489615062577675
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "adb shell true 的往返时间（一切 adb 操作的地板）"
+  }
+ },
+ {
+  "name": "block_1l_fp16/device_submit_once",
+  "ts": "2026-11-14T11:37:30+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   201.171
+  ],
+  "summary": {
+   "n": 1,
+   "min": 201.171,
+   "p10": 201.171,
+   "median": 201.171,
+   "mean": 201.171,
+   "p90": 201.171,
+   "max": 201.171,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "device",
+   "note": "npu_run 自报：提交+200ms 等待+读回（不含 adb）"
+  }
+ },
+ {
+  "name": "block_qwen25_1l_fp16/vendor_ms_per_inf",
+  "ts": "2026-11-14T11:37:30+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1.039
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1.039,
+   "p10": 1.039,
+   "median": 1.039,
+   "mean": 1.039,
+   "p90": 1.039,
+   "max": 1.039,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "vendor_runtime",
+   "note": "e2e --repeat 5, 厂商 runtime 自报"
+  }
+ },
+ {
+  "name": "decoder_layer_t8_fp16/vendor_ms_per_inf",
+  "ts": "2026-11-14T11:37:30+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   2.3925
+  ],
+  "summary": {
+   "n": 1,
+   "min": 2.3925,
+   "p10": 2.3925,
+   "median": 2.3925,
+   "mean": 2.3925,
+   "p90": 2.3925,
+   "max": 2.3925,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "vendor_runtime",
+   "note": "e2e --repeat 2 厂商 runtime 自报；61 个原生层 = 一整层 decoder（D=896, T=8）"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x64_int8/run_captured",
+  "ts": "2026-11-14T11:37:49+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   855.7134
+  ],
+  "summary": {
+   "n": 1,
+   "min": 855.7133674621582,
+   "p10": 855.7133674621582,
+   "median": 855.7133674621582,
+   "mean": 855.7133674621582,
+   "p90": 855.7133674621582,
+   "max": 855.7133674621582,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() 一次（含 adb 推拉 + npu_run 200ms 等待）"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x64_int8/run_alt",
+  "ts": "2026-11-14T11:37:49+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   725.8294
+  ],
+  "summary": {
+   "n": 1,
+   "min": 725.8293628692627,
+   "p10": 725.8293628692627,
+   "median": 725.8293628692627,
+   "mean": 725.8293628692627,
+   "p90": 725.8293628692627,
+   "max": 725.8293628692627,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "换一对输入的第二次 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x64_int8/total_cold",
+  "ts": "2026-11-14T11:37:49+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1731.9977
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1731.9977283477783,
+   "p10": 1731.9977283477783,
+   "median": 1731.9977283477783,
+   "mean": 1731.9977283477783,
+   "p90": 1731.9977283477783,
+   "max": 1731.9977283477783,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + 捕获 + 两次 run + 两道门"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x896_int8/run_captured",
+  "ts": "2026-11-14T11:37:50+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   679.9736
+  ],
+  "summary": {
+   "n": 1,
+   "min": 679.9736022949219,
+   "p10": 679.9736022949219,
+   "median": 679.9736022949219,
+   "mean": 679.9736022949219,
+   "p90": 679.9736022949219,
+   "max": 679.9736022949219,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() 一次（含 adb 推拉 + npu_run 200ms 等待）"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x896_int8/run_alt",
+  "ts": "2026-11-14T11:37:50+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   707.5961
+  ],
+  "summary": {
+   "n": 1,
+   "min": 707.5960636138916,
+   "p10": 707.5960636138916,
+   "median": 707.5960636138916,
+   "mean": 707.5960636138916,
+   "p90": 707.5960636138916,
+   "max": 707.5960636138916,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "换一对输入的第二次 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x896_int8/total_cold",
+  "ts": "2026-11-14T11:37:50+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1492.0683
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1492.0682907104492,
+   "p10": 1492.0682907104492,
+   "median": 1492.0682907104492,
+   "mean": 1492.0682907104492,
+   "p90": 1492.0682907104492,
+   "max": 1492.0682907104492,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + 捕获 + 两次 run + 两道门"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x96_int8/run_captured",
+  "ts": "2026-11-14T11:37:52+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   703.3567
+  ],
+  "summary": {
+   "n": 1,
+   "min": 703.3567428588867,
+   "p10": 703.3567428588867,
+   "median": 703.3567428588867,
+   "mean": 703.3567428588867,
+   "p90": 703.3567428588867,
+   "max": 703.3567428588867,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() 一次（含 adb 推拉 + npu_run 200ms 等待）"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x96_int8/run_alt",
+  "ts": "2026-11-14T11:37:52+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   662.8599
+  ],
+  "summary": {
+   "n": 1,
+   "min": 662.8599166870117,
+   "p10": 662.8599166870117,
+   "median": 662.8599166870117,
+   "mean": 662.8599166870117,
+   "p90": 662.8599166870117,
+   "max": 662.8599166870117,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "换一对输入的第二次 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/add_1x96_int8/total_cold",
+  "ts": "2026-11-14T11:37:52+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1480.0382
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1480.0381660461426,
+   "p10": 1480.0381660461426,
+   "median": 1480.0381660461426,
+   "mean": 1480.0381660461426,
+   "p90": 1480.0381660461426,
+   "max": 1480.0381660461426,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + 捕获 + 两次 run + 两道门"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x64_int8/run_captured",
+  "ts": "2026-11-14T11:37:53+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   694.6805
+  ],
+  "summary": {
+   "n": 1,
+   "min": 694.6804523468018,
+   "p10": 694.6804523468018,
+   "median": 694.6804523468018,
+   "mean": 694.6804523468018,
+   "p90": 694.6804523468018,
+   "max": 694.6804523468018,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() 一次（含 adb 推拉 + npu_run 200ms 等待）"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x64_int8/run_alt",
+  "ts": "2026-11-14T11:37:53+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   802.0113
+  ],
+  "summary": {
+   "n": 1,
+   "min": 802.011251449585,
+   "p10": 802.011251449585,
+   "median": 802.011251449585,
+   "mean": 802.011251449585,
+   "p90": 802.011251449585,
+   "max": 802.011251449585,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "换一对输入的第二次 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x64_int8/total_cold",
+  "ts": "2026-11-14T11:37:53+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1594.3575
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1594.3574905395508,
+   "p10": 1594.3574905395508,
+   "median": 1594.3574905395508,
+   "mean": 1594.3574905395508,
+   "p90": 1594.3574905395508,
+   "max": 1594.3574905395508,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + 捕获 + 两次 run + 两道门"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x896_int8/run_captured",
+  "ts": "2026-11-14T11:37:55+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   692.2135
+  ],
+  "summary": {
+   "n": 1,
+   "min": 692.2135353088379,
+   "p10": 692.2135353088379,
+   "median": 692.2135353088379,
+   "mean": 692.2135353088379,
+   "p90": 692.2135353088379,
+   "max": 692.2135353088379,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() 一次（含 adb 推拉 + npu_run 200ms 等待）"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x896_int8/run_alt",
+  "ts": "2026-11-14T11:37:55+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   690.33
+  ],
+  "summary": {
+   "n": 1,
+   "min": 690.3300285339355,
+   "p10": 690.3300285339355,
+   "median": 690.3300285339355,
+   "mean": 690.3300285339355,
+   "p90": 690.3300285339355,
+   "max": 690.3300285339355,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "换一对输入的第二次 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x896_int8/total_cold",
+  "ts": "2026-11-14T11:37:55+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1493.8118
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1493.811845779419,
+   "p10": 1493.811845779419,
+   "median": 1493.811845779419,
+   "mean": 1493.811845779419,
+   "p90": 1493.811845779419,
+   "max": 1493.811845779419,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + 捕获 + 两次 run + 两道门"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x96_int8/run_captured",
+  "ts": "2026-11-14T11:37:57+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   698.1196
+  ],
+  "summary": {
+   "n": 1,
+   "min": 698.1196403503418,
+   "p10": 698.1196403503418,
+   "median": 698.1196403503418,
+   "mean": 698.1196403503418,
+   "p90": 698.1196403503418,
+   "max": 698.1196403503418,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() 一次（含 adb 推拉 + npu_run 200ms 等待）"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x96_int8/run_alt",
+  "ts": "2026-11-14T11:37:57+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   790.8075
+  ],
+  "summary": {
+   "n": 1,
+   "min": 790.8074855804443,
+   "p10": 790.8074855804443,
+   "median": 790.8074855804443,
+   "mean": 790.8074855804443,
+   "p90": 790.8074855804443,
+   "max": 790.8074855804443,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "换一对输入的第二次 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/mul_1x96_int8/total_cold",
+  "ts": "2026-11-14T11:37:57+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1581.2263
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1581.2263488769531,
+   "p10": 1581.2263488769531,
+   "median": 1581.2263488769531,
+   "mean": 1581.2263488769531,
+   "p90": 1581.2263488769531,
+   "max": 1581.2263488769531,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + 捕获 + 两次 run + 两道门"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x64_int8/run_captured",
+  "ts": "2026-11-14T11:37:58+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   696.5151
+  ],
+  "summary": {
+   "n": 1,
+   "min": 696.5150833129883,
+   "p10": 696.5150833129883,
+   "median": 696.5150833129883,
+   "mean": 696.5150833129883,
+   "p90": 696.5150833129883,
+   "max": 696.5150833129883,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() 一次（含 adb 推拉 + npu_run 200ms 等待）"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x64_int8/run_alt",
+  "ts": "2026-11-14T11:37:58+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   731.612
+  ],
+  "summary": {
+   "n": 1,
+   "min": 731.611967086792,
+   "p10": 731.611967086792,
+   "median": 731.611967086792,
+   "mean": 731.611967086792,
+   "p90": 731.611967086792,
+   "max": 731.611967086792,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "换一对输入的第二次 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x64_int8/total_cold",
+  "ts": "2026-11-14T11:37:58+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1515.3894
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1515.3894424438477,
+   "p10": 1515.3894424438477,
+   "median": 1515.3894424438477,
+   "mean": 1515.3894424438477,
+   "p90": 1515.3894424438477,
+   "max": 1515.3894424438477,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + 捕获 + 两次 run + 两道门"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x896_int8/run_captured",
+  "ts": "2026-11-14T11:38:00+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   775.5339
+  ],
+  "summary": {
+   "n": 1,
+   "min": 775.53391456604,
+   "p10": 775.53391456604,
+   "median": 775.53391456604,
+   "mean": 775.53391456604,
+   "p90": 775.53391456604,
+   "max": 775.53391456604,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() 一次（含 adb 推拉 + npu_run 200ms 等待）"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x896_int8/run_alt",
+  "ts": "2026-11-14T11:38:00+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   766.0425
+  ],
+  "summary": {
+   "n": 1,
+   "min": 766.0424709320068,
+   "p10": 766.0424709320068,
+   "median": 766.0424709320068,
+   "mean": 766.0424709320068,
+   "p90": 766.0424709320068,
+   "max": 766.0424709320068,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "换一对输入的第二次 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x896_int8/total_cold",
+  "ts": "2026-11-14T11:38:00+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1638.9136
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1638.913631439209,
+   "p10": 1638.913631439209,
+   "median": 1638.913631439209,
+   "mean": 1638.913631439209,
+   "p90": 1638.913631439209,
+   "max": 1638.913631439209,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + 捕获 + 两次 run + 两道门"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x96_int8/run_captured",
+  "ts": "2026-11-14T11:38:01+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   710.0906
+  ],
+  "summary": {
+   "n": 1,
+   "min": 710.0906372070312,
+   "p10": 710.0906372070312,
+   "median": 710.0906372070312,
+   "mean": 710.0906372070312,
+   "p90": 710.0906372070312,
+   "max": 710.0906372070312,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "g.run() 一次（含 adb 推拉 + npu_run 200ms 等待）"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x96_int8/run_alt",
+  "ts": "2026-11-14T11:38:01+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   721.6356
+  ],
+  "summary": {
+   "n": 1,
+   "min": 721.6355800628662,
+   "p10": 721.6355800628662,
+   "median": 721.6355800628662,
+   "mean": 721.6355800628662,
+   "p90": 721.6355800628662,
+   "max": 721.6355800628662,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "换一对输入的第二次 g.run()"
+  }
+ },
+ {
+  "name": "npu_lib.matrix/sub_1x96_int8/total_cold",
+  "ts": "2026-11-14T11:38:01+0800",
+  "host": "DESKTOP-2HL7H4R",
+  "values_ms": [
+   1531.8494
+  ],
+  "summary": {
+   "n": 1,
+   "min": 1531.8493843078613,
+   "p10": 1531.8493843078613,
+   "median": 1531.8493843078613,
+   "mean": 1531.8493843078613,
+   "p90": 1531.8493843078613,
+   "max": 1531.8493843078613,
+   "mad": 0,
+   "stdev": 0,
+   "jitter_pct": 0
+  },
+  "meta": {
+   "kind": "host_wall",
+   "note": "compile + 捕获 + 两次 run + 两道门"
+  }
+ }
+]

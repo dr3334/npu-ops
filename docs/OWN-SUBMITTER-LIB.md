@@ -221,6 +221,24 @@ requant 口径（为什么这一票的 `int8_tol = 0`）：本库把输出 scale
 这一条同时把提交器的尺寸接口从"单一 `n_elems`"扩成"每块缓冲各自的字节数"（`n_elems` 保留为兼容回退，
 老资产的 plan 一个字没改仍然 9/9 PASS）。
 
+## 5.2 计时与统计（`npu_lib.stats`，2026-11-14）
+
+测量不再散落在各脚本里：统一走 [`tools/npu_lib/stats.py`](../tools/npu_lib/stats.py)，
+记录进 `reports/timings.json`（只追加），报告渲染成 [`reports/timings.md`](../reports/timings.md)。
+
+| 接口 | 用途 |
+|---|---|
+| `stats.measure(fn, rounds=5, warmup=1)` | 跑 fn 若干轮，返回每轮毫秒（warmup 不计） |
+| `stats.record(name, xs, kind=..., note=...)` | 落盘一条（带 provenance：主机/时间/口径/备注） |
+| `stats.summarize(xs)` | n / min / p10 / **median** / mean / p90 / max / **MAD** / jitter% |
+| `stats.paired(fn_a, fn_b, rounds=7)` | **配对交替**（A,B,A,B…），只认它的中位数比值 |
+| `stats.parse_neuronrt(text)` | 解析厂商 `Total inference time = .. (.. ms/inf)` |
+| `stats.parse_runner(text)` | 解析 `npu_run` 的 `TIMING iter=.. wait_ms=.. med=..` |
+| `python -m npu_lib.stats --render` / `--list` | 出 `timings.md` / 列所有测量 |
+
+纪律（写进模块 docstring）：**中位数是主指标、MAD 是离散度**；跨时间/跨设备比较**只认配对交替的比值**，
+不拿两次绝对数相除（同一份 `.dla` 会漂 ±15%）。已经接上：`npu_lib.matrix` 的每次 `g.run()` 与冷跑总时长。
+
 ## 6. 适用范围与未解（不圆）
 
 ### 6.1 这一票确实做到的

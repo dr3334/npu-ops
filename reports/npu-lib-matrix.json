@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-14T11:11:34+0800",
+  "generated_at": "2026-11-14T11:38:01+0800",
   "host": "DESKTOP-2HL7H4R",
   "runner": "probe/npu_run (plan-driven, /dev/apusys, no libneuron/neuronrt)",
   "results": [
@@ -62,10 +62,11 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x02547200 -> 0x02543300 (buf1)",
-        "patch off=0x074 0x02547100 -> 0x025aee00 (buf0)",
-        "patch off=0x118 0x02544a00 -> 0x02573200 (buf2)",
-        "iova A=0x25aee000 B=0x25433000 C=0x25732000 bytes=64/64/64 subcmds=1",
+        "patch off=0x054 0x02547200 -> 0x025a1400 (buf1)",
+        "patch off=0x074 0x02547100 -> 0x025ad300 (buf0)",
+        "patch off=0x118 0x02544a00 -> 0x02544c00 (buf2)",
+        "iova A=0x25ad3000 B=0x25a14000 C=0x2544c000 bytes=64/64/64 subcmds=1",
+        "TIMING iter=1 wait_ms=200 min=202.480 med=202.480 max=202.480 mean=202.480 all_equal=1",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/add_1x64_int8/out.bin"
       ],
       "seconds": 1.7
@@ -129,13 +130,14 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x0257ff00 -> 0x02548600 (buf1)",
-        "patch off=0x074 0x0258a900 -> 0x02548100 (buf0)",
-        "patch off=0x118 0x0256da00 -> 0x02563c00 (buf2)",
-        "iova A=0x25481000 B=0x25486000 C=0x2563c000 bytes=896/896/896 subcmds=1",
+        "patch off=0x054 0x0257ff00 -> 0x025a0200 (buf1)",
+        "patch off=0x074 0x0258a900 -> 0x025a0600 (buf0)",
+        "patch off=0x118 0x0256da00 -> 0x025ad700 (buf2)",
+        "iova A=0x25a06000 B=0x25a02000 C=0x25ad7000 bytes=896/896/896 subcmds=1",
+        "TIMING iter=1 wait_ms=200 min=203.382 med=203.382 max=203.382 mean=203.382 all_equal=1",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/add_1x896_int8/out.bin"
       ],
-      "seconds": 1.6
+      "seconds": 1.5
     },
     {
       "name": "add_1x96_int8",
@@ -196,10 +198,11 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x025a6200 -> 0x02593700 (buf1)",
-        "patch off=0x074 0x02547900 -> 0x02573200 (buf0)",
-        "patch off=0x118 0x025b0200 -> 0x025aee00 (buf2)",
-        "iova A=0x25732000 B=0x25937000 C=0x25aee000 bytes=96/96/96 subcmds=1",
+        "patch off=0x054 0x025a6200 -> 0x025a1100 (buf1)",
+        "patch off=0x074 0x02547900 -> 0x0256e100 (buf0)",
+        "patch off=0x118 0x025b0200 -> 0x025a0d00 (buf2)",
+        "iova A=0x256e1000 B=0x25a11000 C=0x25a0d000 bytes=96/96/96 subcmds=1",
+        "TIMING iter=1 wait_ms=200 min=201.186 med=201.186 max=201.186 mean=201.186 all_equal=1",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/add_1x96_int8/out.bin"
       ],
       "seconds": 1.5
@@ -263,13 +266,14 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x025a6200 -> 0x02558d00 (buf1)",
-        "patch off=0x074 0x02547900 -> 0x02544400 (buf0)",
-        "patch off=0x118 0x025b0200 -> 0x02544700 (buf2)",
-        "iova A=0x25444000 B=0x2558d000 C=0x25447000 bytes=64/64/64 subcmds=1",
+        "patch off=0x054 0x025a6200 -> 0x0258d700 (buf1)",
+        "patch off=0x074 0x02547900 -> 0x02574500 (buf0)",
+        "patch off=0x118 0x025b0200 -> 0x02573300 (buf2)",
+        "iova A=0x25745000 B=0x258d7000 C=0x25733000 bytes=64/64/64 subcmds=1",
+        "TIMING iter=1 wait_ms=200 min=202.234 med=202.234 max=202.234 mean=202.234 all_equal=1",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/mul_1x64_int8/out.bin"
       ],
-      "seconds": 1.5
+      "seconds": 1.6
     },
     {
       "name": "mul_1x896_int8",
@@ -330,10 +334,11 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x02586000 -> 0x02543300 (buf1)",
-        "patch off=0x074 0x02555900 -> 0x025aee00 (buf0)",
-        "patch off=0x118 0x02563200 -> 0x02573200 (buf2)",
-        "iova A=0x25aee000 B=0x25433000 C=0x25732000 bytes=896/896/896 subcmds=1",
+        "patch off=0x054 0x02586000 -> 0x02570000 (buf1)",
+        "patch off=0x074 0x02555900 -> 0x02573300 (buf0)",
+        "patch off=0x118 0x02563200 -> 0x02574500 (buf2)",
+        "iova A=0x25733000 B=0x25700000 C=0x25745000 bytes=896/896/896 subcmds=1",
+        "TIMING iter=1 wait_ms=200 min=201.172 med=201.172 max=201.172 mean=201.172 all_equal=1",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/mul_1x896_int8/out.bin"
       ],
       "seconds": 1.5
@@ -397,13 +402,14 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x02598e00 -> 0x025aee00 (buf1)",
-        "patch off=0x074 0x0251f700 -> 0x02593700 (buf0)",
-        "patch off=0x118 0x02563300 -> 0x02543300 (buf2)",
-        "iova A=0x25937000 B=0x25aee000 C=0x25433000 bytes=96/96/96 subcmds=1",
+        "patch off=0x054 0x02598e00 -> 0x0258d700 (buf1)",
+        "patch off=0x074 0x0251f700 -> 0x02574500 (buf0)",
+        "patch off=0x118 0x02563300 -> 0x02573300 (buf2)",
+        "iova A=0x25745000 B=0x258d7000 C=0x25733000 bytes=96/96/96 subcmds=1",
+        "TIMING iter=1 wait_ms=200 min=202.531 med=202.531 max=202.531 mean=202.531 all_equal=1",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/mul_1x96_int8/out.bin"
       ],
-      "seconds": 1.5
+      "seconds": 1.6
     },
     {
       "name": "sub_1x64_int8",
@@ -464,13 +470,14 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x02596f00 -> 0x02573200 (buf1)",
-        "patch off=0x074 0x0258ff00 -> 0x02543300 (buf0)",
-        "patch off=0x118 0x02570600 -> 0x02593700 (buf2)",
-        "iova A=0x25433000 B=0x25732000 C=0x25937000 bytes=64/64/64 subcmds=1",
+        "patch off=0x054 0x02596f00 -> 0x02570000 (buf1)",
+        "patch off=0x074 0x0258ff00 -> 0x02573300 (buf0)",
+        "patch off=0x118 0x02570600 -> 0x02574500 (buf2)",
+        "iova A=0x25733000 B=0x25700000 C=0x25745000 bytes=64/64/64 subcmds=1",
+        "TIMING iter=1 wait_ms=200 min=202.035 med=202.035 max=202.035 mean=202.035 all_equal=1",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/sub_1x64_int8/out.bin"
       ],
-      "seconds": 1.4
+      "seconds": 1.5
     },
     {
       "name": "sub_1x896_int8",
@@ -531,13 +538,14 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x02573c00 -> 0x02548100 (buf1)",
-        "patch off=0x074 0x0256e300 -> 0x02548000 (buf0)",
-        "patch off=0x118 0x02570a00 -> 0x02548600 (buf2)",
-        "iova A=0x25480000 B=0x25481000 C=0x25486000 bytes=896/896/896 subcmds=1",
+        "patch off=0x054 0x02573c00 -> 0x0258ba00 (buf1)",
+        "patch off=0x074 0x0256e300 -> 0x0258ce00 (buf0)",
+        "patch off=0x118 0x02570a00 -> 0x02580e00 (buf2)",
+        "iova A=0x258ce000 B=0x258ba000 C=0x2580e000 bytes=896/896/896 subcmds=1",
+        "TIMING iter=1 wait_ms=200 min=201.286 med=201.286 max=201.286 mean=201.286 all_equal=1",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/sub_1x896_int8/out.bin"
       ],
-      "seconds": 1.5
+      "seconds": 1.6
     },
     {
       "name": "sub_1x96_int8",
@@ -598,13 +606,14 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x02573c00 -> 0x02563c00 (buf1)",
-        "patch off=0x074 0x0256e300 -> 0x02548600 (buf0)",
-        "patch off=0x118 0x02570a00 -> 0x02548000 (buf2)",
-        "iova A=0x25486000 B=0x2563c000 C=0x25480000 bytes=96/96/96 subcmds=1",
+        "patch off=0x054 0x02573c00 -> 0x0258d300 (buf1)",
+        "patch off=0x074 0x0256e300 -> 0x02549700 (buf0)",
+        "patch off=0x118 0x02570a00 -> 0x02559600 (buf2)",
+        "iova A=0x25497000 B=0x258d3000 C=0x25596000 bytes=96/96/96 subcmds=1",
+        "TIMING iter=1 wait_ms=200 min=203.459 med=203.459 max=203.459 mean=203.459 all_equal=1",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/sub_1x96_int8/out.bin"
       ],
-      "seconds": 1.7
+      "seconds": 1.5
     }
   ],
   "passed": 9,
