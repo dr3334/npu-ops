@@ -39,6 +39,10 @@ from .tensor import Tensor
 MIN_ROW_BYTES = 16
 MAX_NPU_RUN_BYTES = 4 * 1024 * 1024   # 一块数据缓冲的上限（抓取时 runtime 用 4 KiB，这里留余量）
 
+# FC 的输出 scale 约定：s_out = s_a * s_w * 32（与 ops/fc_dynb_* / tools/build_dynb.py 同一条
+# 已上板的约定，requant multiplier = 1/32）。改这个数等于改设备端算子的量化语义，先要证据。
+FC_OUT_SCALE_FACTOR = 32.0
+
 
 def _sha256_file(p):
     h = hashlib.sha256()
@@ -195,6 +199,34 @@ class Graph:
     def mul(self, a, b):
         return self._binop("mul", a, b)
 
+    def fc(self, x, w):
+        """FULLY_CONNECTED，**权重是运行时输入**（不是常量）。
+
+        x [M,K] int8，w [N,K] int8（TFLite 的权重布局）-> out [M,N] int8，s_out = s_a*s_w*32。
+        权重为什么必须动态：常量权重在自建提交器上只有落在抓取那次的 IOVA 才对
+        （docs/ISSUE-const-fc.md，3/11）；动态权重有板端证据（docs/OWN-SUBMITTER.md §6）。
+        """
+        self._check_tensor(x, "fc")
+        self._check_tensor(w, "fc")
+        if len(x.shape) != 2 or len(w.shape) != 2:
+            raise UnsupportedError(
+                "fc: rank-2 only (got %r and %r); RESHAPE stays on the host" % (x.shape, w.shape))
+        m, k = x.shape
+        n, k2 = w.shape
+        if k != k2:
+            raise BroadCastError(
+                "fc: inner dims differ (x [M,K]=%r vs w [N,K]=%r)" % (x.shape, w.shape))
+        if self._ops:
+            raise UnsupportedError(
+                "graph %r already has an op: one op per graph (3-buffer submitter). "
+                "Compile each op as its own Graph for now." % self.name)
+        out_dtype = DType.int8(x.dtype.scale * w.dtype.scale * FC_OUT_SCALE_FACTOR, 0)
+        out = Tensor("fc_0", (m, n), out_dtype, producer=None)
+        self._ops.append({"kind": "fc", "a": x, "b": w, "out": out, "index": 0})
+        out._producer = self._ops[-1]
+        self._tensors.append(out)
+        return out
+
     # ------------------------------------------------------------ 编译
     def compile(self, rebuild=False):
         if len(self._ops) != 1:
@@ -222,6 +254,10 @@ class Graph:
             "out_scale": out.dtype.scale,
             "seed": 20261113,
         }
+        if op["kind"] == "fc":
+            # FC 的两个输入与输出是三个不同形状：binop 的单 "shape" 不够用
+            spec["shapes"] = {"a": list(op["a"].shape), "b": list(op["b"].shape),
+                              "out": list(op["out"].shape)}
         spec_path.write_text(json.dumps(spec, indent=2))
 
         # ① TFLite
@@ -251,7 +287,8 @@ class Graph:
             asset_dir=cap["asset_dir"], iova_txt=art / "asset" / "iova.txt",
             alloc_a=4096, alloc_b=4096, alloc_c=4096,
             dir0=1, dir1=2, dir2=1, patch_idx=2, expect_patches=3,
-            n_elems=op["a"].numel, n_inputs=2,
+            bytes_a=op["a"].nbytes, bytes_b=op["b"].nbytes, bytes_out=op["out"].nbytes,
+            n_inputs=2,
             in_a="%s/a.bin" % run_dev_dir, in_b="%s/b.bin" % run_dev_dir,
             out="%s/out.bin" % run_dev_dir)
         plan.write(art / "plan.txt")
@@ -372,6 +409,10 @@ class Graph:
         else:
             a_codes = np.fromfile(art.golden / (op["a"].name + ".bin"), dtype=np.int8)
             b_codes = np.fromfile(art.golden / (op["b"].name + ".bin"), dtype=np.int8)
+        if op["kind"] == "fc":
+            # golden 的 fc 是矩阵乘：要把一维码流还原成 [M,K] 与 [N,K]
+            a_codes = a_codes.reshape(op["a"].shape)
+            b_codes = b_codes.reshape(op["b"].shape)
         expected, acc, ratio = golden_mod.reference(
             op["kind"], a_codes, b_codes,
             op["a"].dtype.scale, op["b"].dtype.scale, op["out"].dtype.scale)

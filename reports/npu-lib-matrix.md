@@ -6,5 +6,12 @@
 |---|---|---|---|---|---|---|---|
 | ADD | [1, 64] | 64 | 1.0 | PASS | PASS | **PASS** | `artifacts/add_1x64_int8/evidence.json` |
 | ADD | [1, 896] | 896 | 1.0 | PASS | PASS | **PASS** | `artifacts/add_1x896_int8/evidence.json` |
+| ADD | [1, 96] | 96 | 1.0 | PASS | PASS | **PASS** | `artifacts/add_1x96_int8/evidence.json` |
+| MUL | [1, 64] | 64 | 1.0 | PASS | PASS | **PASS** | `artifacts/mul_1x64_int8/evidence.json` |
+| MUL | [1, 896] | 896 | 1.0 | PASS | PASS | **PASS** | `artifacts/mul_1x896_int8/evidence.json` |
+| MUL | [1, 96] | 96 | 1.0 | PASS | PASS | **PASS** | `artifacts/mul_1x96_int8/evidence.json` |
+| SUB | [1, 64] | 64 | 1.0 | PASS | PASS | **PASS** | `artifacts/sub_1x64_int8/evidence.json` |
+| SUB | [1, 896] | 896 | 1.0 | PASS | PASS | **PASS** | `artifacts/sub_1x896_int8/evidence.json` |
+| SUB | [1, 96] | 96 | 1.0 | PASS | PASS | **PASS** | `artifacts/sub_1x96_int8/evidence.json` |
 
-共 2/2 组合 PASS。
+共 9/9 组合 PASS。

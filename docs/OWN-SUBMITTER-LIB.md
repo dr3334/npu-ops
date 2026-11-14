@@ -35,6 +35,7 @@ res.ok                           # True 才算过
 | `Graph(name)` | 一张图一个名字；artifacts 目录用这个名字 | 已实现 |
 | `g.input(name, shape, dtype)` | 静态形状；形状即命令流的一部分 | 已实现，带 16 B 行规则校验（int8 每行 >= 16 B 且 % 16 == 0） |
 | `g.add/sub/mul(a, b)` | 同形状、无广播、同 dtype | 已实现；形状不同 -> `BroadCastError`（显式报错，不悄悄广播） |
+| `g.fc(x, w)` | `x[M,K]` × `w[N,K]`（**权重是运行时输入**）-> `[M,N]`，`s_out = s_a*s_w*32` | 已实现（int8）；见 [`reports/npu-lib-fc.md`](../reports/npu-lib-fc.md) |
 | `g.compile()` | 四步流水线，见 §2 | 已实现 |
 | `g.run(inputs)` | dict{输入名: int8 码} -> `Output` | 已实现，只走 /dev/apusys |
 | `g.verify(out)` | 两道门，见 §4 | 已实现，返回 `VerifyResult`（`.ok == 同源 且 逐位`） |
@@ -199,6 +200,23 @@ requant 口径（为什么这一票的 `int8_tol = 0`）：本库把输出 scale
 
 ---
 
+### 5.1 第二个算子：FULLY_CONNECTED（动态权重）
+
+证据：`artifacts/fc_8x64x32_int8/evidence.json`；报告 [`reports/npu-lib-fc.md`](../reports/npu-lib-fc.md)。
+
+| 项 | 值 |
+|---|---|
+| 形状 | `x[8,64] int8` × `w[32,64] int8`（权重是第二输入）-> `out[8,32]` |
+| 量化 | `s_a=s_w=1/127`，`s_out=s_a*s_w*32`（requant = 1/32） |
+| 编译 | `EXIT=0`，`.dla` 3165 B |
+| 计划 | `bytes_a=512` / `bytes_b=2048` / `bytes_out=256` —— **三块缓冲三个字节数** |
+| 门① 同源 | PASS（喂抓取那对输入，`device_out == vendor_out` 逐字节） |
+| 门② 数值 | PASS，0/256（喂全新随机输入也 0/256） |
+| 三者相等 | `device == vendor == golden`，sha256 `e660b3146b10db1c…` |
+
+这一条同时把提交器的尺寸接口从"单一 `n_elems`"扩成"每块缓冲各自的字节数"（`n_elems` 保留为兼容回退，
+老资产的 plan 一个字没改仍然 9/9 PASS）。
+
 ## 6. 适用范围与未解（不圆）
 
 ### 6.1 这一票确实做到的
@@ -207,6 +225,8 @@ requant 口径（为什么这一票的 `int8_tol = 0`）：本库把输出 scale
 * 定义 -> 编译 -> 捕获 -> 提交 -> 两道验收，**全链路一条 Python 调用**；
 * 运行期零厂商库（§3.2 三重证据）；
 * plan 驱动的 C runner：换算子/换形状/换长度**不重编 C**（`probe/npu_binop.c` 一行未改）。
+* **矩阵乘级算子 FULLY_CONNECTED（动态权重）** 也进了库：`g.fc(x, w)`，`[8,64]×[32,64] -> [8,32]`，
+  三块缓冲三个字节数，`device == vendor == golden`（§5.1）。
 
 ### 6.2 明确的未解 / 边界
 

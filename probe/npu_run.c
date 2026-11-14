@@ -12,14 +12,17 @@
  *
  *   ./npu_run <plan.txt>            # everything (paths included) comes from the plan
  *
- * Plan keys (all optional except asset_dir / n_elems / out):
+ * Plan keys (all optional except asset_dir / out, plus bytes_* or n_elems):
  *   asset_dir=<device dir with cmdN.bin, subcmd.bin, cmdin.bin>
  *   old_a/old_b/old_c=0x...         captured IOVAs (matching key for relocation; 0 = unused slot)
  *   alloc_a/alloc_b/alloc_c=<bytes> allocation size per buffer (default 4096)
  *   dir0/dir1/dir2=1|2              cmdbuf direction flags, order is semantic
  *   patch_idx=2                     which cmdbuf carries the address words
  *   expect_patches=3                how many address words must be found
- *   n_elems=<n>                     int8 elements per submission (== bytes)
+ *   n_elems=<n>                     bytes per submission for A/B/C (compat shortcut)
+ *   bytes_a/bytes_b/bytes_out=<n>   per-buffer byte counts, override n_elems. Needed when the
+ *                                   operands have different sizes (FULLY_CONNECTED: A[M,K] and
+ *                                   W[N,K] in, C[M,N] out -- three different byte counts).
  *   n_inputs=1|2                    default 2
  *   cmdbuf0/cmdbuf1/cmdbuf2=<file>  default cmd0.bin/cmd1.bin/cmd2.bin
  *   extra_file=<file>               optional 3rd buffer (LUT / const weight) loaded from asset
@@ -67,6 +70,7 @@ typedef struct {
   int patch_idx;
   int expect_patches;
   uint32_t n_elems;
+  uint32_t bytes_a, bytes_b, bytes_out;   /* 0 => fall back to n_elems */
   int n_inputs;
 } plan_t;
 
@@ -127,12 +131,19 @@ static int parse_plan(const char *path, plan_t *p) {
     else if (!strcmp(k, "patch_idx")) p->patch_idx = atoi(v);
     else if (!strcmp(k, "expect_patches")) p->expect_patches = atoi(v);
     else if (!strcmp(k, "n_elems")) p->n_elems = (uint32_t)strtoul(v, NULL, 0);
+    else if (!strcmp(k, "bytes_a")) p->bytes_a = (uint32_t)strtoul(v, NULL, 0);
+    else if (!strcmp(k, "bytes_b")) p->bytes_b = (uint32_t)strtoul(v, NULL, 0);
+    else if (!strcmp(k, "bytes_out")) p->bytes_out = (uint32_t)strtoul(v, NULL, 0);
     else if (!strcmp(k, "n_inputs")) p->n_inputs = atoi(v);
     else fprintf(stderr, "plan: unknown key '%s' (ignored)\n", k);
   }
   fclose(f);
-  if (!p->asset_dir[0] || !p->n_elems || !p->out[0]) {
-    fprintf(stderr, "plan: asset_dir / n_elems / out are required\n");
+  /* bytes_* 覆盖 n_elems；两者都没给就没有尺寸可依 */
+  if (!p->bytes_a) p->bytes_a = p->n_elems;
+  if (!p->bytes_b) p->bytes_b = p->n_elems;
+  if (!p->bytes_out) p->bytes_out = p->n_elems;
+  if (!p->asset_dir[0] || !p->out[0] || !p->bytes_a || !p->bytes_out) {
+    fprintf(stderr, "plan: asset_dir / out / (bytes_a+bytes_out or n_elems) required\n");
     return -1;
   }
   if (p->n_inputs == 2 && !p->in_b[0]) { fprintf(stderr, "plan: n_inputs=2 needs in_b\n"); return -1; }
@@ -275,8 +286,10 @@ int main(int argc, char **argv) {
 
   if (argc != 2) { fprintf(stderr, "usage: %s <plan.txt>\n", argv[0]); return 2; }
   if (parse_plan(argv[1], &pl)) return 2;
-  if (pl.n_elems > pl.alloc[0] || pl.n_elems > pl.alloc[2]) {
-    fprintf(stderr, "n_elems=%u exceeds alloc_a/alloc_c\n", pl.n_elems);
+  if (pl.bytes_a > pl.alloc[0] || pl.bytes_out > pl.alloc[2] ||
+      (pl.n_inputs == 2 && pl.bytes_b > pl.alloc[1])) {
+    fprintf(stderr, "bytes_a/b/out=%u/%u/%u exceeds alloc_a/b/c=%u/%u/%u\n",
+            pl.bytes_a, pl.bytes_b, pl.bytes_out, pl.alloc[0], pl.alloc[1], pl.alloc[2]);
     return 2;
   }
 
@@ -304,13 +317,13 @@ int main(int argc, char **argv) {
   if (apu_alloc_map(&einfo, 76, 0, 1)) { rc = 5; goto done; }   /* exec_infos 必须是 MEM handle */
   memset(einfo.host, 0, 76);
 
-  if (read_file(pl.in_a, a1.host, pl.n_elems)) { rc = 3; goto done; }
+  if (read_file(pl.in_a, a1.host, pl.bytes_a)) { rc = 3; goto done; }
   if (pl.n_inputs == 2) {
     if (deferred_map) {
       snprintf(p, sizeof(p), "%s/%s", pl.asset_dir, pl.extra_file);
       if (read_file(p, b1.host, pl.alloc[1])) { rc = 3; goto done; }
       if (apu_map_only(&b1)) { rc = 5; goto done; }
-    } else if (read_file(pl.in_b, b1.host, pl.n_elems)) { rc = 3; goto done; }
+    } else if (read_file(pl.in_b, b1.host, pl.bytes_b)) { rc = 3; goto done; }
   }
 
   /* 命令缓冲也要 flush（漏了会偶发读到陈旧命令流） */
@@ -336,9 +349,9 @@ int main(int argc, char **argv) {
       rc = 4; goto done;
     }
   }
-  printf("iova A=0x%llx B=0x%llx C=0x%llx elems=%u\n",
+  printf("iova A=0x%llx B=0x%llx C=0x%llx bytes=%u/%u/%u\n",
          (unsigned long long)a1.iova, (unsigned long long)b1.iova,
-         (unsigned long long)c.iova, pl.n_elems);
+         (unsigned long long)c.iova, pl.bytes_a, pl.bytes_b, pl.bytes_out);
 
   memset(cbs, 0, sizeof(cbs));
   for (int k = 0; k < 3; k++) {
@@ -374,7 +387,7 @@ int main(int argc, char **argv) {
   usleep(200000);   /* rc=0 只代表提交成功 */
   dma_buf_sync(c.handle, (1u << 30) | 1u);
   dma_buf_sync(c.handle, (1u << 31) | 1u);
-  if (write_file(pl.out, c.host, pl.n_elems)) { rc = 3; goto done; }
+  if (write_file(pl.out, c.host, pl.bytes_out)) { rc = 3; goto done; }
   printf("RC=0 patches=%u out=%s\n", hits, pl.out);
 
   /* 证据用：让进程在提交完成后多活一会儿，方便外部采样 /proc/<pid>/maps

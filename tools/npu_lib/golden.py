@@ -17,19 +17,23 @@ import quant_contract as qc  # noqa: E402  (公共工具，只 import)
 # 每个算子：acc 用什么、乘数是什么（TFLite 的量化语义）
 #   ADD/SUB: acc 在 input scale 的格子里 -> multiplier = s_in / s_out
 #   MUL    : acc = a*b，单位是 s_a*s_b        -> multiplier = s_a*s_b / s_out
-OP_ACC = ("add", "sub", "mul")
+#   FC     : acc = a @ w.T（W 是 [N,K]，第二个输入），单位是 s_a*s_w
+OP_ACC = ("add", "sub", "mul", "fc")
 
 
 def ratio_for(op, s_a, s_b, s_out):
     if op in ("add", "sub"):
         return s_a / s_out
-    if op == "mul":
+    if op in ("mul", "fc"):
         return (s_a * s_b) / s_out
     raise ValueError("golden: unsupported op %r" % (op,))
 
 
 def reference(op, a_codes, b_codes, s_a, s_b, s_out):
-    """-> (expected int8 array, int64 accumulator, ratio)"""
+    """-> (expected int8 array, int64 accumulator, ratio)
+
+    FC 的 a 是 [M,K]、b 是 [N,K]（TFLite 的权重布局），输出按行展平是 [M,N]。
+    """
     a = np.asarray(a_codes, dtype=np.int64)
     b = np.asarray(b_codes, dtype=np.int64)
     if op == "add":
@@ -38,6 +42,11 @@ def reference(op, a_codes, b_codes, s_a, s_b, s_out):
         acc = a - b
     elif op == "mul":
         acc = a * b
+    elif op == "fc":
+        if a.ndim != 2 or b.ndim != 2:
+            raise ValueError("golden fc: expected 2-D codes, got %r and %r"
+                             % (a.shape, b.shape))
+        acc = a @ b.T
     else:
         raise ValueError("golden: unsupported op %r" % (op,))
     ratio = ratio_for(op, s_a, s_b, s_out)
