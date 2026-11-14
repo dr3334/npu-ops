@@ -41,6 +41,19 @@ class DType:
         return DType(INT8, scale, 0)
 
     @staticmethod
+    def int8_asym(scale, zero_point=-128):
+        """非对称 int8：只在**有板端证据**的地方用。
+
+        目前唯一一处是 SOFTMAX 的输出（TFLite 惯例 s_out = 1/256、zero_point = -128）——
+        [1,8,16] 上我们自己重放的结果与厂商设备输出逐字节相同（reports/npu-lib-softmax.md）。
+        逐元素算子的非零 zp 仍然没有证据，所以 `DType.int8(zp != 0)` 继续拒绝。
+        """
+        zp = int(zero_point)
+        if zp == 0:
+            raise UnsupportedError("int8_asym(zp=0) 没有意义，用 DType.int8(scale)")
+        return DType(INT8, scale, zp)
+
+    @staticmethod
     def int16(scale):
         raise UnsupportedError(
             "DType.int16 还没实现：int16 的累加/requant 契约与 int8 不同"

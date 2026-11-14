@@ -245,6 +245,28 @@ class Graph:
         self._tensors.append(out)
         return out
 
+    def softmax(self, x, out_scale=None):
+        """SOFTMAX（原生 SoftMaxLayer），沿最后一维。
+
+        int8 的 softmax 输出按 TFLite 惯例是 `s_out = 1/256`、`zero_point = -128`（非对称），
+        这一档有板端证据：[1,8,16] 上我们的重放结果与厂商设备输出**逐字节相同**
+        （reports/npu-lib-softmax.md）。判据按登记容差比（缺省 int8_tol = 2，与厂商那条 compare 一致），
+        不要求逐位：设备是 LUT 定点实现。
+        """
+        self._check_tensor(x, "softmax")
+        if self._ops:
+            raise UnsupportedError(
+                "graph %r already has an op: one op per graph (3-buffer submitter)." % self.name)
+        if out_scale is None:
+            out_scale = 1.0 / 256.0
+        out_dtype = DType.int8_asym(out_scale, -128)
+        out = Tensor("softmax_0", x.shape, out_dtype, producer=None)
+        self._ops.append({"kind": "softmax", "a": x, "b": None, "out": out, "index": 0,
+                          "tol": 2})
+        out._producer = self._ops[-1]
+        self._tensors.append(out)
+        return out
+
     # ------------------------------------------------------------ 编译
     def compile(self, rebuild=False):
         if len(self._ops) != 1:
@@ -260,16 +282,19 @@ class Graph:
         model_tflite = art / "model.tflite"
         model_dla = art / "model.dla"
         spec_path = art / "spec.json"
+        unary = op["b"] is None
         spec = {
             "name": self.name,
             "op": op["kind"],
             "shape": list(op["a"].shape),
             "in_name": op["a"].name,
-            "in1_name": op["b"].name,
+            "in1_name": "" if unary else op["b"].name,
             "out_name": out.name,
             "in_scale": op["a"].dtype.scale,
-            "in1_scale": op["b"].dtype.scale,
+            "in1_scale": 1.0 if unary else op["b"].dtype.scale,
             "out_scale": out.dtype.scale,
+            "out_zero_point": out.dtype.zero_point,
+            "int8_tol": op.get("tol", 0),
             "seed": 20261113,
         }
         if op["kind"] == "fc":
@@ -280,7 +305,8 @@ class Graph:
         # golden 悄悄吸收，必须当场失败而不是复用（教训：Qwen 维度的 gate_proj 分块实验）。
         if spec_path.exists() and not rebuild:
             old = json.loads(spec_path.read_text())
-            diff = {k: (old.get(k), spec.get(k)) for k in spec if old.get(k) != spec.get(k)}
+            # 只比**两边都有**的键：后来新增的元数据（如 int8_tol）不该让老资产报错
+            diff = {k: (old[k], spec[k]) for k in spec if k in old and old[k] != spec[k]}
             if diff:
                 raise NpuLibError(
                     "graph %r: artifacts already exist with a different spec %r; "
@@ -305,19 +331,29 @@ class Graph:
         if rebuild or not cap_json.exists():
             capture_mod.capture(self.name, art, model_dla,
                                 art / "golden" / (op["a"].name + ".bin"),
-                                art / "golden" / (op["b"].name + ".bin"))
+                                None if unary else art / "golden" / (op["b"].name + ".bin"))
         cap = json.loads(cap_json.read_text())
 
         # ④ plan + manifest
         run_dev_dir = cap["device_run_dir"]
+        # 一元算子的第三块缓冲是 LUT/scratch：它的内容在资产里（extra_file），不是我们推的输入
+        scratch = (art / "asset" / "scratch.bin").exists()
+        if unary:
+            bytes_b = 4096 if scratch else 0
+            n_inputs = 2 if scratch else 1
+            extra = "scratch.bin" if scratch else ""
+            in_b = ""
+        else:
+            bytes_b, n_inputs, extra = op["b"].nbytes, 2, ""
+            in_b = "%s/b.bin" % run_dev_dir
         plan = Plan.from_asset(
             asset_dir=cap["asset_dir"], iova_txt=art / "asset" / "iova.txt",
-            alloc_a=_alloc_for(op["a"].nbytes), alloc_b=_alloc_for(op["b"].nbytes),
+            alloc_a=_alloc_for(op["a"].nbytes), alloc_b=_alloc_for(max(bytes_b, 1)),
             alloc_c=_alloc_for(op["out"].nbytes),
             dir0=1, dir1=2, dir2=1, patch_idx=2, expect_patches=3,
-            bytes_a=op["a"].nbytes, bytes_b=op["b"].nbytes, bytes_out=op["out"].nbytes,
-            n_inputs=2,
-            in_a="%s/a.bin" % run_dev_dir, in_b="%s/b.bin" % run_dev_dir,
+            bytes_a=op["a"].nbytes, bytes_b=bytes_b, bytes_out=op["out"].nbytes,
+            n_inputs=n_inputs, extra_file=extra,
+            in_a="%s/a.bin" % run_dev_dir, in_b=in_b,
             out="%s/out.bin" % run_dev_dir)
         plan.write(art / "plan.txt")
 
@@ -330,6 +366,8 @@ class Graph:
             "scales": {"a": spec["in_scale"], "b": spec["in1_scale"], "out": spec["out_scale"]},
             "requant_ratio": golden_mod.ratio_for(op["kind"], spec["in_scale"],
                                                   spec["in1_scale"], spec["out_scale"]),
+            "int8_tol": op.get("tol", 0),
+            "unary": unary,
             "artifacts": {},
             "device_run_dir": run_dev_dir,
             "compile_log": str(art / "model.compile.log"),
@@ -337,9 +375,11 @@ class Graph:
             "seconds": round(time.time() - started, 2),
             "built_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         }
-        for rel in ["model.tflite", "model.dla", "plan.txt",
-                    "golden/%s.bin" % op["a"].name, "golden/%s.bin" % op["b"].name,
-                    "golden/expected.bin", "capture/vendor_out.bin"] + \
+        gold_rel = ["golden/%s.bin" % op["a"].name, "golden/expected.bin"]
+        if not unary:
+            gold_rel.append("golden/%s.bin" % op["b"].name)
+        for rel in ["model.tflite", "model.dla", "plan.txt"] + gold_rel + \
+                   ["capture/vendor_out.bin"] + \
                    ["asset/%s" % p.name for p in sorted((art / "asset").iterdir())
                     if p.name not in ("a.bin", "b.bin", "vendor_out.bin")]:
             f = art / rel
@@ -378,11 +418,11 @@ class Graph:
         """把 inputs 推给自建提交器跑一次；返回 Output(int8)。"""
         art = self._artifacts_or_compile()
         op = self._ops[0]
-        if set(inputs) != {op["a"].name, op["b"].name}:
-            raise ValueError("inputs must be exactly %r, got %r"
-                             % ({op["a"].name, op["b"].name}, set(inputs)))
+        want = {op["a"].name} if op["b"] is None else {op["a"].name, op["b"].name}
+        if set(inputs) != want:
+            raise ValueError("inputs must be exactly %r, got %r" % (want, set(inputs)))
         blobs = {}
-        for t in (op["a"], op["b"]):
+        for t in [x for x in (op["a"], op["b"]) if x is not None]:
             arr = np.asarray(inputs[t.name])
             if arr.dtype != np.int8:
                 arr = arr.astype(np.int8)
@@ -397,9 +437,10 @@ class Graph:
             local_in = art.root / "run"
             local_in.mkdir(exist_ok=True)
             (local_in / "a.bin").write_bytes(blobs[op["a"].name])
-            (local_in / "b.bin").write_bytes(blobs[op["b"].name])
             env.dev_push(local_in / "a.bin", "%s/a.bin" % run_dev_dir)
-            env.dev_push(local_in / "b.bin", "%s/b.bin" % run_dev_dir)
+            if op["b"] is not None:
+                (local_in / "b.bin").write_bytes(blobs[op["b"].name])
+                env.dev_push(local_in / "b.bin", "%s/b.bin" % run_dev_dir)
             env.dev_push(art.plan_path, "%s/plan.txt" % run_dev_dir)
             r = env.dev_shell("cd %s && %s plan.txt" % (run_dev_dir, runner),
                               check=False, capture=True)
@@ -431,32 +472,48 @@ class Graph:
             raise ValueError("verify: got %d bytes, expected %d" % (len(got), op["out"].numel))
 
         # ② 数值：用**这次实际喂进去的**输入重算独立 golden
-        if self._last_run is not None:
-            a_codes = np.frombuffer(self._last_run["inputs"][op["a"].name], dtype=np.int8)
-            b_codes = np.frombuffer(self._last_run["inputs"][op["b"].name], dtype=np.int8)
+        src = self._last_run["inputs"] if self._last_run is not None else None
+        if src is not None:
+            a_codes = np.frombuffer(src[op["a"].name], dtype=np.int8)
+            b_codes = (np.zeros(1, np.int8) if op["b"] is None
+                       else np.frombuffer(src[op["b"].name], dtype=np.int8))
         else:
             a_codes = np.fromfile(art.golden / (op["a"].name + ".bin"), dtype=np.int8)
-            b_codes = np.fromfile(art.golden / (op["b"].name + ".bin"), dtype=np.int8)
-        if op["kind"] == "fc":
-            # golden 的 fc 是矩阵乘：要把一维码流还原成 [M,K] 与 [N,K]
+            b_codes = (np.zeros(1, np.int8) if op["b"] is None
+                       else np.fromfile(art.golden / (op["b"].name + ".bin"), dtype=np.int8))
+        # golden 要按张量形状算：fc 是矩阵乘，softmax 沿最后一维归约
+        # （一维码流直接算会把整块当成一行 —— softmax 就变成全张量归一化了）
+        if op["kind"] in ("fc", "softmax"):
             a_codes = a_codes.reshape(op["a"].shape)
+        if op["kind"] == "fc":
             b_codes = b_codes.reshape(op["b"].shape)
         expected, acc, ratio = golden_mod.reference(
             op["kind"], a_codes, b_codes,
-            op["a"].dtype.scale, op["b"].dtype.scale, op["out"].dtype.scale)
-        exp_bytes = np.asarray(expected, dtype=np.int8).tobytes()
-        numeric_ok = got == exp_bytes
-        n_bad = sum(1 for x, y in zip(got, exp_bytes) if x != y)
-        first_bad = next((i for i, (x, y) in enumerate(zip(got, exp_bytes)) if x != y), None)
+            op["a"].dtype.scale, 1.0 if op["b"] is None else op["b"].dtype.scale,
+            op["out"].dtype.scale, zp_out=op["out"].dtype.zero_point)
+        exp_arr = np.asarray(expected, dtype=np.int8).ravel()
+        exp_bytes = exp_arr.tobytes()
+        # 容差：int8_tol 为 0 时逐位比；>0 时按 |diff| <= tol（softmax 这类定点/LUT 实现）
+        tol = int(op.get("tol", 0))
+        got_arr = np.frombuffer(got, dtype=np.int8)
+        diff = np.abs(got_arr.astype(np.int16) - exp_arr.astype(np.int16))
+        bad = diff > tol
+        numeric_ok = not bool(bad.any())
+        n_bad = int(bad.sum())
+        first_bad = int(np.argmax(bad)) if n_bad else None
 
         # ① 同源：只有"喂的就是抓取时那对输入"时才谈得上逐字节比
         vendor_path = art.capture / "vendor_out.bin"
         vendor_bytes = vendor_path.read_bytes() if vendor_path.exists() else b""
         cap_in_a = (art.golden / (op["a"].name + ".bin")).read_bytes()
-        cap_in_b = (art.golden / (op["b"].name + ".bin")).read_bytes()
-        same_inputs = (self._last_run is None or
-                       (self._last_run["inputs"][op["a"].name] == cap_in_a and
-                        self._last_run["inputs"][op["b"].name] == cap_in_b))
+        if self._last_run is None:
+            same_inputs = True
+        elif op["b"] is None:
+            same_inputs = self._last_run["inputs"][op["a"].name] == cap_in_a
+        else:
+            cap_in_b = (art.golden / (op["b"].name + ".bin")).read_bytes()
+            same_inputs = (self._last_run["inputs"][op["a"].name] == cap_in_a and
+                           self._last_run["inputs"][op["b"].name] == cap_in_b)
         if not vendor_bytes:
             same_source_ok = False
             same_note = "capture/vendor_out.bin missing -- capture step did not run"
@@ -473,6 +530,8 @@ class Graph:
             "numeric_mismatches": n_bad,
             "numeric_first_bad_index": first_bad,
             "requant_ratio": ratio,
+            "int8_tol": tol,
+            "max_abs_diff": int(diff.max()) if diff.size else 0,
             "same_source_note": same_note,
             "sha256_out": _sha256_bytes(got),
             "sha256_expected": _sha256_bytes(exp_bytes),

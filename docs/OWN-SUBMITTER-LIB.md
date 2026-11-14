@@ -35,10 +35,11 @@ res.ok                           # True 才算过
 | `Graph(name)` | 一张图一个名字；artifacts 目录用这个名字 | 已实现 |
 | `g.input(name, shape, dtype)` | 静态形状；形状即命令流的一部分 | 已实现，带 16 B 行规则校验（int8 每行 >= 16 B 且 % 16 == 0） |
 | `g.add/sub/mul(a, b)` | 同形状、无广播、同 dtype | 已实现；形状不同 -> `BroadCastError`（显式报错，不悄悄广播） |
-| `g.fc(x, w)` | `x[M,K]` × `w[N,K]`（**权重是运行时输入**）-> `[M,N]`，`s_out = s_a*s_w*32` | 已实现（int8）；见 [`reports/npu-lib-fc.md`](../reports/npu-lib-fc.md) |
+| `g.fc(x, w)` | `x[M,K]` × `w[N,K]`（**权重是运行时输入**）-> `[M,N]`，`s_out = s_a*s_w*32`（可显式给） | 已实现（int8）；见 [`reports/npu-lib-fc.md`](../reports/npu-lib-fc.md) |
+| `g.softmax(x)` | 沿最后一维；int8 输出 `(1/256, zp=-128)` | 已实现；一元 + LUT 缓冲（`extra_file`），见 [`reports/npu-lib-softmax.md`](../reports/npu-lib-softmax.md) |
 | `g.compile()` | 四步流水线，见 §2 | 已实现 |
 | `g.run(inputs)` | dict{输入名: int8 码} -> `Output` | 已实现，只走 /dev/apusys |
-| `g.verify(out)` | 两道门，见 §4 | 已实现，返回 `VerifyResult`（`.ok == 同源 且 逐位`） |
+| `g.verify(out)` | 两道门，见 §4 | 已实现，返回 `VerifyResult`（`.ok == 同源 且 数值在 `int8_tol` 内；tol=0 即逐位） |
 
 出错类型：`NpuLibError`（编译/捕获/提交失败）、`BroadCastError`（形状不匹配）、
 `UnsupportedError`（接口留了入口但没实现）。三者都是 `NpuLibError` 的子类，
@@ -246,7 +247,8 @@ requant 口径（为什么这一票的 `int8_tol = 0`）：本库把输出 scale
 7. **需要额外缓冲的算子**：`extra_file` 字段现在**有证据**了 ——
    SOFTMAX 的 LUT/scratch 缓冲（`[1,8,16]` int8，4 KiB）走 `extra_file=scratch.bin` 重放，
    与厂商设备输出**逐字节相同**（0/128），见 [`reports/npu-lib-softmax.md`](../reports/npu-lib-softmax.md)。
-   还差的：把 softmax 做成 `Graph` 的一等算子（要 `output_zero_point=-128` 的 golden 与 int8_tol=2 登记）。
+   softmax 已经是 `Graph` 的一等算子（`g.softmax`）：一元链路、LUT 缓冲、`output_zero_point=-128` 的 golden、
+   `int8_tol` 登记都通了，实测 0/128 且与厂商逐字节相同。
    常量权重 FC 仍压着 OWN-SUBMITTER §10.3 那个 IoVA 契约未解。
 8. **"命令自生成"仍未开始**：本包把"重放捕获的命令流"工程化了，没有生成命令。
 9. **锁与并发**：库自己用目录锁（与 `tools/devlock.sh` 同一把，`NPU_LOCK_HELD=1` 表示外层已持锁）。

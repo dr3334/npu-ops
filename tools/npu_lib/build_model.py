@@ -62,6 +62,8 @@ def build(spec, outdir):
     op = spec["op"]
     if op == "fc":
         return build_fc(spec, outdir)
+    if op == "softmax":
+        return build_softmax(spec, outdir)
     shape = tuple(spec["shape"])
     n = int(np.prod(shape))
     sa = float(spec["in_scale"])
@@ -109,6 +111,60 @@ def build(spec, outdir):
             "no board evidence yet (see docs/OWN-SUBMITTER-LIB.md)."),
         "int8_tol": 0,
         "reference": "int64_acc + tools/quant_contract.requant_int8",
+        "seed": seed,
+        "tflite_bytes": len(blob),
+    }
+    with open(os.path.join(outdir, "model.json"), "w") as f:
+        json.dump(meta, f, indent=2)
+    return meta
+
+
+def build_softmax(spec, outdir):
+    """SOFTMAX（沿最后一维），int8。
+
+    输出用 TFLite 的惯例：s_out = 1/256、zero_point = -128（非对称）。
+    这条路径在我们的提交器上有逐字节证据（[1,8,16]，reports/npu-lib-softmax.md）。
+    golden 用 float32 算再量化，设备是 LUT 定点实现 —— 判据按登记的 int8_tol 比，不要求逐位。
+    """
+    shape = tuple(int(x) for x in spec["shape"])
+    s_in = float(spec["in_scale"])
+    s_out = float(spec["out_scale"])
+    zp_out = int(spec.get("out_zero_point", 0))
+    seed = int(spec.get("seed", 20261113))
+
+    rng = np.random.default_rng(seed)
+    a = rng.integers(-127, 128, size=shape).astype(np.int8)
+    expected = golden_mod.reference("softmax", a, None, s_in, 1.0, s_out, zp_out=zp_out)[0]
+
+    bb = flatbuffers.Builder(4096)
+    buffers = [bo.buf_empty(bb), bo.buf_empty(bb)]
+    t_a = bo.tensor(bb, spec["in_name"], list(shape), bo.I8, 0, bo.quant_tensor(bb, [s_in], [0]))
+    t_o = bo.tensor(bb, spec["out_name"], list(shape), bo.I8, 1,
+                    bo.quant_tensor(bb, [s_out], [zp_out]))
+    S.SoftmaxOptionsStart(bb)
+    S.SoftmaxOptionsAddBeta(bb, 1.0)
+    opt = S.SoftmaxOptionsEnd(bb)
+    op_tbl = bo.operator(bb, 0, [0], [1], bo.BuiltinOptions.SoftmaxOptions, opt)
+    blob = bo.finish(bb, buffers, [bo.opcode(bb, bo.BuiltinOperator.SOFTMAX)],
+                     [t_a, t_o], [op_tbl], [0], [1],
+                     "npu_lib SOFTMAX %s int8" % "x".join(str(d) for d in shape))
+
+    os.makedirs(os.path.join(outdir, "golden"), exist_ok=True)
+    with open(os.path.join(outdir, "model.tflite"), "wb") as f:
+        f.write(blob)
+    a.tofile(os.path.join(outdir, "golden", spec["in_name"] + ".bin"))
+    expected.tofile(os.path.join(outdir, "golden", "expected.bin"))
+
+    meta = {
+        "name": spec["name"],
+        "op": "SOFTMAX",
+        "shape": list(shape),
+        "dtype": "int8",
+        "inputs": [{"name": spec["in_name"], "shape": list(shape), "type": "int8", "scale": s_in}],
+        "output": {"name": spec["out_name"], "shape": list(shape), "type": "int8",
+                   "scale": s_out, "zero_point": zp_out},
+        "int8_tol": int(spec.get("int8_tol", 0)),
+        "reference": "float32 softmax -> quantize (device is a fixed-point LUT)",
         "seed": seed,
         "tflite_bytes": len(blob),
     }
@@ -211,7 +267,7 @@ def main(argv=None):
     meta = build(spec, args.out)
     print(json.dumps({"ok": True, "model": os.path.join(args.out, "model.tflite"),
                       "shape": meta.get("shape") or meta.get("shapes"), "op": meta["op"],
-                      "requant_ratio": meta["requant_ratio"]}))
+                      "requant_ratio": meta.get("requant_ratio")}))
     return 0
 
 

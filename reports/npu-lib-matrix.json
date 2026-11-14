@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-14T10:03:24+0800",
+  "generated_at": "2026-11-14T10:27:57+0800",
   "host": "DESKTOP-2HL7H4R",
   "runner": "probe/npu_run (plan-driven, /dev/apusys, no libneuron/neuronrt)",
   "results": [
@@ -45,6 +45,8 @@
         "numeric_mismatches": 0,
         "numeric_first_bad_index": null,
         "requant_ratio": 1.0,
+        "int8_tol": 0,
+        "max_abs_diff": 0,
         "same_source_note": "byte-for-byte vs capture/vendor_out.bin",
         "sha256_out": "2787bdeadb3168424e07d1f407e55f5bec651e846889100beeb940d689ba44be",
         "sha256_expected": "2787bdeadb3168424e07d1f407e55f5bec651e846889100beeb940d689ba44be",
@@ -59,32 +61,13 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x02547200 -> 0x02548400 (buf1)",
-        "patch off=0x074 0x02547100 -> 0x02548700 (buf0)",
-        "patch off=0x118 0x02544a00 -> 0x02544900 (buf2)",
-        "iova A=0x25487000 B=0x25484000 C=0x25449000 bytes=64/64/64",
+        "patch off=0x054 0x02547200 -> 0x02543800 (buf1)",
+        "patch off=0x074 0x02547100 -> 0x02544d00 (buf0)",
+        "patch off=0x118 0x02544a00 -> 0x02543d00 (buf2)",
+        "iova A=0x2544d000 B=0x25438000 C=0x2543d000 bytes=64/64/64",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/add_1x64_int8/out.bin"
       ],
-      "seconds": 1.6,
-      "no_vendor_lib": {
-        "sample": [
-          "PIDS=26224",
-          "--- vendor-ish lines ---",
-          "NONE",
-          "MAP_LINES=42"
-        ],
-        "vendor_lib_mapped": false,
-        "map_lines": "MAP_LINES=42",
-        "binary_check": {
-          "STATIC_HDR": "1",
-          "NEEDED": "0",
-          "VENDOR_STRINGS": "0",
-          "DLOPEN_STRINGS": "memtag_stack_dlopen_callback"
-        },
-        "static_link": true,
-        "dt_needed": "0",
-        "vendor_strings": "0"
-      }
+      "seconds": 1.5
     },
     {
       "name": "add_1x896_int8",
@@ -128,6 +111,8 @@
         "numeric_mismatches": 0,
         "numeric_first_bad_index": null,
         "requant_ratio": 1.0,
+        "int8_tol": 0,
+        "max_abs_diff": 0,
         "same_source_note": "byte-for-byte vs capture/vendor_out.bin",
         "sha256_out": "6a498bcb02c19a22bf2f4ce32ad152fbb8e2cef48931d6970dc580665dbc2bc4",
         "sha256_expected": "6a498bcb02c19a22bf2f4ce32ad152fbb8e2cef48931d6970dc580665dbc2bc4",
@@ -142,10 +127,10 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x0257ff00 -> 0x02586300 (buf1)",
-        "patch off=0x074 0x0258a900 -> 0x025ac100 (buf0)",
-        "patch off=0x118 0x0256da00 -> 0x025a6d00 (buf2)",
-        "iova A=0x25ac1000 B=0x25863000 C=0x25a6d000 bytes=896/896/896",
+        "patch off=0x054 0x0257ff00 -> 0x0257fd00 (buf1)",
+        "patch off=0x074 0x0258a900 -> 0x0259cc00 (buf0)",
+        "patch off=0x118 0x0256da00 -> 0x02555900 (buf2)",
+        "iova A=0x259cc000 B=0x257fd000 C=0x25559000 bytes=896/896/896",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/add_1x896_int8/out.bin"
       ],
       "seconds": 1.5
@@ -192,6 +177,8 @@
         "numeric_mismatches": 0,
         "numeric_first_bad_index": null,
         "requant_ratio": 1.0,
+        "int8_tol": 0,
+        "max_abs_diff": 0,
         "same_source_note": "byte-for-byte vs capture/vendor_out.bin",
         "sha256_out": "e6f98143ec4bf55fc5abca17a55ed054f41af76a3f14e6bee78ef4bf4bc614ee",
         "sha256_expected": "e6f98143ec4bf55fc5abca17a55ed054f41af76a3f14e6bee78ef4bf4bc614ee",
@@ -206,13 +193,13 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x025a6200 -> 0x02591d00 (buf1)",
-        "patch off=0x074 0x02547900 -> 0x02547600 (buf0)",
-        "patch off=0x118 0x025b0200 -> 0x02592c00 (buf2)",
-        "iova A=0x25476000 B=0x2591d000 C=0x2592c000 bytes=96/96/96",
+        "patch off=0x054 0x025a6200 -> 0x02547600 (buf1)",
+        "patch off=0x074 0x02547900 -> 0x02582a00 (buf0)",
+        "patch off=0x118 0x025b0200 -> 0x02591d00 (buf2)",
+        "iova A=0x2582a000 B=0x25476000 C=0x2591d000 bytes=96/96/96",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/add_1x96_int8/out.bin"
       ],
-      "seconds": 1.6
+      "seconds": 1.5
     },
     {
       "name": "mul_1x64_int8",
@@ -256,6 +243,8 @@
         "numeric_mismatches": 0,
         "numeric_first_bad_index": null,
         "requant_ratio": 1.0,
+        "int8_tol": 0,
+        "max_abs_diff": 0,
         "same_source_note": "byte-for-byte vs capture/vendor_out.bin",
         "sha256_out": "80d2c055441e9a5fd2b1e110c9c2d300497eed5d32deba2b725683f21e2a3308",
         "sha256_expected": "80d2c055441e9a5fd2b1e110c9c2d300497eed5d32deba2b725683f21e2a3308",
@@ -270,13 +259,13 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x025a6200 -> 0x0257fd00 (buf1)",
-        "patch off=0x074 0x02547900 -> 0x025a1800 (buf0)",
-        "patch off=0x118 0x025b0200 -> 0x0259cc00 (buf2)",
-        "iova A=0x25a18000 B=0x257fd000 C=0x259cc000 bytes=64/64/64",
+        "patch off=0x054 0x025a6200 -> 0x02592c00 (buf1)",
+        "patch off=0x074 0x02547900 -> 0x02591d00 (buf0)",
+        "patch off=0x118 0x025b0200 -> 0x02582a00 (buf2)",
+        "iova A=0x2591d000 B=0x2592c000 C=0x2582a000 bytes=64/64/64",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/mul_1x64_int8/out.bin"
       ],
-      "seconds": 1.5
+      "seconds": 1.6
     },
     {
       "name": "mul_1x896_int8",
@@ -320,6 +309,8 @@
         "numeric_mismatches": 0,
         "numeric_first_bad_index": null,
         "requant_ratio": 1.0,
+        "int8_tol": 0,
+        "max_abs_diff": 0,
         "same_source_note": "byte-for-byte vs capture/vendor_out.bin",
         "sha256_out": "ca09750473e89d684527d056131a0e5cc0da4abf1d153017bb02c12bf1c7ab51",
         "sha256_expected": "ca09750473e89d684527d056131a0e5cc0da4abf1d153017bb02c12bf1c7ab51",
@@ -334,13 +325,13 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x02586000 -> 0x02547500 (buf1)",
-        "patch off=0x074 0x02555900 -> 0x02573000 (buf0)",
-        "patch off=0x118 0x02563200 -> 0x02558d00 (buf2)",
-        "iova A=0x25730000 B=0x25475000 C=0x2558d000 bytes=896/896/896",
+        "patch off=0x054 0x02586000 -> 0x02547600 (buf1)",
+        "patch off=0x074 0x02555900 -> 0x02582a00 (buf0)",
+        "patch off=0x118 0x02563200 -> 0x02591d00 (buf2)",
+        "iova A=0x2582a000 B=0x25476000 C=0x2591d000 bytes=896/896/896",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/mul_1x896_int8/out.bin"
       ],
-      "seconds": 1.6
+      "seconds": 1.5
     },
     {
       "name": "mul_1x96_int8",
@@ -384,6 +375,8 @@
         "numeric_mismatches": 0,
         "numeric_first_bad_index": null,
         "requant_ratio": 1.0,
+        "int8_tol": 0,
+        "max_abs_diff": 0,
         "same_source_note": "byte-for-byte vs capture/vendor_out.bin",
         "sha256_out": "012c02e17dc4ff6f5a7a87be2d4e43f1d1f1a42e51a71bac9d39868bce30b746",
         "sha256_expected": "012c02e17dc4ff6f5a7a87be2d4e43f1d1f1a42e51a71bac9d39868bce30b746",
@@ -398,13 +391,13 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x02598e00 -> 0x02591300 (buf1)",
-        "patch off=0x074 0x0251f700 -> 0x02592700 (buf0)",
-        "patch off=0x118 0x02563300 -> 0x02592600 (buf2)",
-        "iova A=0x25927000 B=0x25913000 C=0x25926000 bytes=96/96/96",
+        "patch off=0x054 0x02598e00 -> 0x02574200 (buf1)",
+        "patch off=0x074 0x0251f700 -> 0x02583a00 (buf0)",
+        "patch off=0x118 0x02563300 -> 0x0257f100 (buf2)",
+        "iova A=0x2583a000 B=0x25742000 C=0x257f1000 bytes=96/96/96",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/mul_1x96_int8/out.bin"
       ],
-      "seconds": 1.5
+      "seconds": 1.6
     },
     {
       "name": "sub_1x64_int8",
@@ -448,6 +441,8 @@
         "numeric_mismatches": 0,
         "numeric_first_bad_index": null,
         "requant_ratio": 1.0,
+        "int8_tol": 0,
+        "max_abs_diff": 0,
         "same_source_note": "byte-for-byte vs capture/vendor_out.bin",
         "sha256_out": "9a246c7c56026897d2760e1c19fe3ba25988152334c154775b73f42ddb25a881",
         "sha256_expected": "9a246c7c56026897d2760e1c19fe3ba25988152334c154775b73f42ddb25a881",
@@ -462,13 +457,13 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x02596f00 -> 0x02543400 (buf1)",
-        "patch off=0x074 0x0258ff00 -> 0x0258d200 (buf0)",
-        "patch off=0x118 0x02570600 -> 0x0258bf00 (buf2)",
-        "iova A=0x258d2000 B=0x25434000 C=0x258bf000 bytes=64/64/64",
+        "patch off=0x054 0x02596f00 -> 0x02570a00 (buf1)",
+        "patch off=0x074 0x0258ff00 -> 0x02573c00 (buf0)",
+        "patch off=0x118 0x02570600 -> 0x0258cf00 (buf2)",
+        "iova A=0x2573c000 B=0x2570a000 C=0x258cf000 bytes=64/64/64",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/sub_1x64_int8/out.bin"
       ],
-      "seconds": 1.5
+      "seconds": 1.6
     },
     {
       "name": "sub_1x896_int8",
@@ -512,6 +507,8 @@
         "numeric_mismatches": 0,
         "numeric_first_bad_index": null,
         "requant_ratio": 1.0,
+        "int8_tol": 0,
+        "max_abs_diff": 0,
         "same_source_note": "byte-for-byte vs capture/vendor_out.bin",
         "sha256_out": "a760cfd1c1373e6c2efdc6d5ab0dd8306f5a78a566bdb328dea440126275c1a0",
         "sha256_expected": "a760cfd1c1373e6c2efdc6d5ab0dd8306f5a78a566bdb328dea440126275c1a0",
@@ -526,10 +523,10 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x02573c00 -> 0x0258d500 (buf1)",
-        "patch off=0x074 0x0256e300 -> 0x0258bf00 (buf0)",
-        "patch off=0x118 0x02570a00 -> 0x0258d200 (buf2)",
-        "iova A=0x258bf000 B=0x258d5000 C=0x258d2000 bytes=896/896/896",
+        "patch off=0x054 0x02573c00 -> 0x0258ab00 (buf1)",
+        "patch off=0x074 0x0256e300 -> 0x02547200 (buf0)",
+        "patch off=0x118 0x02570a00 -> 0x02563500 (buf2)",
+        "iova A=0x25472000 B=0x258ab000 C=0x25635000 bytes=896/896/896",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/sub_1x896_int8/out.bin"
       ],
       "seconds": 1.5
@@ -576,6 +573,8 @@
         "numeric_mismatches": 0,
         "numeric_first_bad_index": null,
         "requant_ratio": 1.0,
+        "int8_tol": 0,
+        "max_abs_diff": 0,
         "same_source_note": "byte-for-byte vs capture/vendor_out.bin",
         "sha256_out": "30bd8f7e951716d8c122c6d4fc6eb6e5593226373e3f8c67fc19725b276a943a",
         "sha256_expected": "30bd8f7e951716d8c122c6d4fc6eb6e5593226373e3f8c67fc19725b276a943a",
@@ -590,13 +589,13 @@
       },
       "pass": true,
       "npu_run_log": [
-        "patch off=0x054 0x02573c00 -> 0x02548400 (buf1)",
-        "patch off=0x074 0x0256e300 -> 0x02596f00 (buf0)",
-        "patch off=0x118 0x02570a00 -> 0x02544900 (buf2)",
-        "iova A=0x2596f000 B=0x25484000 C=0x25449000 bytes=96/96/96",
+        "patch off=0x054 0x02573c00 -> 0x02573c00 (buf1)",
+        "patch off=0x074 0x0256e300 -> 0x025a4000 (buf0)",
+        "patch off=0x118 0x02570a00 -> 0x02570a00 (buf2)",
+        "iova A=0x25a40000 B=0x2573c000 C=0x2570a000 bytes=96/96/96",
         "RC=0 patches=3 out=/data/local/tmp/npuops/runs/sub_1x96_int8/out.bin"
       ],
-      "seconds": 1.4
+      "seconds": 1.6
     }
   ],
   "passed": 9,
