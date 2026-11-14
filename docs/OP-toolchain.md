@@ -58,11 +58,16 @@
 **形状 / 动态形状**
 
 ```bash
-./tools/compile.sh ops/add_1x64_int8/model.tflite /tmp/add_resize.dla --resize 1x128
+# --resize 必须给**全部输入**的尺寸，逗号分隔、按输入顺序；少给一个就直接 EXIT=1
+./tools/compile.sh ops/add_1x64_int8/model.tflite /tmp/add_resize.dla --resize 1x128,1x128
+
+# --runtime-dynamic-shape 单独用没有可见效果（见下）
 ./tools/compile.sh ops/add_1x64_int8/model.tflite /tmp/add_dyn.dla --runtime-dynamic-shape
 ```
 
-（这两条的结构副作用**尚未测完**，见 02 票的剩余项。）
+实测（`add_1x64_int8`，两输入）：`--resize 1x128,1x128` 编出的 I/O 表是 `[1,1,1,128]`，喂 128 B 输入、输出与「重新抓的 128 资产」**逐字节相同**；
+`--resize 1x64,1x128` 会 EXIT=1（`Fail to run ResizeInputsPropagationPass`）。
+`--runtime-dynamic-shape` 能编过，但 I/O 表仍写死 64 B，喂 128 B 报 `The size of input[0] should be 64` —— **它自己不能让一份产物吃多种尺寸**。
 
 **其他**：`--dla-metadata key:file,...`（外部元数据）、`--gno NDF,SMP,BMP`（图优化）、`-e/--exec`（编译器自己跑推理）。
 

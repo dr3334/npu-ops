@@ -51,6 +51,26 @@ neuronrt -m hw -a f.dla -i in.bin -i w.bin -o out.bin -c 1
 - `fc_static.bin` 262,178 B 是什么？`neuronrt` 不消费它，只要 4096 B 原始权重。
 - 262178 ≈ 256 KiB + 34 B，像是「按 tile 展开/复制后的布局」，但没有证据。
 
-## 4. 剩余项
+## 4. `--resize` / `--runtime-dynamic-shape`：一个成立、一个不成立
 
-`--resize` / `--runtime-dynamic-shape` 还没跑：需要一份 `.dla` 在两种输入尺寸下都跑出正确结果才算成立。
+**`--resize` ✅ 成立，但有语法坑**：必须给**全部输入**尺寸、逗号分隔、按输入顺序。少给一个就：
+
+```text
+ERROR: Please specify the dimensions of all inputs in order
+ERROR: Number of inputs: 2
+ERROR: Fail to run ResizeInputsPropagationPass
+```
+
+| 命令 | 结果 |
+|---|---|
+| `--resize 1x128,1x128` | ✅ 编译 3091 B；I/O 表 `[1,1,1,128]`；喂 128 B 输出与本仓库 128 资产的参考**逐字节相同** |
+| `--resize 1x1x1x128,1x1x1x128` | ✅ 同上（4331 B） |
+| `--resize 1x64,1x128`（两输入不同尺寸） | ❌ EXIT=1 |
+
+**但它是「编译期换形状」，不是「一份产物吃多种尺寸」**：`--resize` 改的是编译时输入维，产物仍只认那个尺寸。
+
+**`--runtime-dynamic-shape` ⚠️ 不成立（按这个用法）**：能编过（4091 B），但 `neuronrt -d` 的 I/O 表仍写死 `[1,1,1,64]`，
+喂 128 B 直接 `The size of input[0] should be 64`。所以至少经 `neuronrt` 这条路，一份产物**不能**吃多种尺寸。
+
+**对现有策略的影响**：`--resize` 只能把「为新形状重建 tflite」省成「同一个 tflite 加一个 flag」，
+**「每形状一资产」依然成立** —— 自建库票 02/08 的结论不变。
