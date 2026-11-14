@@ -12,14 +12,17 @@
  *
  *   ./npu_run <plan.txt>            # everything (paths included) comes from the plan
  *
- * Plan keys (all optional except asset_dir / n_elems / out):
+ * Plan keys (all optional except asset_dir / out, plus bytes_* or n_elems):
  *   asset_dir=<device dir with cmdN.bin, subcmd.bin, cmdin.bin>
  *   old_a/old_b/old_c=0x...         captured IOVAs (matching key for relocation; 0 = unused slot)
  *   alloc_a/alloc_b/alloc_c=<bytes> allocation size per buffer (default 4096)
  *   dir0/dir1/dir2=1|2              cmdbuf direction flags, order is semantic
  *   patch_idx=2                     which cmdbuf carries the address words
  *   expect_patches=3                how many address words must be found
- *   n_elems=<n>                     int8 elements per submission (== bytes)
+ *   n_elems=<n>                     bytes per submission for A/B/C (compat shortcut)
+ *   bytes_a/bytes_b/bytes_out=<n>   per-buffer byte counts, override n_elems. Needed when the
+ *                                   operands have different sizes (FULLY_CONNECTED: A[M,K] and
+ *                                   W[N,K] in, C[M,N] out -- three different byte counts).
  *   n_inputs=1|2                    default 2
  *   cmdbuf0/cmdbuf1/cmdbuf2=<file>  default cmd0.bin/cmd1.bin/cmd2.bin
  *   extra_file=<file>               optional 3rd buffer (LUT / const weight) loaded from asset
@@ -37,6 +40,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <time.h>
 
 #define APUSYS_MAGIC 0x41
 typedef struct { uint32_t op, pad; uint64_t flags; uint64_t w0, w1, w2; } hs_args_t;
@@ -61,12 +65,17 @@ typedef struct {
   char cmdbuf_file[3][64];
   char extra_file[64];
   char in_a[MAXSTRING], in_b[MAXSTRING], out[MAXSTRING];
+  char dump_b[MAXSTRING];        /* 调试：跑完把 B 缓冲也落盘（查"是不是写到了别的缓冲"） */
   uint64_t old_iova[3];
   uint32_t alloc[3];
   int dir[3];
   int patch_idx;
   int expect_patches;
+  uint32_t einfo_size;       /* exec_infos 缓冲的大小（默认 76；多/大图要按抓取的大小） */
+  int iter;                  /* 同进程内重复提交次数（计时用，默认 1） */
+  int wait_ms;               /* 每次提交后等待多久再读回（默认 200） */
   uint32_t n_elems;
+  uint32_t bytes_a, bytes_b, bytes_out;   /* 0 => fall back to n_elems */
   int n_inputs;
 } plan_t;
 
@@ -86,6 +95,9 @@ static void plan_defaults(plan_t *p) {
   p->patch_idx = 2;
   p->expect_patches = 3;
   p->n_inputs = 2;
+  p->einfo_size = 76;
+  p->iter = 1;
+  p->wait_ms = 200;
 }
 
 static int parse_plan(const char *path, plan_t *p) {
@@ -115,6 +127,7 @@ static int parse_plan(const char *path, plan_t *p) {
     else if (!strcmp(k, "in_a")) snprintf(p->in_a, MAXSTRING, "%s", v);
     else if (!strcmp(k, "in_b")) snprintf(p->in_b, MAXSTRING, "%s", v);
     else if (!strcmp(k, "out")) snprintf(p->out, MAXSTRING, "%s", v);
+    else if (!strcmp(k, "dump_b")) snprintf(p->dump_b, MAXSTRING, "%s", v);
     else if (!strcmp(k, "old_a")) p->old_iova[0] = strtoull(v, NULL, 0);
     else if (!strcmp(k, "old_b")) p->old_iova[1] = strtoull(v, NULL, 0);
     else if (!strcmp(k, "old_c")) p->old_iova[2] = strtoull(v, NULL, 0);
@@ -126,16 +139,29 @@ static int parse_plan(const char *path, plan_t *p) {
     else if (!strcmp(k, "dir2")) p->dir[2] = atoi(v);
     else if (!strcmp(k, "patch_idx")) p->patch_idx = atoi(v);
     else if (!strcmp(k, "expect_patches")) p->expect_patches = atoi(v);
+    else if (!strcmp(k, "einfo_size")) p->einfo_size = (uint32_t)strtoul(v, NULL, 0);
+    else if (!strcmp(k, "iter")) p->iter = atoi(v);
+    else if (!strcmp(k, "wait_ms")) p->wait_ms = atoi(v);
     else if (!strcmp(k, "n_elems")) p->n_elems = (uint32_t)strtoul(v, NULL, 0);
+    else if (!strcmp(k, "bytes_a")) p->bytes_a = (uint32_t)strtoul(v, NULL, 0);
+    else if (!strcmp(k, "bytes_b")) p->bytes_b = (uint32_t)strtoul(v, NULL, 0);
+    else if (!strcmp(k, "bytes_out")) p->bytes_out = (uint32_t)strtoul(v, NULL, 0);
     else if (!strcmp(k, "n_inputs")) p->n_inputs = atoi(v);
     else fprintf(stderr, "plan: unknown key '%s' (ignored)\n", k);
   }
   fclose(f);
-  if (!p->asset_dir[0] || !p->n_elems || !p->out[0]) {
-    fprintf(stderr, "plan: asset_dir / n_elems / out are required\n");
+  /* bytes_* 覆盖 n_elems；两者都没给就没有尺寸可依 */
+  if (!p->bytes_a) p->bytes_a = p->n_elems;
+  if (!p->bytes_b) p->bytes_b = p->n_elems;
+  if (!p->bytes_out) p->bytes_out = p->n_elems;
+  if (!p->asset_dir[0] || !p->out[0] || !p->bytes_a || !p->bytes_out) {
+    fprintf(stderr, "plan: asset_dir / out / (bytes_a+bytes_out or n_elems) required\n");
     return -1;
   }
-  if (p->n_inputs == 2 && !p->in_b[0]) { fprintf(stderr, "plan: n_inputs=2 needs in_b\n"); return -1; }
+  /* extra_file 时 B 的内容来自资产（LUT/常量），不需要 in_b */
+  if (p->n_inputs == 2 && !p->in_b[0] && !p->extra_file[0]) {
+    fprintf(stderr, "plan: n_inputs=2 needs in_b (or extra_file)\n"); return -1;
+  }
   return 0;
 }
 
@@ -260,40 +286,100 @@ static int patch_addrs(unsigned char *cmd, unsigned size, const uint64_t *oldv,
 }
 
 /* ------------------------------------------------------------------ main */
+#define MAXSUB 8
+#define MAXCB  8
+
 int main(int argc, char **argv) {
   plan_t pl;
   char p[1024];
-  buf_t cb[3] = {{0}}, a1 = {0}, b1 = {0}, c = {0}, einfo = {0};
-  uint32_t cb_size[3] = {0, 0, 0};
-  static unsigned char cbs[3 * 24];
-  static unsigned char subcmd[256];
+  buf_t a1 = {0}, b1 = {0}, c = {0}, einfo = {0};
+  static buf_t cb[MAXSUB][MAXCB];
+  static uint32_t cb_size[MAXSUB][MAXCB];
+  static char cb_file[MAXSUB][MAXCB][64];
+  static int dirs[MAXSUB][MAXCB];
+  static unsigned char cbs[MAXSUB][MAXCB * 24];
+  static unsigned char subcmd[MAXSUB * 80];
   static unsigned char adj[64];
   cmd_args_t cmd;
-  uint32_t subcmd_size = 0;
-  int deferred_map, rc = 0;
+  int nsub = 0, ncb[MAXSUB];
+  int multi = 0, deferred_map, rc = 0;
   unsigned hits = 0;
+
+  memset(cb, 0, sizeof(cb));
+  memset(ncb, 0, sizeof(ncb));
+  memset(dirs, 0, sizeof(dirs));
 
   if (argc != 2) { fprintf(stderr, "usage: %s <plan.txt>\n", argv[0]); return 2; }
   if (parse_plan(argv[1], &pl)) return 2;
-  if (pl.n_elems > pl.alloc[0] || pl.n_elems > pl.alloc[2]) {
-    fprintf(stderr, "n_elems=%u exceeds alloc_a/alloc_c\n", pl.n_elems);
+  if (pl.bytes_a > pl.alloc[0] || pl.bytes_out > pl.alloc[2] ||
+      (pl.n_inputs == 2 && pl.bytes_b > pl.alloc[1])) {
+    fprintf(stderr, "bytes_a/b/out=%u/%u/%u exceeds alloc_a/b/c=%u/%u/%u\n",
+            pl.bytes_a, pl.bytes_b, pl.bytes_out, pl.alloc[0], pl.alloc[1], pl.alloc[2]);
     return 2;
   }
 
-  for (int k = 0; k < 3; k++) {
-    snprintf(p, sizeof(p), "%s/%s", pl.asset_dir, pl.cmdbuf_file[k]);
-    if (file_size(p, &cb_size[k])) { fprintf(stderr, "%s: missing cmdbuf\n", p); return 3; }
+  /* 多子命令资产（mkasset 写 subcmds.txt）：一行 "<gi> <n> <size:dir>..." */
+  snprintf(p, sizeof(p), "%s/subcmds.txt", pl.asset_dir);
+  {
+    FILE *sf = fopen(p, "r");
+    if (sf) {
+      char line[512];
+      while (fgets(line, sizeof(line), sf) && nsub < MAXSUB) {
+        int gi = -1, n = 0, used = 0;
+        if (sscanf(line, "%d %d%n", &gi, &n, &used) < 2) continue;
+        if (gi < 0 || gi >= MAXSUB || n <= 0) continue;
+        int off = used, k = 0;
+        while (k < n && k < MAXCB) {
+          int sz = 0, dir = 1, u2 = 0;
+          if (sscanf(line + off, " %d:%d%n", &sz, &dir, &u2) < 2) break;
+          off += u2;
+          cb_size[gi][k] = (uint32_t)sz;
+          dirs[gi][k] = dir;
+          k++;
+        }
+        ncb[gi] = k;
+        if (gi + 1 > nsub) nsub = gi + 1;
+      }
+      fclose(sf);
+    }
   }
-  snprintf(p, sizeof(p), "%s/subcmd.bin", pl.asset_dir);
-  if (file_size(p, &subcmd_size) || subcmd_size > sizeof(subcmd)) return 3;
+  multi = (nsub > 0);
+  if (getenv("NPU_RUN_DEBUG"))
+    fprintf(stderr, "DBG parser: nsub=%d ncb0=%d ncb1=%d sizes0=%u,%u,%u sizes1=%u,%u,%u\n",
+            nsub, ncb[0], ncb[1], cb_size[0][0], cb_size[0][1], cb_size[0][2],
+            cb_size[1][0], cb_size[1][1], cb_size[1][2]);
+  if (!multi) {
+    nsub = 1;
+    ncb[0] = 3;
+    for (int k = 0; k < 3; k++) {
+      snprintf(cb_file[0][k], 64, "%s", pl.cmdbuf_file[k]);
+      dirs[0][k] = pl.dir[k];
+      snprintf(p, sizeof(p), "%s/%s", pl.asset_dir, cb_file[0][k]);
+      if (file_size(p, &cb_size[0][k])) { fprintf(stderr, "%s: missing cmdbuf\n", p); return 3; }
+    }
+  } else {
+    for (int i = 0; i < nsub; i++) {
+      for (int k = 0; k < ncb[i]; k++) {
+        snprintf(cb_file[i][k], 64, "cmd%d_%d.bin", i, k);
+        snprintf(p, sizeof(p), "%s/%s", pl.asset_dir, cb_file[i][k]);
+        uint32_t sz = 0;
+        if (file_size(p, &sz)) { fprintf(stderr, "%s: missing cmdbuf\n", p); return 3; }
+        if (sz != cb_size[i][k]) {
+          fprintf(stderr, "%s: size %u != subcmds.txt %u (taking disk)\n", p, sz, cb_size[i][k]);
+          cb_size[i][k] = sz;
+        }
+      }
+    }
+  }
 
   if (apu_open_handshake()) return 5;
 
-  for (int k = 0; k < 3; k++)
-    if (apu_alloc_map(&cb[k], cb_size[k], CMDBUF_ALIGN, 1)) { rc = 5; goto done; }
-  for (int k = 0; k < 3; k++) {
-    snprintf(p, sizeof(p), "%s/%s", pl.asset_dir, pl.cmdbuf_file[k]);
-    if (read_file(p, cb[k].host, cb_size[k])) { rc = 3; goto done; }
+  for (int i = 0; i < nsub; i++) {
+    for (int k = 0; k < ncb[i]; k++) {
+      if (apu_alloc_map(&cb[i][k], cb_size[i][k], CMDBUF_ALIGN, 1)) { rc = 5; goto done; }
+      snprintf(p, sizeof(p), "%s/%s", pl.asset_dir, cb_file[i][k]);
+      if (read_file(p, cb[i][k].host, cb_size[i][k])) { rc = 3; goto done; }
+    }
   }
 
   if (apu_alloc_map(&a1, pl.alloc[0], CMDBUF_ALIGN, 1)) { rc = 5; goto done; }
@@ -301,22 +387,23 @@ int main(int argc, char **argv) {
   if (pl.n_inputs == 2 &&
       apu_alloc_map(&b1, pl.alloc[1], CMDBUF_ALIGN, deferred_map ? 0 : 1)) { rc = 5; goto done; }
   if (apu_alloc_map(&c, pl.alloc[2], CMDBUF_ALIGN, 1)) { rc = 5; goto done; }
-  if (apu_alloc_map(&einfo, 76, 0, 1)) { rc = 5; goto done; }   /* exec_infos 必须是 MEM handle */
-  memset(einfo.host, 0, 76);
+  if (apu_alloc_map(&einfo, pl.einfo_size, 0, 1)) { rc = 5; goto done; }
+  memset(einfo.host, 0, pl.einfo_size);
 
-  if (read_file(pl.in_a, a1.host, pl.n_elems)) { rc = 3; goto done; }
+  if (read_file(pl.in_a, a1.host, pl.bytes_a)) { rc = 3; goto done; }
   if (pl.n_inputs == 2) {
     if (deferred_map) {
       snprintf(p, sizeof(p), "%s/%s", pl.asset_dir, pl.extra_file);
       if (read_file(p, b1.host, pl.alloc[1])) { rc = 3; goto done; }
       if (apu_map_only(&b1)) { rc = 5; goto done; }
-    } else if (read_file(pl.in_b, b1.host, pl.n_elems)) { rc = 3; goto done; }
+    } else if (read_file(pl.in_b, b1.host, pl.bytes_b)) { rc = 3; goto done; }
   }
 
-  /* 命令缓冲也要 flush（漏了会偶发读到陈旧命令流） */
-  for (int k = 0; k < 3; k++) {
-    dma_buf_sync(cb[k].handle, (1u << 30) | 2u);
-    dma_buf_sync(cb[k].handle, (1u << 31) | 2u);
+  for (int i = 0; i < nsub; i++) {
+    for (int k = 0; k < ncb[i]; k++) {
+      dma_buf_sync(cb[i][k].handle, (1u << 30) | 2u);
+      dma_buf_sync(cb[i][k].handle, (1u << 31) | 2u);
+    }
   }
   dma_buf_sync(a1.handle, (1u << 30) | 2u);
   dma_buf_sync(a1.handle, (1u << 31) | 2u);
@@ -327,66 +414,113 @@ int main(int argc, char **argv) {
 
   {
     uint64_t newv[3] = { a1.iova, pl.n_inputs == 2 ? b1.iova : 0, c.iova };
-    int k = pl.patch_idx;
-    if (k < 0 || k > 2) { rc = 2; goto done; }
-    patch_addrs((unsigned char *)cb[k].host, cb_size[k], pl.old_iova, newv, &hits);
+    for (int i = 0; i < nsub; i++) {
+      for (int k = 0; k < ncb[i]; k++) {
+        unsigned h = 0;   /* patch_addrs 会把计数清零，必须逐块累加 */
+        patch_addrs((unsigned char *)cb[i][k].host, cb_size[i][k], pl.old_iova, newv, &h);
+        hits += h;
+      }
+    }
     if (hits != (unsigned)pl.expect_patches) {
       fprintf(stderr, "patched %u/%d addresses (command stream mismatch?)\n",
               hits, pl.expect_patches);
       rc = 4; goto done;
     }
   }
-  printf("iova A=0x%llx B=0x%llx C=0x%llx elems=%u\n",
+  printf("iova A=0x%llx B=0x%llx C=0x%llx bytes=%u/%u/%u subcmds=%d\n",
          (unsigned long long)a1.iova, (unsigned long long)b1.iova,
-         (unsigned long long)c.iova, pl.n_elems);
+         (unsigned long long)c.iova, pl.bytes_a, pl.bytes_b, pl.bytes_out, nsub);
 
   memset(cbs, 0, sizeof(cbs));
-  for (int k = 0; k < 3; k++) {
-    uint64_t h = cb[k].handle;
-    uint32_t sz = cb_size[k], al = CMDBUF_ALIGN, dir = (uint32_t)pl.dir[k];
-    memcpy(cbs + k * 24 + 0, &h, 8);
-    memcpy(cbs + k * 24 + 8, &sz, 4);
-    memcpy(cbs + k * 24 + 12, &al, 4);
-    memcpy(cbs + k * 24 + 16, &dir, 4);
+  memset(subcmd, 0, sizeof(subcmd));
+  for (int i = 0; i < nsub; i++) {
+    for (int k = 0; k < ncb[i]; k++) {
+      unsigned char *d = cbs[i] + k * 24;
+      uint64_t h = cb[i][k].handle;
+      uint32_t sz = cb_size[i][k], al = CMDBUF_ALIGN, dir = (uint32_t)dirs[i][k];
+      memcpy(d + 0, &h, 8);
+      memcpy(d + 8, &sz, 4);
+      memcpy(d + 12, &al, 4);
+      memcpy(d + 16, &dir, 4);
+    }
+    if (multi) snprintf(p, sizeof(p), "%s/subcmd%d.bin", pl.asset_dir, i);
+    else snprintf(p, sizeof(p), "%s/subcmd.bin", pl.asset_dir);
+    if (read_file(p, subcmd + i * 80, 80)) { rc = 3; goto done; }
+    put32(subcmd, i * 80 + 64, (uint32_t)ncb[i]);
+    put64(subcmd, i * 80 + 72, (uint64_t)(uintptr_t)cbs[i]);
   }
 
-  memset(subcmd, 0, sizeof(subcmd));
-  snprintf(p, sizeof(p), "%s/subcmd.bin", pl.asset_dir);
-  if (read_file(p, subcmd, subcmd_size)) { rc = 3; goto done; }
-  put32(subcmd, subcmd_size - 16, 3);
-  put64(subcmd, subcmd_size - 8, (uint64_t)(uintptr_t)cbs);
-
-  memset(adj, 0, sizeof(adj));   /* adj_matrix 全零（E-106B-2 已验证） */
+  memset(adj, 0, sizeof(adj));
 
   memset(&cmd, 0, sizeof(cmd));
   snprintf(p, sizeof(p), "%s/cmdin.bin", pl.asset_dir);
   if (read_file(p, &cmd, sizeof(cmd))) { rc = 3; goto done; }
   put64(&cmd, 0x10, 0);
   put64(&cmd, 0x18, 0);
-  put32(&cmd, 0x48, 1);
+  put32(&cmd, 0x48, (uint32_t)nsub);
   put64(&cmd, 0x50, (uint64_t)(uintptr_t)subcmd);
   put64(&cmd, 0x58, (uint64_t)(uintptr_t)adj);
   put64(&cmd, 0x60, 0xffffffffffffffffULL);
   put64(&cmd, 0x68, einfo.handle);
 
-  if (ioctl(g_fd, APU_CMD, &cmd) < 0) { perror("CMD RUN"); rc = 5; goto done; }
-
-  usleep(200000);   /* rc=0 只代表提交成功 */
-  dma_buf_sync(c.handle, (1u << 30) | 1u);
-  dma_buf_sync(c.handle, (1u << 31) | 1u);
-  if (write_file(pl.out, c.host, pl.n_elems)) { rc = 3; goto done; }
+  if (pl.iter < 1) pl.iter = 1;
+  {
+    static unsigned char ref[1 << 20];
+    static unsigned char cur[1 << 20];
+    if (pl.bytes_out > sizeof(ref)) { fprintf(stderr, "bytes_out too large for timing buffer\n"); rc = 2; goto done; }
+    double best = 1e9, worst = 0.0, sum = 0.0;
+    double samples[256];
+    int nsamp = 0, equal = 1;
+    for (int it = 0; it < pl.iter; it++) {
+      struct timespec t0, t1;
+      clock_gettime(CLOCK_MONOTONIC, &t0);
+      if (ioctl(g_fd, APU_CMD, &cmd) < 0) { perror("CMD RUN"); rc = 5; goto done; }
+      usleep((useconds_t)pl.wait_ms * 1000);
+      dma_buf_sync(c.handle, (1u << 30) | 1u);
+      dma_buf_sync(c.handle, (1u << 31) | 1u);
+      memcpy(cur, c.host, pl.bytes_out);
+      clock_gettime(CLOCK_MONOTONIC, &t1);
+      double ms = (t1.tv_sec - t0.tv_sec) * 1e3 + (t1.tv_nsec - t0.tv_nsec) / 1e6;
+      if (it == 0) memcpy(ref, cur, pl.bytes_out);
+      else if (memcmp(ref, cur, pl.bytes_out) != 0) equal = 0;
+      if (ms < best) best = ms;
+      if (ms > worst) worst = ms;
+      sum += ms;
+      if (nsamp < 256) samples[nsamp++] = ms;
+    }
+    /* 中位数 */
+    for (int a = 1; a < nsamp; a++) {
+      double v = samples[a];
+      int b = a - 1;
+      while (b >= 0 && samples[b] > v) { samples[b + 1] = samples[b]; b--; }
+      samples[b + 1] = v;
+    }
+    double med = nsamp ? samples[nsamp / 2] : 0.0;
+    printf("TIMING iter=%d wait_ms=%d min=%.3f med=%.3f max=%.3f mean=%.3f all_equal=%d\n",
+           pl.iter, pl.wait_ms, best, med, worst, sum / pl.iter, equal);
+    memcpy(c.host, ref, pl.bytes_out);
+  }
+  if (pl.dump_b[0] && pl.n_inputs == 2) {
+    dma_buf_sync(b1.handle, (1u << 30) | 1u);
+    dma_buf_sync(b1.handle, (1u << 31) | 1u);
+    if (write_file(pl.dump_b, b1.host, pl.bytes_b)) { rc = 3; goto done; }
+    printf("DUMP_B %s (%u bytes)\n", pl.dump_b, pl.bytes_b);
+  }
+  if (write_file(pl.out, c.host, pl.bytes_out)) { rc = 3; goto done; }
   printf("RC=0 patches=%u out=%s\n", hits, pl.out);
 
-  /* 证据用：让进程在提交完成后多活一会儿，方便外部采样 /proc/<pid>/maps
-     （docs/OWN-SUBMITTER-LIB.md「怎么证明 run() 没碰厂商库」）。 */
   {
     const char *hold = getenv("NPU_RUN_HOLD_MS");
     if (hold && atoi(hold) > 0) { printf("HOLD pid=%d ms=%d\n", (int)getpid(), atoi(hold)); fflush(stdout); usleep((useconds_t)atoi(hold) * 1000); }
   }
 
 done:
-  apu_release(&c); apu_release(&b1); apu_release(&a1); apu_release(&einfo);
-  apu_release(&cb[2]); apu_release(&cb[1]); apu_release(&cb[0]);
+  apu_release(&c);
+  apu_release(&b1);
+  apu_release(&a1);
+  apu_release(&einfo);
+  for (int i = 0; i < MAXSUB; i++)
+    for (int k = MAXCB - 1; k >= 0; k--) apu_release(&cb[i][k]);
   if (g_fd >= 0) { close(g_fd); g_fd = -1; }
   return rc;
 }

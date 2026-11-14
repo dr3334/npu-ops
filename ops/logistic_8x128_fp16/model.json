@@ -1,0 +1,40 @@
+{
+  "op": "LOGISTIC",
+  "shape": {
+    "d0": 8,
+    "d1": 128
+  },
+  "op_shape": [
+    8,
+    128
+  ],
+  "dtype": "fp16",
+  "input": {
+    "name": "input",
+    "shape": [
+      8,
+      128
+    ],
+    "type": "float16",
+    "bytes": 2048
+  },
+  "output": {
+    "name": "output",
+    "shape": [
+      8,
+      128
+    ],
+    "type": "float16",
+    "bytes": 2048
+  },
+  "quant": {},
+  "reference": "float64",
+  "seed": 20261112,
+  "prediction": "SwiGLU \u7684 sigmoid \u5f62\u72b6\uff08block \u91cc g=FC->[8,128] \u518d\u53d6 sigmoid\uff09\uff1b\u671f\u671b\u4e0e [1,64] \u540c\u4e00\u6761 LUT/activation \u8def\u5f84",
+  "generator": "tools/build_actreduce.py",
+  "atol": 0.002,
+  "rtol": 0.01,
+  "tolerance_rationale": "fp16 storage: atol is a small multiple of the fp16 ULP at the op's output magnitude; exactness is additionally reported as max_abs",
+  "tflite": "model.tflite",
+  "tflite_bytes": 392
+}

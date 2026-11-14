@@ -18,6 +18,7 @@ from pathlib import Path
 import numpy as np
 
 from . import env
+from . import stats
 from .graph import Graph, _sha256_file, _sha256_bytes
 from .dtype import DType
 
@@ -83,7 +84,9 @@ def run_combo(op, length, do_maps=False):
     art = g.compile()
     cap_a = np.fromfile(art.golden / "a.bin", dtype=np.int8)
     cap_b = np.fromfile(art.golden / "b.bin", dtype=np.int8)
+    _t = time.time()
     dev = g.run({"a": cap_a, "b": cap_b})
+    _run1_ms = (time.time() - _t) * 1e3
     # run() 每次覆盖 run/out.bin，先把这一跑的输出留档，免得被第二跑冲掉
     out_path = art.root / "run" / "out.bin"
     primary = art.root / "run" / "out_primary.bin"
@@ -95,11 +98,19 @@ def run_combo(op, length, do_maps=False):
     rng = np.random.default_rng(7 + length)
     alt_a = rng.integers(-100, 101, size=length).astype(np.int8)
     alt_b = rng.integers(-100, 101, size=length).astype(np.int8)
+    _t = time.time()
     alt = g.run({"a": alt_a, "b": alt_b})
+    _run2_ms = (time.time() - _t) * 1e3
     res_alt = g.verify(alt)
     if out_path.exists():
         shutil.copy(out_path, art.root / "run" / "out_alt.bin")
     dt = time.time() - t0
+    stats.record("npu_lib.matrix/%s/run_captured" % name, [_run1_ms], kind="host_wall",
+                 note="g.run() 一次（含 adb 推拉 + npu_run 200ms 等待）")
+    stats.record("npu_lib.matrix/%s/run_alt" % name, [_run2_ms], kind="host_wall",
+                 note="换一对输入的第二次 g.run()")
+    stats.record("npu_lib.matrix/%s/total_cold" % name, [dt * 1e3], kind="host_wall",
+                 note="compile + 捕获 + 两次 run + 两道门")
 
     plan_txt = art.plan_path.read_text()
     run_log = art.root / "run" / "npu_run.log"

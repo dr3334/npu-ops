@@ -68,6 +68,12 @@ SPECS = {
         atol=2e-3, rtol=1e-2,                   # ~4 ULP at 0.5 (fp16 u=4.9e-4)
         prediction="LUT/activation path on MDLA; fp16 accuracy a few ULP",
     ),
+    "logistic_8x128_fp16": dict(
+        op="LOGISTIC", shape=[8, 128], dtype="fp16",
+        atol=2e-3, rtol=1e-2,
+        prediction="SwiGLU 的 sigmoid 形状（block 里 g=FC->[8,128] 再取 sigmoid）；"
+                   "期望与 [1,64] 同一条 LUT/activation 路径",
+    ),
     "logistic_1x64_int8": dict(
         op="LOGISTIC", shape=[1, 64], dtype="int8", in_scale=1 / 16.0,
         int8_tol=2,                             # fixed-point LUT vs exact sigmoid

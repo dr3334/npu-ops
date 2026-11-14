@@ -31,13 +31,18 @@ res.ok                           # True 才算过
 |---|---|---|
 | `DType.int8(scale, zero_point=0)` | per-tensor int8 | 已实现；`zero_point != 0` 显式抛 `UnsupportedError`（非对称量化无板端证据） |
 | `DType.int16(scale)` | int16 | 构造入口在，抛 `NotImplementedError`（int16 的累加/requant 契约与 int8 不同） |
-| `DType.fp16()` | fp16 | 同上（fp16 需要噪声底实测与阈值登记，NOTES §4） |
+| `DType.fp16()` | fp16（无 scale） | **已实现**：`[8,64]` 上 MUL/ADD/SUB 全过，判据改成 ULP ≤ 1，见 [`reports/npu-lib-fp16.md`](../reports/npu-lib-fp16.md) |
 | `Graph(name)` | 一张图一个名字；artifacts 目录用这个名字 | 已实现 |
 | `g.input(name, shape, dtype)` | 静态形状；形状即命令流的一部分 | 已实现，带 16 B 行规则校验（int8 每行 >= 16 B 且 % 16 == 0） |
 | `g.add/sub/mul(a, b)` | 同形状、无广播、同 dtype | 已实现；形状不同 -> `BroadCastError`（显式报错，不悄悄广播） |
+| `g.fc(x, w)` | `x[M,K]` × `w[N,K]`（**权重是运行时输入**）-> `[M,N]`，`s_out = s_a*s_w*32`（可显式给） | 已实现（int8）；见 [`reports/npu-lib-fc.md`](../reports/npu-lib-fc.md) |
+| `g.softmax(x)` | 沿最后一维；int8 输出 `(1/256, zp=-128)` | 已实现；一元 + LUT 缓冲（`extra_file`），见 [`reports/npu-lib-softmax.md`](../reports/npu-lib-softmax.md) |
+| `g.mean(x, axis=-1)` | 整数归约 + 两步舍入；输出 scale 缺省 = 输入 scale（厂商约定） | 已实现；0/8，见 [`reports/npu-lib-mean-rsqrt.md`](../reports/npu-lib-mean-rsqrt.md) |
+| `g.rsqrt(x)` | 一元；输入码值须 > 0 | 已实现；0/128，同上 |
+| `g.logistic(x)` | 一元 sigmoid，**只支持 fp16**（int8 版 64/64 失配未定性，显式拒绝） | 已实现；`[8,128]` 门① 逐字节 + 0/2048 ULP，见 [`reports/npu-lib-logistic.md`](../reports/npu-lib-logistic.md) |
 | `g.compile()` | 四步流水线，见 §2 | 已实现 |
 | `g.run(inputs)` | dict{输入名: int8 码} -> `Output` | 已实现，只走 /dev/apusys |
-| `g.verify(out)` | 两道门，见 §4 | 已实现，返回 `VerifyResult`（`.ok == 同源 且 逐位`） |
+| `g.verify(out)` | 两道门，见 §4 | 已实现，返回 `VerifyResult`（`.ok == 同源 且 数值在 `int8_tol` 内；tol=0 即逐位） |
 
 出错类型：`NpuLibError`（编译/捕获/提交失败）、`BroadCastError`（形状不匹配）、
 `UnsupportedError`（接口留了入口但没实现）。三者都是 `NpuLibError` 的子类，
@@ -199,6 +204,41 @@ requant 口径（为什么这一票的 `int8_tol = 0`）：本库把输出 scale
 
 ---
 
+### 5.1 第二个算子：FULLY_CONNECTED（动态权重）
+
+证据：`artifacts/fc_8x64x32_int8/evidence.json`；报告 [`reports/npu-lib-fc.md`](../reports/npu-lib-fc.md)。
+
+| 项 | 值 |
+|---|---|
+| 形状 | `x[8,64] int8` × `w[32,64] int8`（权重是第二输入）-> `out[8,32]` |
+| 量化 | `s_a=s_w=1/127`，`s_out=s_a*s_w*32`（requant = 1/32） |
+| 编译 | `EXIT=0`，`.dla` 3165 B |
+| 计划 | `bytes_a=512` / `bytes_b=2048` / `bytes_out=256` —— **三块缓冲三个字节数** |
+| 门① 同源 | PASS（喂抓取那对输入，`device_out == vendor_out` 逐字节） |
+| 门② 数值 | PASS，0/256（喂全新随机输入也 0/256） |
+| 三者相等 | `device == vendor == golden`，sha256 `e660b3146b10db1c…` |
+
+这一条同时把提交器的尺寸接口从"单一 `n_elems`"扩成"每块缓冲各自的字节数"（`n_elems` 保留为兼容回退，
+老资产的 plan 一个字没改仍然 9/9 PASS）。
+
+## 5.2 计时与统计（`npu_lib.stats`，2026-11-14）
+
+测量不再散落在各脚本里：统一走 [`tools/npu_lib/stats.py`](../tools/npu_lib/stats.py)，
+记录进 `reports/timings.json`（只追加），报告渲染成 [`reports/timings.md`](../reports/timings.md)。
+
+| 接口 | 用途 |
+|---|---|
+| `stats.measure(fn, rounds=5, warmup=1)` | 跑 fn 若干轮，返回每轮毫秒（warmup 不计） |
+| `stats.record(name, xs, kind=..., note=...)` | 落盘一条（带 provenance：主机/时间/口径/备注） |
+| `stats.summarize(xs)` | n / min / p10 / **median** / mean / p90 / max / **MAD** / jitter% |
+| `stats.paired(fn_a, fn_b, rounds=7)` | **配对交替**（A,B,A,B…），只认它的中位数比值 |
+| `stats.parse_neuronrt(text)` | 解析厂商 `Total inference time = .. (.. ms/inf)` |
+| `stats.parse_runner(text)` | 解析 `npu_run` 的 `TIMING iter=.. wait_ms=.. med=..` |
+| `python -m npu_lib.stats --render` / `--list` | 出 `timings.md` / 列所有测量 |
+
+纪律（写进模块 docstring）：**中位数是主指标、MAD 是离散度**；跨时间/跨设备比较**只认配对交替的比值**，
+不拿两次绝对数相除（同一份 `.dla` 会漂 ±15%）。已经接上：`npu_lib.matrix` 的每次 `g.run()` 与冷跑总时长。
+
 ## 6. 适用范围与未解（不圆）
 
 ### 6.1 这一票确实做到的
@@ -207,6 +247,8 @@ requant 口径（为什么这一票的 `int8_tol = 0`）：本库把输出 scale
 * 定义 -> 编译 -> 捕获 -> 提交 -> 两道验收，**全链路一条 Python 调用**；
 * 运行期零厂商库（§3.2 三重证据）；
 * plan 驱动的 C runner：换算子/换形状/换长度**不重编 C**（`probe/npu_binop.c` 一行未改）。
+* **矩阵乘级算子 FULLY_CONNECTED（动态权重）** 也进了库：`g.fc(x, w)`，`[8,64]×[32,64] -> [8,32]`，
+  三块缓冲三个字节数，`device == vendor == golden`（§5.1）。
 
 ### 6.2 明确的未解 / 边界
 
@@ -223,14 +265,27 @@ requant 口径（为什么这一票的 `int8_tol = 0`）：本库把输出 scale
 5. **广播**按票面要求不支持，形状不同显式报 `BroadCastError`。
 6. **换形状仍要重新捕获资产**（形状烘在命令流里，ADR 0002 已写明这是本阶段的性质）。
    `compile()` 把它自动化了，但没有消除它；`artifacts/<name>/` 的数量会随形状增长。
-7. **需要额外缓冲的算子**（SOFTMAX 的 LUT、常量权重 FC 的 8 KiB 常量区）：
-   plan 已经有 `extra_file` 字段，但本票没在这两个算子上出证据；
-   常量权重 FC 还压着 OWN-SUBMITTER §10.3 那个 IoVA 契约未解。
+7. **需要额外缓冲的算子**：`extra_file` 字段现在**有证据**了 ——
+   SOFTMAX 的 LUT/scratch 缓冲（`[1,8,16]` int8，4 KiB）走 `extra_file=scratch.bin` 重放，
+   与厂商设备输出**逐字节相同**（0/128），见 [`reports/npu-lib-softmax.md`](../reports/npu-lib-softmax.md)。
+   softmax 已经是 `Graph` 的一等算子（`g.softmax`）：一元链路、LUT 缓冲、`output_zero_point=-128` 的 golden、
+   `int8_tol` 登记都通了，实测 0/128 且与厂商逐字节相同。
+   常量权重 FC 仍压着 OWN-SUBMITTER §10.3 那个 IoVA 契约未解。
 8. **"命令自生成"仍未开始**：本包把"重放捕获的命令流"工程化了，没有生成命令。
 9. **锁与并发**：库自己用目录锁（与 `tools/devlock.sh` 同一把，`NPU_LOCK_HELD=1` 表示外层已持锁）。
    板子只有一台，长跑矩阵仍应整体包在 `devlock.sh run` 里。
 
 ---
+
+### 6.3 改动边界与证据体系（2026-11-14 补记）
+
+- **`probe/` 由本库改，且只由 Lead 改。** 提交器本体就在 `probe/`（`npu_run.c` / `iolog2.c` / `mkasset.py`），
+  本库不可能不改它们。按 [`docs/AGENT-BRIEF.md`](AGENT-BRIEF.md) §2「公共工具的行为变化由 Lead 统一改」，
+  这些改动一律由 Lead 在本分支完成，并在对应 commit 与 `reports/npu-lib-*.md` 里留证据。
+  **并行 agent 仍然不要碰 `probe/`。**
+- **证据体系有两套，等价。** `ops/<name>/compare.txt` 是「一算子一目录」体系的板端判据；
+  本库路径下的等价物是 `artifacts/<name>/evidence.json`（plan 全文 + 两道门 + 各文件 sha256 + no_vendor_lib 证据）。
+  两者等价 —— 不要因为某算子没有 `compare.txt` 就判「无证据」。
 
 ## 7. 复现
 

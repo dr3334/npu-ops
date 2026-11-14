@@ -2,6 +2,11 @@
 
 格式刻意做成 key=value 纯文本：换算子/换形状/换长度都只是改数据。
 写/读都在这里，C 侧与 Python 侧的字段名因此只有一个权威定义。
+
+尺寸字段有两条路（C 侧同名逻辑，见 probe/npu_run.c 的 plan 注释）：
+  * `bytes_a/bytes_b/bytes_out` —— 每块缓冲各自的字节数（推荐）；
+  * `n_elems` —— 老写法，A/B/C 同尺寸时用，C 侧在没给 bytes_* 时回退到它。
+FC 必须用前者：A[M,K]、W[N,K]、C[M,N] 是三个不同的字节数。
 """
 from pathlib import Path
 
@@ -11,8 +16,9 @@ FIELDS = (
     "asset_dir", "old_a", "old_b", "old_c",
     "alloc_a", "alloc_b", "alloc_c",
     "dir0", "dir1", "dir2",
-    "patch_idx", "expect_patches", "n_elems", "n_inputs",
-    "in_a", "in_b", "out", "extra_file",
+    "patch_idx", "expect_patches",
+    "n_elems", "bytes_a", "bytes_b", "bytes_out",
+    "n_inputs", "in_a", "in_b", "out", "extra_file",
 )
 
 
@@ -24,7 +30,11 @@ class Plan:
         self.dir = (kw.get("dir0", 1), kw.get("dir1", 2), kw.get("dir2", 1))
         self.patch_idx = kw.get("patch_idx", 2)
         self.expect_patches = kw.get("expect_patches", 3)
-        self.n_elems = int(kw["n_elems"])
+        self.n_elems = int(kw.get("n_elems", 0))
+        # 每块缓冲的字节数：没显式给就从 n_elems 推（老资产的 plan 仍是这个形状）
+        self.bytes_a = int(kw.get("bytes_a", 0)) or self.n_elems
+        self.bytes_b = int(kw.get("bytes_b", 0)) or self.n_elems
+        self.bytes_out = int(kw.get("bytes_out", 0)) or self.n_elems
         self.n_inputs = int(kw.get("n_inputs", 2))
         self.in_a = kw["in_a"]
         self.in_b = kw.get("in_b", "")
@@ -56,7 +66,9 @@ class Plan:
             "dir2=%d" % self.dir[2],
             "patch_idx=%d" % self.patch_idx,
             "expect_patches=%d" % self.expect_patches,
-            "n_elems=%d" % self.n_elems,
+            "bytes_a=%d" % self.bytes_a,
+            "bytes_b=%d" % self.bytes_b,
+            "bytes_out=%d" % self.bytes_out,
             "n_inputs=%d" % self.n_inputs,
             "in_a=%s" % self.in_a,
             "in_b=%s" % self.in_b,

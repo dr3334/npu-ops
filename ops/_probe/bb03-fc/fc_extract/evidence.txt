@@ -1,0 +1,25 @@
+# fc_extract
+note: 基准 + --extract-static-data（权重外置成侧文件）
+flags: --extract-static-data {build}/static.bin
+model.tflite bytes=5104 sha256=85b1e4016a08737433192955c89cc240d30af1c124193b378bc20a7070f233d2
+weight_bytes=4096 bias_bytes=256
+attempts=9  classes={"class0": 9}  dropped(off-class)=4
+kept runs: attempt1, attempt2, attempt3, attempt4, attempt5
+attempt1 [modal]: rc=0 bytes=3813 sha256=82b14cf5a0e702ffaa22d9ced62f7eb58c86b21fbe1bd2fdcc37e448f95a83b5 seconds=0.41
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin
+attempt2 [modal]: rc=0 bytes=3813 sha256=49261f62b275c64d80258451708550ebb5ec49ff238891978eb0288207791b8c seconds=0.40
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin
+attempt3 [modal]: rc=0 bytes=3813 sha256=292704d90335c78fd40ef48e624b49ea6ab9fbd6ff529d78b30f527c76d2dd61 seconds=0.41
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin
+attempt4 [modal]: rc=0 bytes=3813 sha256=cf10e402c145b3e9c310eef90854e04875c311255e81dd6842b08d9112cd9cb7 seconds=0.40
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin
+attempt5 [modal]: rc=0 bytes=3813 sha256=8f91f6c74675cab61346238fa2b2ee2d65ef78c4ca4e8767846427129ef26f22 seconds=0.38
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin
+attempt6 [off-class [off-class]]: rc=0 bytes=3813 sha256=955ee8c7fc8a159805a3a506918ebbc830ae0ee6aac9bc103ec24f35585ee5c0 seconds=0.41
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin
+attempt7 [off-class [off-class]]: rc=0 bytes=3813 sha256=bc238333026e471ad9d8add584ac701c5b8369a9f42aa717923d4937a0872781 seconds=0.40
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin
+attempt8 [off-class [off-class]]: rc=0 bytes=3813 sha256=26eaeebf226c90b2d5dffedaf057a070ccec83857e90b7f7bdb7137de3ff3958 seconds=0.41
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin
+attempt9 [off-class [off-class]]: rc=0 bytes=3813 sha256=0bb5c0f0ecf62136b6a0ff41b6ce5237b056782891b4f45af936aa994e49a2bb seconds=0.45
+  cmd: bash tools/compile.sh /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.tflite /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/model.dla --extract-static-data /mnt/d/deepseek_ workspace/mtk/npu-ops/ops/_probe/bb03-fc/_build/static.bin
