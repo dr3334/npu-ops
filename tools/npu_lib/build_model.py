@@ -60,6 +60,8 @@ def code_inputs(op, shape, seed):
 
 def build(spec, outdir):
     op = spec["op"]
+    if spec.get("dtype") == "fp16":
+        return build_binop_fp16(spec, outdir)
     if op == "fc":
         return build_fc(spec, outdir)
     if op == "softmax":
@@ -115,6 +117,61 @@ def build(spec, outdir):
             "no board evidence yet (see docs/OWN-SUBMITTER-LIB.md)."),
         "int8_tol": 0,
         "reference": "int64_acc + tools/quant_contract.requant_int8",
+        "seed": seed,
+        "tflite_bytes": len(blob),
+    }
+    with open(os.path.join(outdir, "model.json"), "w") as f:
+        json.dump(meta, f, indent=2)
+    return meta
+
+
+def build_binop_fp16(spec, outdir):
+    """逐元素 fp16：张量类型 F16、**没有量化参数**。
+
+    判据与其他档不同：数值门按 ULP 比（golden.reference_fp16 用 float32 算再落回 fp16）。
+    """
+    op = spec["op"]
+    shape = tuple(int(x) for x in spec["shape"])
+    builtin, opt_kind = OPS[op]
+    seed = int(spec.get("seed", 20261113))
+
+    rng = np.random.default_rng(seed)
+    n = int(np.prod(shape))
+    a = rng.normal(0.0, 1.0, size=n).astype(np.float16)
+    b = rng.normal(0.0, 0.5, size=n).astype(np.float16)
+    # 前 8 个位置放能看出问题的点：正负、0、大值、小值、接近 1
+    a[:8] = np.asarray([1.0, -1.0, 0.5, -0.5, 100.0, -100.0, 0.0, 1e-3], dtype=np.float16)
+    b[:8] = np.asarray([1.0, 1.0, 0.5, 0.5, 0.01, -0.01, 1.0, 1e-3], dtype=np.float16)
+    a = a.reshape(shape)
+    b = b.reshape(shape)
+    expected = golden_mod.reference_fp16(op, a, b)
+
+    bb = flatbuffers.Builder(4096)
+    buffers = [bo.buf_empty(bb), bo.buf_empty(bb)]
+    t_a = bo.tensor(bb, spec["in_name"], list(shape), bo.F16, 0)
+    t_b = bo.tensor(bb, spec["in1_name"], list(shape), bo.F16, 0)
+    t_o = bo.tensor(bb, spec["out_name"], list(shape), bo.F16, 1)
+    opt_type, opt = _options(bb, opt_kind)
+    op_tbl = bo.operator(bb, 0, [0, 1], [2], opt_type, opt)
+    blob = bo.finish(bb, buffers, [bo.opcode(bb, getattr(bo.BuiltinOperator, builtin))],
+                     [t_a, t_b, t_o], [op_tbl], [0, 1], [2],
+                     "npu_lib %s %s fp16" % (builtin, "x".join(str(d) for d in shape)))
+
+    os.makedirs(os.path.join(outdir, "golden"), exist_ok=True)
+    with open(os.path.join(outdir, "model.tflite"), "wb") as f:
+        f.write(blob)
+    a.tofile(os.path.join(outdir, "golden", spec["in_name"] + ".bin"))
+    b.tofile(os.path.join(outdir, "golden", spec["in1_name"] + ".bin"))
+    expected.tofile(os.path.join(outdir, "golden", "expected.bin"))
+
+    meta = {
+        "name": spec["name"], "op": builtin, "shape": list(shape), "dtype": "fp16",
+        "inputs": [{"name": spec["in_name"], "shape": list(shape), "type": "float16"},
+                   {"name": spec["in1_name"], "shape": list(shape), "type": "float16"}],
+        "output": {"name": spec["out_name"], "shape": list(shape), "type": "float16"},
+        "numeric_rule": "ULP <= 1（fp16 尾数 10 位；设备是 fp16 算术）",
+        "max_ulp": 1,
+        "reference": "float32 a OP b -> float16",
         "seed": seed,
         "tflite_bytes": len(blob),
     }

@@ -69,18 +69,23 @@ def _alloc_for(nbytes):
     return (n + ALLOC_ALIGN - 1) // ALLOC_ALIGN * ALLOC_ALIGN
 
 
+def _np_dtype(kind):
+    return np.float16 if kind == "fp16" else np.int8
+
+
 def _row_bytes(shape, itemsize):
     """最后一维的字节数（逐元素算子按行成组，行规则作用在它上面）。"""
     return (shape[-1] if shape else 1) * itemsize
 
 
 class Output:
-    """run() 的结果：int8 码值 + 形状。"""
+    """run() 的结果：码值（int8）或 fp16 数值 + 形状。"""
 
-    __slots__ = ("codes", "shape", "scale")
+    __slots__ = ("codes", "shape", "scale", "kind")
 
-    def __init__(self, codes, shape, scale):
-        self.codes = np.asarray(codes, dtype=np.int8).reshape(shape)
+    def __init__(self, codes, shape, scale, kind="int8"):
+        self.kind = kind
+        self.codes = np.asarray(codes, dtype=_np_dtype(kind)).reshape(shape)
         self.shape = tuple(shape)
         self.scale = scale
 
@@ -91,7 +96,8 @@ class Output:
         return self.codes.size
 
     def __repr__(self):
-        return "Output(shape=%r, int8, first=%r)" % (self.shape, self.codes.ravel()[:8].tolist())
+        return "Output(shape=%r, %s, first=%r)" % (self.shape, self.kind,
+                                                    self.codes.ravel()[:8].tolist())
 
 
 class VerifyResult:
@@ -166,10 +172,10 @@ class Graph:
             raise TypeError("%s: expected Tensor, got %r" % (what, t))
         if t not in self._tensors:
             raise ValueError("%s: tensor %r belongs to another graph" % (what, t.name))
-        if t.dtype.kind != "int8":
+        if t.dtype.kind not in ("int8", "fp16"):
             raise UnsupportedError(
-                "%s: only int8 is implemented in this ticket (got %s); "
-                "DType.int16/fp16 are entry points that raise for now" % (what, t.dtype.kind))
+                "%s: only int8 and fp16 are implemented (got %s); DType.int16 still raises"
+                % (what, t.dtype.kind))
 
     def _binop(self, kind, a, b):
         self._check_tensor(a, kind)
@@ -181,14 +187,16 @@ class Graph:
                 % (kind, a.shape, b.shape))
         if a.dtype.kind != b.dtype.kind:
             raise UnsupportedError("%s: mixed dtypes %s/%s" % (kind, a.dtype, b.dtype))
-        if kind in ("add", "sub"):
+        if a.dtype.kind == "fp16":
+            out_dtype = DType.fp16()
+        elif kind in ("add", "sub"):
             if a.dtype != b.dtype:
                 raise UnsupportedError(
                     "%s: input scales differ (%r vs %r). That needs a requant with ratio != 1, "
                     "which has no board evidence for elementwise yet -- rescale explicitly."
                     % (kind, a.dtype.scale, b.dtype.scale))
             out_dtype = a.dtype
-        else:  # mul
+        else:  # mul（int8）
             out_dtype = DType.int8(a.dtype.scale * b.dtype.scale, 0)
         # 一条图只有一个算子：单层 .dla = 一份命令流 + 3 块缓冲（见 docs/OWN-SUBMITTER-LIB.md）
         if self._ops:
@@ -330,6 +338,7 @@ class Graph:
             "out_name": out.name,
             "in_scale": op["a"].dtype.scale,
             "in1_scale": 1.0 if unary else op["b"].dtype.scale,
+            "dtype": op["a"].dtype.kind,
             "out_scale": out.dtype.scale,
             "out_zero_point": out.dtype.zero_point,
             "int8_tol": op.get("tol", 0),
@@ -467,13 +476,14 @@ class Graph:
             raise ValueError("inputs must be exactly %r, got %r" % (want, set(inputs)))
         blobs = {}
         for t in [x for x in (op["a"], op["b"]) if x is not None]:
+            want_dt = _np_dtype(t.dtype.kind)
             arr = np.asarray(inputs[t.name])
-            if arr.dtype != np.int8:
-                arr = arr.astype(np.int8)
+            if arr.dtype != want_dt:
+                arr = arr.astype(want_dt)
             if arr.size != t.numel:
                 raise ValueError("input %r: expected %d elements, got %d"
                                  % (t.name, t.numel, arr.size))
-            blobs[t.name] = arr.astype(np.int8, copy=False).tobytes()
+            blobs[t.name] = arr.astype(want_dt, copy=False).tobytes()
 
         run_dev_dir = art.manifest["device_run_dir"]
         with env.board_lock("npu_lib.run %s" % self.name):
@@ -494,11 +504,12 @@ class Graph:
                                   % (r.returncode, (r.stdout or "")[-2000:] + (r.stderr or "")[-2000:]))
             out_local = local_in / "out.bin"
             env.dev_pull("%s/out.bin" % run_dev_dir, out_local)
-        codes = np.frombuffer(out_local.read_bytes(), dtype=np.int8)
+        kind = op["out"].dtype.kind
+        codes = np.frombuffer(out_local.read_bytes(), dtype=_np_dtype(kind))
         if codes.size != op["out"].numel:
             raise NpuLibError("device returned %d bytes, expected %d"
                               % (codes.size, op["out"].numel))
-        out = Output(codes, op["out"].shape, op["out"].dtype.scale)
+        out = Output(codes, op["out"].shape, op["out"].dtype.scale, kind)
         self._last_run = {"inputs": blobs, "out": out.tobytes(),
                           "runner_log": str(local_in / "npu_run.log")}
         return out
@@ -512,39 +523,60 @@ class Graph:
             got = out.tobytes()
         else:
             got = np.asarray(out).astype(np.int8).tobytes()
-        if len(got) != op["out"].numel:
-            raise ValueError("verify: got %d bytes, expected %d" % (len(got), op["out"].numel))
+        if len(got) != op["out"].nbytes:
+            raise ValueError("verify: got %d bytes, expected %d" % (len(got), op["out"].nbytes))
 
         # ② 数值：用**这次实际喂进去的**输入重算独立 golden
+        dt = _np_dtype(op["a"].dtype.kind)
         src = self._last_run["inputs"] if self._last_run is not None else None
         if src is not None:
-            a_codes = np.frombuffer(src[op["a"].name], dtype=np.int8)
-            b_codes = (np.zeros(1, np.int8) if op["b"] is None
-                       else np.frombuffer(src[op["b"].name], dtype=np.int8))
+            a_codes = np.frombuffer(src[op["a"].name], dtype=dt)
+            b_codes = (None if op["b"] is None
+                       else np.frombuffer(src[op["b"].name], dtype=dt))
         else:
-            a_codes = np.fromfile(art.golden / (op["a"].name + ".bin"), dtype=np.int8)
-            b_codes = (np.zeros(1, np.int8) if op["b"] is None
-                       else np.fromfile(art.golden / (op["b"].name + ".bin"), dtype=np.int8))
+            a_codes = np.fromfile(art.golden / (op["a"].name + ".bin"), dtype=dt)
+            b_codes = (None if op["b"] is None
+                       else np.fromfile(art.golden / (op["b"].name + ".bin"), dtype=dt))
         # golden 要按张量形状算：fc 是矩阵乘，softmax 沿最后一维归约
         # （一维码流直接算会把整块当成一行 —— softmax 就变成全张量归一化了）
         if op["kind"] in ("fc", "softmax", "mean", "rsqrt"):
             a_codes = a_codes.reshape(op["a"].shape)
         if op["kind"] == "fc":
             b_codes = b_codes.reshape(op["b"].shape)
-        expected, acc, ratio = golden_mod.reference(
-            op["kind"], a_codes, b_codes,
-            op["a"].dtype.scale, 1.0 if op["b"] is None else op["b"].dtype.scale,
-            op["out"].dtype.scale, zp_out=op["out"].dtype.zero_point, axis=op.get("axis"))
-        exp_arr = np.asarray(expected, dtype=np.int8).ravel()
-        exp_bytes = exp_arr.tobytes()
-        # 容差：int8_tol 为 0 时逐位比；>0 时按 |diff| <= tol（softmax 这类定点/LUT 实现）
-        tol = int(op.get("tol", 0))
-        got_arr = np.frombuffer(got, dtype=np.int8)
-        diff = np.abs(got_arr.astype(np.int16) - exp_arr.astype(np.int16))
-        bad = diff > tol
-        numeric_ok = not bool(bad.any())
-        n_bad = int(bad.sum())
-        first_bad = int(np.argmax(bad)) if n_bad else None
+        if op["a"].dtype.kind == "fp16":
+            # fp16：按 **ULP** 比（设备是 fp16 算术，与 float32 参考之间本来就有舍入）
+            max_ulp = int(op.get("max_ulp", 1))
+            a_f = np.asarray(a_codes, dtype=np.float16).reshape(op["a"].shape)
+            b_f = (None if op["b"] is None
+                   else np.asarray(b_codes, dtype=np.float16).reshape(op["b"].shape))
+            exp_f16 = golden_mod.reference_fp16(op["kind"], a_f, b_f, axis=op.get("axis"))
+            got_f16 = np.frombuffer(got, dtype=np.float16).reshape(op["out"].shape)
+            u = golden_mod.ulp_diff(got_f16, exp_f16)
+            bad = u > max_ulp
+            numeric_ok = not bool(bad.any())
+            n_bad = int(bad.sum())
+            first_bad = int(np.argmax(bad)) if n_bad else None
+            exp_bytes = exp_f16.tobytes()
+            num_detail = {"numeric_rule": "ulp", "ulp_tol": max_ulp, "max_ulp": int(u.max()),
+                          "requant_ratio": None}
+        else:
+            expected, acc, ratio = golden_mod.reference(
+                op["kind"], a_codes, b_codes,
+                op["a"].dtype.scale, 1.0 if op["b"] is None else op["b"].dtype.scale,
+                op["out"].dtype.scale, zp_out=op["out"].dtype.zero_point, axis=op.get("axis"))
+            exp_arr = np.asarray(expected, dtype=np.int8).ravel()
+            exp_bytes = exp_arr.tobytes()
+            # 容差：int8_tol 为 0 时逐位比；>0 时按 |diff| <= tol（softmax 这类定点/LUT 实现）
+            tol = int(op.get("tol", 0))
+            got_arr = np.frombuffer(got, dtype=np.int8)
+            diff = np.abs(got_arr.astype(np.int16) - exp_arr.astype(np.int16))
+            bad = diff > tol
+            numeric_ok = not bool(bad.any())
+            n_bad = int(bad.sum())
+            first_bad = int(np.argmax(bad)) if n_bad else None
+            num_detail = {"numeric_rule": "int8_code", "int8_tol": tol,
+                          "max_abs_diff": int(diff.max()) if diff.size else 0,
+                          "requant_ratio": ratio}
 
         # ① 同源：只有"喂的就是抓取时那对输入"时才谈得上逐字节比
         vendor_path = art.capture / "vendor_out.bin"
@@ -573,15 +605,14 @@ class Graph:
             "bytes": len(got),
             "numeric_mismatches": n_bad,
             "numeric_first_bad_index": first_bad,
-            "requant_ratio": ratio,
-            "int8_tol": tol,
-            "max_abs_diff": int(diff.max()) if diff.size else 0,
             "same_source_note": same_note,
             "sha256_out": _sha256_bytes(got),
             "sha256_expected": _sha256_bytes(exp_bytes),
             "sha256_vendor": _sha256_bytes(vendor_bytes) if vendor_bytes else "",
         }
+        detail.update(num_detail)
         res = VerifyResult(self.name, same_source_ok, numeric_ok, detail)
-        print("[verify] %-22s same_source=%-5s numeric=%-5s (%d/%d mismatches)"
-              % (self.name, same_source_ok, numeric_ok, n_bad, len(got)))
+        unit = "ulp" if op["a"].dtype.kind == "fp16" else "mismatches"
+        print("[verify] %-22s same_source=%-5s numeric=%-5s (%d/%d %s)"
+              % (self.name, same_source_ok, numeric_ok, n_bad, len(got), unit))
         return res

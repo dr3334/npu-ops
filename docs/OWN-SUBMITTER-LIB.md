@@ -31,7 +31,7 @@ res.ok                           # True 才算过
 |---|---|---|
 | `DType.int8(scale, zero_point=0)` | per-tensor int8 | 已实现；`zero_point != 0` 显式抛 `UnsupportedError`（非对称量化无板端证据） |
 | `DType.int16(scale)` | int16 | 构造入口在，抛 `NotImplementedError`（int16 的累加/requant 契约与 int8 不同） |
-| `DType.fp16()` | fp16 | 同上（fp16 需要噪声底实测与阈值登记，NOTES §4） |
+| `DType.fp16()` | fp16（无 scale） | **已实现**：`[8,64]` 上 MUL/ADD/SUB 全过，判据改成 ULP ≤ 1，见 [`reports/npu-lib-fp16.md`](../reports/npu-lib-fp16.md) |
 | `Graph(name)` | 一张图一个名字；artifacts 目录用这个名字 | 已实现 |
 | `g.input(name, shape, dtype)` | 静态形状；形状即命令流的一部分 | 已实现，带 16 B 行规则校验（int8 每行 >= 16 B 且 % 16 == 0） |
 | `g.add/sub/mul(a, b)` | 同形状、无广播、同 dtype | 已实现；形状不同 -> `BroadCastError`（显式报错，不悄悄广播） |

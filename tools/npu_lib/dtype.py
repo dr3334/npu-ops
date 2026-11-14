@@ -62,9 +62,12 @@ class DType:
 
     @staticmethod
     def fp16():
-        raise UnsupportedError(
-            "DType.fp16 还没实现：逐元素 fp16 需要噪声底实测与阈值登记（NOTES §4），"
-            "本票只交付 int8。构造入口保留。")
+        """fp16：没有 scale 的概念（scale 固定 1.0，只为接口一致）。
+
+        判据与其他档不同：同源门仍是逐字节，数值门按 **ULP**（fp16 尾数 10 位）——
+        设备是 fp16 算术，和 float32 参考之间本来就有舍入。见 reports/npu-lib-fp16.md。
+        """
+        return DType(FP16, 1.0, 0)
 
     # ---- 属性 -----------------------------------------------------------
     @property

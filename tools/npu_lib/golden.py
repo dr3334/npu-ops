@@ -14,6 +14,36 @@ from . import _tools
 _tools.ensure()
 import quant_contract as qc  # noqa: E402  (公共工具，只 import)
 
+def _fp16_bits(a):
+    """fp16 码 -> 单调可比的 int16（负数取反），用来算 ULP 距离。"""
+    b = np.asarray(a, dtype=np.float16).view(np.uint16).astype(np.int32)
+    return np.where(b & 0x8000, 0x8000 - (b & 0x7FFF), b)
+
+
+def ulp_diff(got_fp16, exp_fp16):
+    """逐元素 ULP 距离（同号内用位模式差；跨零按位模式差也算得很保守）。"""
+    return np.abs(_fp16_bits(got_fp16) - _fp16_bits(exp_fp16))
+
+
+def reference_fp16(op, a_codes, b_codes, s_a=1.0, s_b=1.0, s_out=1.0, zp_out=0, axis=None):
+    """fp16 的独立参考：用 float32 算再落回 fp16（规则 R3：与 flatbuffer 生成无关）。"""
+    a = np.asarray(a_codes, dtype=np.float32)
+    b = None if b_codes is None else np.asarray(b_codes, dtype=np.float32)
+    if op == "add":
+        y = a + b
+    elif op == "sub":
+        y = a - b
+    elif op == "mul":
+        y = a * b
+    elif op == "mean":
+        y = a.mean(axis=(-1 if axis is None else int(axis)), keepdims=True)
+    elif op == "rsqrt":
+        y = 1.0 / np.sqrt(a)
+    else:
+        raise ValueError("reference_fp16: unsupported op %r" % (op,))
+    return np.asarray(y, dtype=np.float16)
+
+
 # 每个算子：acc 用什么、乘数是什么（TFLite 的量化语义）
 #   ADD/SUB: acc 在 input scale 的格子里 -> multiplier = s_in / s_out
 #   MUL    : acc = a*b，单位是 s_a*s_b        -> multiplier = s_a*s_b / s_out
