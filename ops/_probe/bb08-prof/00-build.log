@@ -1,0 +1,32 @@
+== build tflite: decoder_layer_t8_fp16 (29.9 MB, slow) ==
+mask: S=max|scaled score|=578.52 -> M=-4096 (reused), interval [1261.0, 64925.5]
+/mnt/d/deepseek_ workspace/mtk/wt-bb08/ops/_probe/bb08-prof/build/dec: full/out  in[8, 896] out[8, 896]  tflite=29878152B  max|out|=0.4836 (ULP 0.000244)  floor=2.258e-03 (9.25 ULP)  atol=rtol=0.0090332  weights=28.50 MiB
+-rwxrwxrwx 1 dr dr    14336 Nov 14 16:20 /mnt/d/deepseek_ workspace/mtk/wt-bb08/ops/_probe/bb08-prof/build/dec/golden/input.bin
+-rwxrwxrwx 1 dr dr 29878152 Nov 14 16:20 /mnt/d/deepseek_ workspace/mtk/wt-bb08/ops/_probe/bb08-prof/build/dec/model.tflite
+-rwxrwxrwx 1 dr dr     5088 Nov 14 16:19 /mnt/d/deepseek_ workspace/mtk/wt-bb08/ops/_probe/bb08-prof/build/fc.tflite
+-rwxrwxrwx 1 dr dr       64 Nov 14 16:19 /mnt/d/deepseek_ workspace/mtk/wt-bb08/ops/_probe/bb08-prof/build/golden/input.bin
+== compile fc  ==
+fc_p0.dla                                            exit=0  size=7634      sha256=d7998b14ccaf27c0
+== compile fc -P1 ==
+fc_p1.dla                                            exit=0  size=7654      sha256=6f9f09e29cdb206d
+== compile fc -P2 ==
+fc_p2.dla                                            exit=0  size=7654      sha256=8b3c932ed9ca698a
+== compile fc -P3 ==
+fc_p3.dla                                            exit=0  size=8345      sha256=8c2a6657424fcdca
+== compile decoder  ==
+dec_p0.dla                                           exit=0  size=29913450  sha256=3a2aff8a30e02d74
+== compile decoder -P1 ==
+dec_p1.dla                                           exit=0  size=29913470  sha256=12675c81294e588e
+== compile decoder -P2 ==
+dec_p2.dla                                           exit=0  size=29913470  sha256=7b87fb9b05c0b297
+== compile decoder -P3 ==
+dec_p3.dla                                           exit=0  size=29974424  sha256=c27ff35bef2fdd6e
+== sizes / sha (the -P level must change the product) ==
+fc_p0.dla              7634  d7998b14ccaf27c0
+fc_p1.dla              7654  6f9f09e29cdb206d
+fc_p2.dla              7654  8b3c932ed9ca698a
+fc_p3.dla              8345  8c2a6657424fcdca
+dec_p0.dla         29913450  3a2aff8a30e02d74
+dec_p1.dla         29913470  12675c81294e588e
+dec_p2.dla         29913470  7b87fb9b05c0b297
+dec_p3.dla         29974424  c27ff35bef2fdd6e

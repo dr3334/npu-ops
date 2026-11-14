@@ -1,0 +1,75 @@
+WARNING: To enable profiling level 1, please use -P1 option to re-compile the model
+Inference repeats for 3 times.
+Total inference time = 0.099 ms (0.033 ms/inf)
+Avg. FPS : 2.609e+04
+----------------------------------------------------------------------------------------------------
+                                  Runtime Initial Status - Summary                                  
+----------------------------------------------------------------------------------------------------
+ ====Time===, ==Ratio==, =ExeTimes=, ===Description===
+      2.272,     37.6%,          1, Extract Compiled Network
+      3.773,     62.4%,          1, Read Compiled Network
+      6.045,    100.0%,        ---, Total
+
+----------------------------------------------------------------------------------------------------
+                                Detail of 'Preprocess DLA' - Summary                                
+----------------------------------------------------------------------------------------------------
+ ===Time===, ==Ratio==, =ExeTimes=, =Time/Inf.=, ===Description===
+      0.206,    100.0%,          1,         ---, Prepare and initialize device
+      0.206,    100.0%,        ---,       0.000, Total
+
+----------------------------------------------------------------------------------------------------
+                                Detail of 'Preprocess DLA' - Summary                                
+----------------------------------------------------------------------------------------------------
+ ===Time===, ==Ratio==, =ExeTimes=, =Time/Inf.=, ===Description===
+      0.002,      0.0%,          1,         ---, Deserialize DLA Sections
+      0.048,      0.0%,          1,         ---, Map Device Memory
+    153.658,    100.0%,          1,         ---, Fill Constant Data
+      0.000,      0.0%,          1,         ---, Preprocess target-specific data
+    153.708,    100.0%,        ---,       0.000, Total
+
+----------------------------------------------------------------------------------------------------
+                                 Runtime Status (LEVEL 1) - Summary                                 
+----------------------------------------------------------------------------------------------------
+ ===Time===, ==Ratio==, =ExeTimes=, =Time/Inf.=, ===Description===
+      0.007,      6.6%,          3,       0.002, Set Inference Input
+      0.001,      0.9%,          3,       0.000, Set Inference Output
+      0.098,     92.5%,          3,       0.033, Inference
+      0.106,    100.0%,        ---,       0.035, Total
+   ----------------------------------------------------------------------------------------------   
+                              Runtime Status (LEVEL 1) - History List                               
+   ----------------------------------------------------------------------------------------------   
+    Set Inference Input: average 0.002333 ms over 3 times execution.
+     ==CPUTimestamp==, =ExeOrder=, ===Time===, ===Description===
+     1794644664218986,         #0,      0.007, Set Inference Input
+     1794644664219039,         #1,      0.000, Set Inference Input
+     1794644664219070,         #2,      0.000, Set Inference Input
+   ----------------------------------------------------------------------------------------------
+    Set Inference Output: average 0.000333 ms over 3 times execution.
+     ==CPUTimestamp==, =ExeOrder=, ===Time===, ===Description===
+     1794644664218994,         #0,      0.001, Set Inference Output
+     1794644664219040,         #1,      0.000, Set Inference Output
+     1794644664219070,         #2,      0.000, Set Inference Output
+   ----------------------------------------------------------------------------------------------
+    Inference: average 0.032667 ms over 3 times execution.
+     ==CPUTimestamp==, =ExeOrder=, ===Time===, ===Description===
+     1794644664218996,         #0,      0.042, Inference
+     1794644664219040,         #1,      0.030, Inference
+     1794644664219071,         #2,      0.026, Inference
+   ----------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------------------
+                             Detail of 'Inference' (LEVEL 2) - Summary                              
+----------------------------------------------------------------------------------------------------
+ ===Time===, ==Ratio==, =ExeTimes=, =Time/Inf.=, ===Description===
+      0.001,    100.0%,          3,       0.000, Transit Execute
+      0.001,    100.0%,        ---,       0.000, Total
+   ----------------------------------------------------------------------------------------------   
+                           Detail of 'Inference' (LEVEL 2) - History List                           
+   ----------------------------------------------------------------------------------------------   
+    Transit Execute: average 0.000333 ms over 3 times execution.
+     ==CPUTimestamp==, =ExeOrder=, ===Time===, ===Description===
+     1794644664219034,         #0,      0.001, Transit Execute
+     1794644664219069,         #1,      0.000, Transit Execute
+     1794644664219096,         #2,      0.000, Transit Execute
+   ----------------------------------------------------------------------------------------------
+
